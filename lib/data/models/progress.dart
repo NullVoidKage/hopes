@@ -12,6 +12,7 @@ class Progress with _$Progress {
     required String lessonId,
     required ProgressStatus status,
     double? lastScore,
+    @Default(0) int attemptCount,
     required DateTime updatedAt,
   }) = _Progress;
 

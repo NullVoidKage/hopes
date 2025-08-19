@@ -139,4 +139,59 @@ class AssessmentRepositoryImpl implements AssessmentRepository {
         return AssessmentType.quiz;
     }
   }
+
+  @override
+  Future<Assessment> createAssessment(Assessment assessment) async {
+    final questionsJson = assessment.items.map((q) => {
+      'id': q.id,
+      'text': q.text,
+      'choices': q.choices,
+      'correctIndex': q.correctIndex,
+    }).toList();
+
+    await _database.into(_database.assessments).insert(
+      db.AssessmentsCompanion.insert(
+        id: assessment.id,
+        lessonId: Value(assessment.lessonId),
+        type: _convertToDbAssessmentType(assessment.type),
+        itemsJson: jsonEncode(questionsJson),
+      ),
+    );
+    return assessment;
+  }
+
+  @override
+  Future<Assessment> updateAssessment(Assessment assessment) async {
+    final questionsJson = assessment.items.map((q) => {
+      'id': q.id,
+      'text': q.text,
+      'choices': q.choices,
+      'correctIndex': q.correctIndex,
+    }).toList();
+
+    await (_database.update(_database.assessments)
+          ..where((a) => a.id.equals(assessment.id)))
+        .write(db.AssessmentsCompanion(
+      lessonId: Value(assessment.lessonId),
+      type: Value(_convertToDbAssessmentType(assessment.type)),
+      itemsJson: Value(jsonEncode(questionsJson)),
+    ));
+    return assessment;
+  }
+
+  @override
+  Future<void> deleteAssessment(String id) async {
+    await (_database.delete(_database.assessments)
+          ..where((a) => a.id.equals(id)))
+        .go();
+  }
+
+  db.AssessmentType _convertToDbAssessmentType(AssessmentType type) {
+    switch (type) {
+      case AssessmentType.pre:
+        return db.AssessmentType.pre;
+      case AssessmentType.quiz:
+        return db.AssessmentType.quiz;
+    }
+  }
 } 

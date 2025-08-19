@@ -5,6 +5,9 @@ abstract class AssessmentRepository {
   Future<List<Assessment>> getAssessmentsByLesson(String lessonId);
   Future<Assessment?> getAssessment(String id);
   Future<Assessment?> getPretest();
+  Future<Assessment> createAssessment(Assessment assessment);
+  Future<Assessment> updateAssessment(Assessment assessment);
+  Future<void> deleteAssessment(String id);
   Future<Attempt> createAttempt({
     required String assessmentId,
     required String userId,

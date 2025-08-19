@@ -24,6 +24,7 @@ mixin _$Progress {
   String get lessonId => throw _privateConstructorUsedError;
   ProgressStatus get status => throw _privateConstructorUsedError;
   double? get lastScore => throw _privateConstructorUsedError;
+  int get attemptCount => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this Progress to a JSON map.
@@ -46,6 +47,7 @@ abstract class $ProgressCopyWith<$Res> {
       String lessonId,
       ProgressStatus status,
       double? lastScore,
+      int attemptCount,
       DateTime updatedAt});
 }
 
@@ -68,6 +70,7 @@ class _$ProgressCopyWithImpl<$Res, $Val extends Progress>
     Object? lessonId = null,
     Object? status = null,
     Object? lastScore = freezed,
+    Object? attemptCount = null,
     Object? updatedAt = null,
   }) {
     return _then(_value.copyWith(
@@ -87,6 +90,10 @@ class _$ProgressCopyWithImpl<$Res, $Val extends Progress>
           ? _value.lastScore
           : lastScore // ignore: cast_nullable_to_non_nullable
               as double?,
+      attemptCount: null == attemptCount
+          ? _value.attemptCount
+          : attemptCount // ignore: cast_nullable_to_non_nullable
+              as int,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -108,6 +115,7 @@ abstract class _$$ProgressImplCopyWith<$Res>
       String lessonId,
       ProgressStatus status,
       double? lastScore,
+      int attemptCount,
       DateTime updatedAt});
 }
 
@@ -128,6 +136,7 @@ class __$$ProgressImplCopyWithImpl<$Res>
     Object? lessonId = null,
     Object? status = null,
     Object? lastScore = freezed,
+    Object? attemptCount = null,
     Object? updatedAt = null,
   }) {
     return _then(_$ProgressImpl(
@@ -147,6 +156,10 @@ class __$$ProgressImplCopyWithImpl<$Res>
           ? _value.lastScore
           : lastScore // ignore: cast_nullable_to_non_nullable
               as double?,
+      attemptCount: null == attemptCount
+          ? _value.attemptCount
+          : attemptCount // ignore: cast_nullable_to_non_nullable
+              as int,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -163,6 +176,7 @@ class _$ProgressImpl implements _Progress {
       required this.lessonId,
       required this.status,
       this.lastScore,
+      this.attemptCount = 0,
       required this.updatedAt});
 
   factory _$ProgressImpl.fromJson(Map<String, dynamic> json) =>
@@ -177,11 +191,14 @@ class _$ProgressImpl implements _Progress {
   @override
   final double? lastScore;
   @override
+  @JsonKey()
+  final int attemptCount;
+  @override
   final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'Progress(userId: $userId, lessonId: $lessonId, status: $status, lastScore: $lastScore, updatedAt: $updatedAt)';
+    return 'Progress(userId: $userId, lessonId: $lessonId, status: $status, lastScore: $lastScore, attemptCount: $attemptCount, updatedAt: $updatedAt)';
   }
 
   @override
@@ -195,14 +212,16 @@ class _$ProgressImpl implements _Progress {
             (identical(other.status, status) || other.status == status) &&
             (identical(other.lastScore, lastScore) ||
                 other.lastScore == lastScore) &&
+            (identical(other.attemptCount, attemptCount) ||
+                other.attemptCount == attemptCount) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, userId, lessonId, status, lastScore, updatedAt);
+  int get hashCode => Object.hash(runtimeType, userId, lessonId, status,
+      lastScore, attemptCount, updatedAt);
 
   /// Create a copy of Progress
   /// with the given fields replaced by the non-null parameter values.
@@ -226,6 +245,7 @@ abstract class _Progress implements Progress {
       required final String lessonId,
       required final ProgressStatus status,
       final double? lastScore,
+      final int attemptCount,
       required final DateTime updatedAt}) = _$ProgressImpl;
 
   factory _Progress.fromJson(Map<String, dynamic> json) =
@@ -239,6 +259,8 @@ abstract class _Progress implements Progress {
   ProgressStatus get status;
   @override
   double? get lastScore;
+  @override
+  int get attemptCount;
   @override
   DateTime get updatedAt;
 

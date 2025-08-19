@@ -12,6 +12,7 @@ _$ProgressImpl _$$ProgressImplFromJson(Map<String, dynamic> json) =>
       lessonId: json['lessonId'] as String,
       status: $enumDecode(_$ProgressStatusEnumMap, json['status']),
       lastScore: (json['lastScore'] as num?)?.toDouble(),
+      attemptCount: (json['attemptCount'] as num?)?.toInt() ?? 0,
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
 
@@ -21,6 +22,7 @@ Map<String, dynamic> _$$ProgressImplToJson(_$ProgressImpl instance) =>
       'lessonId': instance.lessonId,
       'status': _$ProgressStatusEnumMap[instance.status]!,
       'lastScore': instance.lastScore,
+      'attemptCount': instance.attemptCount,
       'updatedAt': instance.updatedAt.toIso8601String(),
     };
 

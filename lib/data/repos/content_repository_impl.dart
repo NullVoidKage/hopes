@@ -87,4 +87,102 @@ class ContentRepositoryImpl implements ContentRepository {
       estMins: lesson.estMins,
     );
   }
+
+  @override
+  Future<Subject> createSubject(Subject subject) async {
+    await _database.into(_database.subjects).insert(
+      db.SubjectsCompanion.insert(
+        id: subject.id,
+        name: subject.name,
+        gradeLevel: subject.gradeLevel,
+      ),
+    );
+    return subject;
+  }
+
+  @override
+  Future<Subject> updateSubject(Subject subject) async {
+    await (_database.update(_database.subjects)
+          ..where((s) => s.id.equals(subject.id)))
+        .write(db.SubjectsCompanion(
+      name: Value(subject.name),
+      gradeLevel: Value(subject.gradeLevel),
+    ));
+    return subject;
+  }
+
+  @override
+  Future<void> deleteSubject(String id) async {
+    await (_database.delete(_database.subjects)
+          ..where((s) => s.id.equals(id)))
+        .go();
+  }
+
+  @override
+  Future<Module> createModule(Module module) async {
+    await _database.into(_database.modules).insert(
+      db.ModulesCompanion.insert(
+        id: module.id,
+        subjectId: module.subjectId,
+        title: module.title,
+        version: module.version,
+        isPublished: module.isPublished,
+      ),
+    );
+    return module;
+  }
+
+  @override
+  Future<Module> updateModule(Module module) async {
+    await (_database.update(_database.modules)
+          ..where((m) => m.id.equals(module.id)))
+        .write(db.ModulesCompanion(
+      subjectId: Value(module.subjectId),
+      title: Value(module.title),
+      version: Value(module.version),
+      isPublished: Value(module.isPublished),
+    ));
+    return module;
+  }
+
+  @override
+  Future<void> deleteModule(String id) async {
+    await (_database.delete(_database.modules)
+          ..where((m) => m.id.equals(id)))
+        .go();
+  }
+
+  @override
+  Future<Lesson> createLesson(Lesson lesson) async {
+    await _database.into(_database.lessons).insert(
+      db.LessonsCompanion.insert(
+        id: lesson.id,
+        moduleId: lesson.moduleId,
+        title: lesson.title,
+        bodyMarkdown: lesson.bodyMarkdown,
+        estMins: lesson.estMins,
+      ),
+    );
+    return lesson;
+  }
+
+  @override
+  Future<Lesson> updateLesson(Lesson lesson) async {
+    await (_database.update(_database.lessons)
+          ..where((l) => l.id.equals(lesson.id)))
+        .write(db.LessonsCompanion(
+      moduleId: Value(lesson.moduleId),
+      title: Value(lesson.title),
+      bodyMarkdown: Value(lesson.bodyMarkdown),
+      estMins: Value(lesson.estMins),
+    ));
+    return lesson;
+  }
+
+  @override
+  Future<void> deleteLesson(String id) async {
+    await (_database.delete(_database.lessons)
+          ..where((l) => l.id.equals(id)))
+        .go();
+  }
 } 

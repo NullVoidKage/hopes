@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,9 @@ import '../../../data/models/subject.dart';
 import '../../../data/models/module.dart';
 import '../../../data/models/lesson.dart';
 import '../../../data/models/progress.dart';
+import '../../../data/models/points.dart';
+import '../../../data/models/badge.dart' as models;
+import '../../../services/sync/progress_sync_service.dart';
 
 class StudentDashboardScreen extends ConsumerWidget {
   const StudentDashboardScreen({super.key});
@@ -159,6 +163,10 @@ class StudentDashboardScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+
+                    // Gamification Section
+                    _buildGamificationCard(context, ref, user),
                     const SizedBox(height: 16),
 
                     // Subjects Section
@@ -329,6 +337,161 @@ class StudentDashboardScreen extends ConsumerWidget {
           backgroundColor: Colors.green,
           labelStyle: TextStyle(color: Colors.white),
         );
+    }
+  }
+
+  Widget _buildGamificationCard(BuildContext context, WidgetRef ref, User user) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.stars,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'My Progress',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildPointsWidget(context, ref, user),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildBadgesWidget(context, ref, user),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPointsWidget(BuildContext context, WidgetRef ref, User user) {
+    return FutureBuilder<Points?>(
+      future: _getUserPoints(ref, user.id),
+      builder: (context, snapshot) {
+        final points = snapshot.data?.totalPoints ?? 0;
+        
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.amber.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+          ),
+          child: Column(
+            children: [
+              Icon(Icons.stars, color: Colors.amber, size: 24),
+              const SizedBox(height: 4),
+              Text(
+                points.toString(),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber,
+                ),
+              ),
+              const Text(
+                'Points',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBadgesWidget(BuildContext context, WidgetRef ref, User user) {
+    return FutureBuilder<List<models.Badge>>(
+      future: _getUserBadges(ref, user.id),
+      builder: (context, snapshot) {
+        final badges = snapshot.data ?? [];
+        
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.purple.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.purple.withOpacity(0.3)),
+          ),
+          child: Column(
+            children: [
+              Icon(Icons.emoji_events, color: Colors.purple, size: 24),
+              const SizedBox(height: 4),
+              Text(
+                badges.length.toString(),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+              const Text(
+                'Badges',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Points?> _getUserPoints(WidgetRef ref, String userId) async {
+    try {
+      final database = ref.read(databaseProvider);
+      final points = await (database.select(database.points)
+            ..where((tbl) => tbl.userId.equals(userId)))
+          .getSingleOrNull();
+      
+      if (points != null) {
+        return Points(
+          userId: points.userId,
+          totalPoints: points.totalPoints,
+        );
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<List<models.Badge>> _getUserBadges(WidgetRef ref, String userId) async {
+    try {
+      final database = ref.read(databaseProvider);
+      final userBadges = await (database.select(database.userBadges)
+            ..where((tbl) => tbl.userId.equals(userId)))
+          .get();
+      
+      final badgeIds = userBadges.map((ub) => ub.badgeId).toList();
+      if (badgeIds.isEmpty) return [];
+      
+      final badges = await (database.select(database.badges)
+            ..where((tbl) => tbl.id.isIn(badgeIds)))
+          .get();
+      
+      return badges.map((b) => models.Badge(
+        id: b.id,
+        name: b.name,
+        ruleJson: jsonDecode(b.ruleJson),
+      )).toList();
+    } catch (e) {
+      return [];
     }
   }
 } 

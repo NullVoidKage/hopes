@@ -9,6 +9,8 @@ import '../data/repos/assessment_repository.dart';
 import '../data/repos/assessment_repository_impl.dart';
 import '../data/repos/progress_repository.dart';
 import '../data/repos/progress_repository_impl.dart';
+import '../services/sync/content_sync_service.dart';
+import '../services/sync/progress_sync_service.dart';
 import 'auth_notifier.dart';
 import '../data/models/user.dart';
 
@@ -54,4 +56,15 @@ final currentUserProvider = StateNotifierProvider<AuthNotifier, AsyncValue<User?
 final seedDataProvider = FutureProvider<bool>((ref) async {
   final seedImporter = ref.watch(seedImporterProvider);
   return await seedImporter.importSeedData();
+});
+
+// Sync service providers
+final contentSyncServiceProvider = Provider<ContentSyncService>((ref) {
+  final database = ref.watch(databaseProvider);
+  return ContentSyncServiceImpl(database);
+});
+
+final progressSyncServiceProvider = Provider<ProgressSyncService>((ref) {
+  final database = ref.watch(databaseProvider);
+  return ProgressSyncServiceImpl(database);
 }); 
