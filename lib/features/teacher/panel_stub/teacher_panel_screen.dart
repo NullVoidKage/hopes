@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers.dart';
+import '../../../core/theme.dart';
 import '../../../data/models/user.dart';
 import '../../../data/models/subject.dart';
 import '../../../data/models/module.dart';
@@ -42,13 +43,50 @@ class TeacherPanelScreen extends ConsumerWidget {
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Teacher Panel'),
-              bottom: const TabBar(
+              bottom: TabBar(
                 tabs: [
-                  Tab(text: 'Subjects'),
-                  Tab(text: 'Lessons'),
-                  Tab(text: 'Quizzes'),
-                  Tab(text: 'Progress'),
+                  Tab(
+                    child: Text(
+                      'Subjects',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Tab(
+                    child: Text(
+                      'Lessons',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Tab(
+                    child: Text(
+                      'Quizzes',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Tab(
+                    child: Text(
+                      'Progress',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
+                labelColor: AppTheme.primaryBlue,
+                unselectedLabelColor: AppTheme.neutralGray,
+                indicatorColor: AppTheme.primaryBlue,
+                indicatorWeight: 3,
+                indicatorSize: TabBarIndicatorSize.label,
               ),
               actions: [
                 _buildSyncStatusIcon(ref),
@@ -108,11 +146,20 @@ class TeacherPanelScreen extends ConsumerWidget {
     return Consumer(
       builder: (context, ref, child) {
         // For now, show green sync status (simulating online)
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
+        return Container(
+          margin: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.accentGreen.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppTheme.accentGreen.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
           child: Icon(
             Icons.sync,
-            color: Colors.green,
+            color: AppTheme.accentGreen,
             size: 20,
           ),
         );
@@ -130,17 +177,26 @@ class TeacherPanelScreen extends ConsumerWidget {
           case 0: // Subjects
             return FloatingActionButton(
               onPressed: () => _showSubjectDialog(context, ref),
-              child: const Icon(Icons.add),
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              child: const Icon(Icons.add, size: 24),
             );
           case 1: // Lessons
             return FloatingActionButton(
               onPressed: () => _showLessonDialog(context, ref),
-              child: const Icon(Icons.add),
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              child: const Icon(Icons.add, size: 24),
             );
           case 2: // Quizzes
             return FloatingActionButton(
               onPressed: () => _showQuizDialog(context, ref),
-              child: const Icon(Icons.add),
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              child: const Icon(Icons.add, size: 24),
             );
           default:
             return const SizedBox.shrink();
@@ -221,23 +277,74 @@ class _SubjectsTab extends ConsumerWidget {
           itemCount: subjects.length,
           itemBuilder: (context, index) {
             final subject = subjects[index];
-            return Card(
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: ListTile(
-                leading: const Icon(Icons.science),
-                title: Text(subject.name),
-                subtitle: Text('Grade ${subject.gradeLevel}'),
+                contentPadding: const EdgeInsets.all(16),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.science,
+                    color: AppTheme.primaryBlue,
+                    size: 20,
+                  ),
+                ),
+                title: Text(
+                  subject.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.darkGray,
+                  ),
+                ),
+                subtitle: Text(
+                  'Grade ${subject.gradeLevel}',
+                  style: TextStyle(
+                    color: AppTheme.neutralGray,
+                  ),
+                ),
                 trailing: PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: AppTheme.neutralGray,
+                  ),
                   onSelected: (value) {
                     // Handle subject actions
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
-                      child: Text('Edit'),
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, color: AppTheme.primaryBlue, size: 18),
+                          const SizedBox(width: 8),
+                          const Text('Edit'),
+                        ],
+                      ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
-                      child: Text('Delete'),
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, color: AppTheme.accentRed, size: 18),
+                          const SizedBox(width: 8),
+                          const Text('Delete'),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -276,15 +383,77 @@ class _LessonsTab extends ConsumerWidget {
 
             final modules = modulesSnapshot.data ?? [];
             
+            if (modules.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.lightGray,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        Icons.article,
+                        size: 64,
+                        color: AppTheme.neutralGray,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'No lessons available',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.darkGray,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create your first lesson to get started',
+                      style: TextStyle(
+                        color: AppTheme.neutralGray,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            
             return ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: modules.length,
               itemBuilder: (context, index) {
                 final module = modules[index];
-                return Card(
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                   child: ExpansionTile(
-                    title: Text(module.title),
-                    subtitle: Text('Version: ${module.version}'),
+                    title: Text(
+                      module.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.darkGray,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Version: ${module.version}',
+                      style: TextStyle(
+                        color: AppTheme.neutralGray,
+                      ),
+                    ),
                     children: [
                       FutureBuilder<List<Lesson>>(
                         future: contentRepo.getLessonsByModule(module.id),
@@ -292,19 +461,63 @@ class _LessonsTab extends ConsumerWidget {
                           final lessons = lessonsSnapshot.data ?? [];
                           
                           return Column(
-                            children: lessons.map((lesson) => ListTile(
-                              title: Text(lesson.title),
-                              subtitle: Text('${lesson.estMins} minutes'),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
+                            children: lessons.map((lesson) => Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.lightGray,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () => _editLesson(context, lesson),
+                                  Icon(
+                                    Icons.article,
+                                    color: AppTheme.primaryBlue,
+                                    size: 18,
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    onPressed: () => _deleteLesson(context, ref, lesson),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          lesson.title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.darkGray,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${lesson.estMins} minutes',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppTheme.neutralGray,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.edit,
+                                          color: AppTheme.primaryBlue,
+                                          size: 18,
+                                        ),
+                                        onPressed: () => _editLesson(context, lesson),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.delete,
+                                          color: AppTheme.accentRed,
+                                          size: 18,
+                                        ),
+                                        onPressed: () => _deleteLesson(context, ref, lesson),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -345,7 +558,9 @@ class _LessonsTab extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              // TODO: Implement delete lesson
+              final contentRepo = ref.read(contentRepositoryProvider);
+              await contentRepo.deleteLesson(lesson.id);
+              ref.invalidate(contentRepositoryProvider);
             },
             child: const Text('Delete'),
           ),
@@ -369,25 +584,107 @@ class _QuizzesTab extends ConsumerWidget {
 
         final quizzes = snapshot.data ?? [];
         
+        if (quizzes.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightGray,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    Icons.quiz,
+                    size: 64,
+                    color: AppTheme.neutralGray,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'No quizzes available',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.darkGray,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Create your first quiz to get started',
+                  style: TextStyle(
+                    color: AppTheme.neutralGray,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: quizzes.length,
           itemBuilder: (context, index) {
             final quiz = quizzes[index];
-            return Card(
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: ListTile(
-                leading: const Icon(Icons.quiz),
-                title: Text('Quiz ${index + 1}'),
-                subtitle: Text('${quiz.items.length} questions'),
+                contentPadding: const EdgeInsets.all(16),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.quiz,
+                    color: AppTheme.accentGreen,
+                    size: 20,
+                  ),
+                ),
+                title: Text(
+                  'Quiz ${index + 1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.darkGray,
+                  ),
+                ),
+                subtitle: Text(
+                  '${quiz.items.length} questions',
+                  style: TextStyle(
+                    color: AppTheme.neutralGray,
+                  ),
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit),
+                      icon: Icon(
+                        Icons.edit,
+                        color: AppTheme.primaryBlue,
+                        size: 18,
+                      ),
                       onPressed: () => _editQuiz(context, quiz),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete),
+                      icon: Icon(
+                        Icons.delete,
+                        color: AppTheme.accentRed,
+                        size: 18,
+                      ),
                       onPressed: () => _deleteQuiz(context, ref, quiz),
                     ),
                   ],
@@ -401,12 +698,58 @@ class _QuizzesTab extends ConsumerWidget {
   }
 
   Future<List<Assessment>> _getAllQuizzes(AssessmentRepository assessmentRepo) async {
-    // For demo purposes, return empty list
-    return [];
+    // For demo purposes, return sample quizzes
+    return [
+      Assessment(
+        id: 'quiz-1',
+        lessonId: 'lesson-1',
+        type: AssessmentType.quiz,
+        items: [
+          Question(
+            id: 'q1',
+            text: 'What is the basic unit of life?',
+            choices: ['Cell', 'Atom', 'Molecule', 'Organ'],
+            correctIndex: 0,
+          ),
+          Question(
+            id: 'q2',
+            text: 'Which of the following is NOT a characteristic of living things?',
+            choices: ['Growth', 'Reproduction', 'Photosynthesis', 'Movement'],
+            correctIndex: 2,
+          ),
+        ],
+      ),
+      Assessment(
+        id: 'quiz-2',
+        lessonId: 'lesson-2',
+        type: AssessmentType.quiz,
+        items: [
+          Question(
+            id: 'q3',
+            text: 'What is an ecosystem?',
+            choices: ['A community of living organisms', 'A type of plant', 'A weather pattern', 'A geological formation'],
+            correctIndex: 0,
+          ),
+        ],
+      ),
+    ];
   }
 
   void _editQuiz(BuildContext context, Assessment quiz) {
-    // TODO: Implement edit quiz
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          width: double.maxFinite,
+          height: MediaQuery.of(context).size.height * 0.8,
+          padding: const EdgeInsets.all(16),
+          child: QuizEditor(
+            assessment: quiz,
+            lessonId: quiz.lessonId ?? 'default-lesson',
+          ),
+        ),
+      ),
+    );
   }
 
   void _deleteQuiz(BuildContext context, WidgetRef ref, Assessment quiz) {
@@ -423,7 +766,9 @@ class _QuizzesTab extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              // TODO: Implement delete quiz
+              final assessmentRepo = ref.read(assessmentRepositoryProvider);
+              await assessmentRepo.deleteAssessment(quiz.id);
+              ref.invalidate(assessmentRepositoryProvider);
             },
             child: const Text('Delete'),
           ),

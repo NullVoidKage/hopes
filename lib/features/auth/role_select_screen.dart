@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../core/theme.dart';
 import '../../data/models/user.dart';
 
 class RoleSelectScreen extends ConsumerStatefulWidget {
@@ -44,57 +45,84 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
             const SizedBox(height: 48),
 
             // Student Role Card
-            Card(
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: InkWell(
                 onTap: () => _selectRole(UserRole.student),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
                     border: _selectedRole == UserRole.student
-                        ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-                        : null,
+                        ? Border.all(color: AppTheme.primaryBlue, width: 2)
+                        : Border.all(color: AppTheme.lightGray, width: 1),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(8),
+                          color: _selectedRole == UserRole.student
+                              ? AppTheme.primaryBlue
+                              : AppTheme.primaryBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
                           Icons.school,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color: _selectedRole == UserRole.student
+                              ? Colors.white
+                              : AppTheme.primaryBlue,
                           size: 32,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Student',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.darkGray,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Text(
                               'Access lessons, take quizzes, and track your progress',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              style: TextStyle(
+                                color: AppTheme.neutralGray,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ],
                         ),
                       ),
                       if (_selectedRole == UserRole.student)
-                        Icon(
-                          Icons.check_circle,
-                          color: Theme.of(context).colorScheme.primary,
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentGreen,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                     ],
                   ),
@@ -104,57 +132,84 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
             const SizedBox(height: 16),
 
             // Teacher Role Card
-            Card(
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: InkWell(
                 onTap: () => _selectRole(UserRole.teacher),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
                     border: _selectedRole == UserRole.teacher
-                        ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-                        : null,
+                        ? Border.all(color: AppTheme.primaryBlue, width: 2)
+                        : Border.all(color: AppTheme.lightGray, width: 1),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(8),
+                          color: _selectedRole == UserRole.teacher
+                              ? AppTheme.accentPurple
+                              : AppTheme.accentPurple.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
                           Icons.person,
-                          color: Theme.of(context).colorScheme.onSecondaryContainer,
+                          color: _selectedRole == UserRole.teacher
+                              ? Colors.white
+                              : AppTheme.accentPurple,
                           size: 32,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Teacher',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.darkGray,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Text(
                               'Upload content, view analytics, and manage students',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              style: TextStyle(
+                                color: AppTheme.neutralGray,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ],
                         ),
                       ),
                       if (_selectedRole == UserRole.teacher)
-                        Icon(
-                          Icons.check_circle,
-                          color: Theme.of(context).colorScheme.primary,
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentGreen,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                     ],
                   ),
@@ -167,7 +222,22 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _selectedRole != null ? _confirmRole : null,
-                child: const Text('Continue'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Continue',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],

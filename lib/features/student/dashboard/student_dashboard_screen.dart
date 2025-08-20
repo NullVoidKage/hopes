@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers.dart';
+import '../../../core/theme.dart';
 import '../../../data/models/user.dart';
 import '../../../data/models/subject.dart';
 import '../../../data/models/module.dart';
@@ -96,71 +97,134 @@ class StudentDashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Welcome Section
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome, ${user.name}!',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Ready to learn? Let\'s get started with your lessons.',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppTheme.primaryBlue.withOpacity(0.1),
+                            AppTheme.secondaryBlue.withOpacity(0.05),
                           ],
                         ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryBlue,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.school,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Welcome back,',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        color: AppTheme.neutralGray,
+                                      ),
+                                    ),
+                                    Text(
+                                      user.name,
+                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTheme.primaryBlue,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Ready to continue your learning journey?',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: AppTheme.neutralGray,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
 
                     // Pre-assessment Section
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.quiz,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Pre-Assessment',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Take the pre-assessment to determine your learning track',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () => context.go('/student/quiz/pretest'),
-                                icon: const Icon(Icons.play_arrow),
-                                label: const Text('Start Pre-Assessment'),
-                              ),
-                            ),
-                          ],
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppTheme.accentGreen.withOpacity(0.2),
+                          width: 1,
                         ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentGreen,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.quiz,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Pre-Assessment',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.accentGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Take the pre-assessment to determine your learning track',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.neutralGray,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => context.go('/student/quiz/pretest'),
+                              icon: const Icon(Icons.play_arrow, size: 20),
+                              label: const Text('Start Pre-Assessment'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accentGreen,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -193,31 +257,51 @@ class StudentDashboardScreen extends ConsumerWidget {
     final contentRepo = ref.watch(contentRepositoryProvider);
     final progressRepo = ref.watch(progressRepositoryProvider);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.science,
-                  color: Theme.of(context).colorScheme.primary,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.science,
+                    color: AppTheme.primaryBlue,
+                    size: 20,
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     subject.name,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.darkGray,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             FutureBuilder<List<Module>>(
               future: contentRepo.getModulesBySubject(subject.id),
@@ -228,7 +312,13 @@ class StudentDashboardScreen extends ConsumerWidget {
 
                 final modules = modulesSnapshot.data ?? [];
                 if (modules.isEmpty) {
-                  return const Text('No modules available');
+                  return Text(
+                    'No modules available',
+                    style: TextStyle(
+                      color: AppTheme.neutralGray,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  );
                 }
 
                 return Column(
@@ -246,40 +336,64 @@ class StudentDashboardScreen extends ConsumerWidget {
     final contentRepo = ref.watch(contentRepositoryProvider);
     final progressRepo = ref.watch(progressRepositoryProvider);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              module.title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            FutureBuilder<List<Lesson>>(
-              future: contentRepo.getLessonsByModule(module.id),
-              builder: (context, lessonsSnapshot) {
-                if (lessonsSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final lessons = lessonsSnapshot.data ?? [];
-                if (lessons.isEmpty) {
-                  return const Text('No lessons available');
-                }
-
-                return Column(
-                  children: lessons.map((lesson) => _buildLessonTile(context, ref, lesson, user)).toList(),
-                );
-              },
-            ),
-          ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.lightGray,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.lightGray,
+          width: 1,
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.folder,
+                color: AppTheme.primaryBlue,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                module.title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.darkGray,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          FutureBuilder<List<Lesson>>(
+            future: contentRepo.getLessonsByModule(module.id),
+            builder: (context, lessonsSnapshot) {
+              if (lessonsSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final lessons = lessonsSnapshot.data ?? [];
+              if (lessons.isEmpty) {
+                return Text(
+                  'No lessons available',
+                  style: TextStyle(
+                    color: AppTheme.neutralGray,
+                    fontStyle: FontStyle.italic,
+                    fontSize: 13,
+                  ),
+                );
+              }
+
+              return Column(
+                children: lessons.map((lesson) => _buildLessonTile(context, ref, lesson, user)).toList(),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -293,14 +407,53 @@ class StudentDashboardScreen extends ConsumerWidget {
         final progress = progressSnapshot.data;
         final status = progress?.status ?? ProgressStatus.locked;
 
-        return ListTile(
-          leading: _getStatusIcon(status),
-          title: Text(lesson.title),
-          subtitle: Text('${lesson.estMins} minutes'),
-          trailing: _getStatusChip(status),
-          onTap: status != ProgressStatus.locked
-              ? () => context.go('/student/lesson/${lesson.id}')
-              : null,
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: _getStatusColor(status).withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _getStatusIcon(status),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lesson.title,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.darkGray,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${lesson.estMins} minutes',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.neutralGray,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _getStatusChip(status),
+            ],
+          ),
         );
       },
     );
@@ -309,73 +462,145 @@ class StudentDashboardScreen extends ConsumerWidget {
   Widget _getStatusIcon(ProgressStatus status) {
     switch (status) {
       case ProgressStatus.locked:
-        return const Icon(Icons.lock, color: Colors.grey);
+        return const Icon(Icons.lock, color: AppTheme.neutralGray);
       case ProgressStatus.inProgress:
-        return const Icon(Icons.play_circle, color: Colors.blue);
+        return const Icon(Icons.play_circle, color: AppTheme.primaryBlue);
       case ProgressStatus.mastered:
-        return const Icon(Icons.check_circle, color: Colors.green);
+        return const Icon(Icons.check_circle, color: AppTheme.accentGreen);
+    }
+  }
+
+  Color _getStatusColor(ProgressStatus status) {
+    switch (status) {
+      case ProgressStatus.locked:
+        return AppTheme.neutralGray;
+      case ProgressStatus.inProgress:
+        return AppTheme.primaryBlue;
+      case ProgressStatus.mastered:
+        return AppTheme.accentGreen;
     }
   }
 
   Widget _getStatusChip(ProgressStatus status) {
     switch (status) {
       case ProgressStatus.locked:
-        return const Chip(
-          label: Text('Locked'),
-          backgroundColor: Colors.grey,
-          labelStyle: TextStyle(color: Colors.white),
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppTheme.neutralGray.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.neutralGray.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            'Locked',
+            style: TextStyle(
+              color: AppTheme.neutralGray,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         );
       case ProgressStatus.inProgress:
-        return const Chip(
-          label: Text('In Progress'),
-          backgroundColor: Colors.blue,
-          labelStyle: TextStyle(color: Colors.white),
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryBlue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.primaryBlue.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            'In Progress',
+            style: TextStyle(
+              color: AppTheme.primaryBlue,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         );
       case ProgressStatus.mastered:
-        return const Chip(
-          label: Text('Mastered'),
-          backgroundColor: Colors.green,
-          labelStyle: TextStyle(color: Colors.white),
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppTheme.accentGreen.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.accentGreen.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            'Mastered',
+            style: TextStyle(
+              color: AppTheme.accentGreen,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         );
     }
   }
 
   Widget _buildGamificationCard(BuildContext context, WidgetRef ref, User user) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentPurple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
                   Icons.stars,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: AppTheme.accentPurple,
+                  size: 20,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'My Progress',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'My Progress',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.darkGray,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildPointsWidget(context, ref, user),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildBadgesWidget(context, ref, user),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPointsWidget(context, ref, user),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildBadgesWidget(context, ref, user),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -387,27 +612,45 @@ class StudentDashboardScreen extends ConsumerWidget {
         final points = snapshot.data?.totalPoints ?? 0;
         
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.amber.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+            color: AppTheme.accentOrange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.accentOrange.withOpacity(0.2),
+              width: 1,
+            ),
           ),
           child: Column(
             children: [
-              Icon(Icons.stars, color: Colors.amber, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                points.toString(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.amber,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentOrange,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.stars,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              const Text(
+              const SizedBox(height: 8),
+              Text(
+                points.toString(),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.accentOrange,
+                ),
+              ),
+              Text(
                 'Points',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.neutralGray,
+                ),
               ),
             ],
           ),
@@ -423,27 +666,45 @@ class StudentDashboardScreen extends ConsumerWidget {
         final badges = snapshot.data ?? [];
         
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.purple.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.purple.withOpacity(0.3)),
+            color: AppTheme.accentPurple.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.accentPurple.withOpacity(0.2),
+              width: 1,
+            ),
           ),
           child: Column(
             children: [
-              Icon(Icons.emoji_events, color: Colors.purple, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                badges.length.toString(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentPurple,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.emoji_events,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              const Text(
+              const SizedBox(height: 8),
+              Text(
+                badges.length.toString(),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.accentPurple,
+                ),
+              ),
+              Text(
                 'Badges',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.neutralGray,
+                ),
               ),
             ],
           ),

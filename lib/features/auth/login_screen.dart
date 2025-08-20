@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../core/theme.dart';
 import '../../data/models/user.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -44,8 +45,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
+              AppTheme.primaryBlue.withOpacity(0.1),
+              AppTheme.secondaryBlue.withOpacity(0.05),
             ],
           ),
         ),
@@ -53,51 +54,82 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // App Logo/Title
-                      Icon(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(32.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // App Logo/Title
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
                         Icons.school,
                         size: 64,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: AppTheme.primaryBlue,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'HOPES',
-                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'HOPES',
+                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primaryBlue,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Grade 7 E-Learning Platform',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Grade 7 E-Learning Platform',
+                      style: TextStyle(
+                        color: AppTheme.neutralGray,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(height: 32),
+                    ),
+                    const SizedBox(height: 32),
 
                       // Offline indicator
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.orange),
+                          color: AppTheme.accentOrange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppTheme.accentOrange.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.wifi_off, size: 16, color: Colors.orange),
+                            Icon(
+                              Icons.wifi_off,
+                              size: 16,
+                              color: AppTheme.accentOrange,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Local Mode',
-                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                              style: TextStyle(
+                                color: AppTheme.accentOrange,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
@@ -186,7 +218,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
-      ),
+      
     );
   }
 

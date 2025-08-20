@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers.dart';
+import '../../../../core/theme.dart';
 import '../../../../data/models/lesson.dart';
 import '../../../../data/models/module.dart';
 import '../../../../data/models/sync_queue.dart';
@@ -69,9 +70,20 @@ class _LessonEditorState extends ConsumerState<LessonEditor> {
           children: [
             TextFormField(
               controller: _titleController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Lesson Title',
-                border: OutlineInputBorder(),
+                labelStyle: TextStyle(
+                  color: AppTheme.neutralGray,
+                  fontWeight: FontWeight.w500,
+                ),
+                hintText: 'Enter the lesson title',
+                hintStyle: TextStyle(
+                  color: AppTheme.neutralGray.withOpacity(0.7),
+                ),
+              ),
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -83,11 +95,22 @@ class _LessonEditorState extends ConsumerState<LessonEditor> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _estMinsController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Estimated Minutes',
-                border: OutlineInputBorder(),
+                labelStyle: TextStyle(
+                  color: AppTheme.neutralGray,
+                  fontWeight: FontWeight.w500,
+                ),
+                hintText: 'e.g., 15',
+                hintStyle: TextStyle(
+                  color: AppTheme.neutralGray.withOpacity(0.7),
+                ),
               ),
               keyboardType: TextInputType.number,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+              ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter estimated time';
@@ -100,32 +123,86 @@ class _LessonEditorState extends ConsumerState<LessonEditor> {
               },
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Lesson Content (Markdown)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _bodyController,
-              decoration: const InputDecoration(
-                labelText: 'Lesson content in Markdown format',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.lightGray,
+                borderRadius: BorderRadius.circular(12),
               ),
-              maxLines: 15,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter lesson content';
-                }
-                return null;
-              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.edit_note,
+                        color: AppTheme.primaryBlue,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Lesson Content (Markdown)',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.darkGray,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _bodyController,
+                    decoration: InputDecoration(
+                      labelText: 'Write your lesson content here...',
+                      labelStyle: TextStyle(
+                        color: AppTheme.neutralGray,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      hintText: '# Lesson Title\n\nYour markdown content here...',
+                      hintStyle: TextStyle(
+                        color: AppTheme.neutralGray.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                      alignLabelWithHint: true,
+                    ),
+                    maxLines: 15,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: 'monospace',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter lesson content';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveLesson,
-                child: Text(_isSaving ? 'Saving...' : 'Save Lesson'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  _isSaving ? 'Saving...' : 'Save Lesson',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
