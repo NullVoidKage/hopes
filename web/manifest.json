@@ -1,11 +1,11 @@
 {
-    "name": "hopes",
-    "short_name": "hopes",
+    "name": "HOPES - E-Learning Platform",
+    "short_name": "HOPES",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Grade 7 offline e-learning platform with Firebase integration",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

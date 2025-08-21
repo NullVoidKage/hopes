@@ -5,7 +5,6 @@ import '../../../../core/theme.dart';
 import '../../../../data/models/lesson.dart';
 import '../../../../data/models/module.dart';
 import '../../../../data/models/sync_queue.dart';
-import '../../../../services/sync/content_sync_service.dart';
 
 class LessonEditor extends ConsumerStatefulWidget {
   final Lesson? lesson; // null for new lesson
@@ -219,47 +218,18 @@ class _LessonEditorState extends ConsumerState<LessonEditor> {
     });
 
     try {
-      final contentRepo = ref.read(contentRepositoryProvider);
-      final syncService = ref.read(contentSyncServiceProvider);
+      // TODO: Update to use Firestore when implementing teacher features
+      // final contentRepo = ref.read(contentRepositoryProvider);
+      // final syncService = ref.read(contentSyncServiceProvider);
       
-      final lessonId = widget.lesson?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-      final lesson = Lesson(
-        id: lessonId,
-        moduleId: widget.moduleId,
-        title: _titleController.text.trim(),
-        bodyMarkdown: _bodyController.text.trim(),
-        estMins: int.parse(_estMinsController.text.trim()),
+      // Temporarily disable lesson saving until teacher features are migrated
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Teacher features coming soon!')),
       );
-
-      if (widget.lesson == null) {
-        // Create new lesson
-        await contentRepo.createLesson(lesson);
-        await syncService.queueContentChange(
-          'lessons',
-          SyncOperation.create,
-          lessonId,
-          lesson.toJson(),
-        );
-      } else {
-        // Update existing lesson
-        await contentRepo.updateLesson(lesson);
-        await syncService.queueContentChange(
-          'lessons',
-          SyncOperation.update,
-          lessonId,
-          lesson.toJson(),
-        );
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.lesson == null ? 'Lesson created!' : 'Lesson updated!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop(true);
-      }
+      setState(() {
+        _isSaving = false;
+      });
+      return;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'core/routing.dart';
-import 'core/providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  try {
+    // Initialize Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase initialized successfully');
+  } catch (e) {
+    print('Failed to initialize Firebase: $e');
+    // Continue without Firebase for now
+  }
+
   runApp(
     const ProviderScope(
       child: HopesApp(),

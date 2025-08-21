@@ -7,7 +7,7 @@ import '../features/student/dashboard/student_dashboard_screen.dart';
 import '../features/student/lesson_reader/lesson_reader_screen.dart';
 import '../features/student/quiz/quiz_screen.dart';
 import '../features/student/progress/progress_screen.dart';
-import '../features/teacher/panel_stub/teacher_panel_screen.dart';
+import '../features/teacher/panel_stub/teacher_panel_screen_stub.dart';
 import 'providers.dart';
 import '../data/models/user.dart';
 
@@ -48,6 +48,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
       }
       
+      // If user is on student dashboard but has teacher role, redirect to teacher panel
+      if (state.matchedLocation == '/student/dashboard' && user.role == UserRole.teacher) {
+        print('Redirecting from student dashboard to teacher panel'); // Debug log
+        return '/teacher/panel';
+      }
+      
+      // If user is on teacher panel but has student role, redirect to student dashboard
+      if (state.matchedLocation == '/teacher/panel' && user.role == UserRole.student) {
+        print('Redirecting from teacher panel to student dashboard'); // Debug log
+        return '/student/dashboard';
+      }
+      
       return null;
     },
     routes: [
@@ -67,7 +79,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       path: '/student/lesson/:lessonId',
       builder: (context, state) {
         final lessonId = state.pathParameters['lessonId']!;
-        return LessonReaderScreen(lessonId: lessonId);
+        return LessonReaderScreen(
+          lessonId: lessonId,
+          lessonTitle: 'Lesson', // Default title, could be enhanced later
+        );
       },
     ),
     GoRoute(
@@ -77,10 +92,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         return QuizScreen(assessmentId: assessmentId);
       },
     ),
-    GoRoute(
-      path: '/student/progress',
-      builder: (context, state) => const ProgressScreen(),
-    ),
+          GoRoute(
+        path: '/student/progress',
+        builder: (context, state) => const ProgressScreen(),
+      ),
     GoRoute(
       path: '/teacher/panel',
       builder: (context, state) => const TeacherPanelScreen(),
@@ -109,7 +124,10 @@ final router = GoRouter(
       path: '/student/lesson/:lessonId',
       builder: (context, state) {
         final lessonId = state.pathParameters['lessonId']!;
-        return LessonReaderScreen(lessonId: lessonId);
+        return LessonReaderScreen(
+          lessonId: lessonId,
+          lessonTitle: 'Lesson', // Default title, could be enhanced later
+        );
       },
     ),
     GoRoute(

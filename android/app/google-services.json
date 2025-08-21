@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "105306415530",
+    "firebase_url": "https://hope-elearning-52e9b-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "hope-elearning-52e9b",
+    "storage_bucket": "hope-elearning-52e9b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:105306415530:android:995daa86c4e966623b8bd3",
+        "android_client_info": {
+          "package_name": "com.example.hopes"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "105306415530-kgcfpd9opud7iang3kcm7rjnvdcqvpoj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hopes",
+            "certificate_hash": "7769df5fb442d1b45b655a9fe3adf2f9ec76c777"
+          }
+        },
+        {
+          "client_id": "105306415530-qm2fjqi75l4vbvvfs4t0r4mrg909vipn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKsHWv1vEYZK6RCqE4AQ-1JhW5zfnqDHM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "105306415530-qm2fjqi75l4vbvvfs4t0r4mrg909vipn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "105306415530-f65vn5vp1c74uokfkhfvl0m273b1euqn.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.hopes"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

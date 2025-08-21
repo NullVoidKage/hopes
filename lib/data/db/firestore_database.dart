@@ -1,6 +1,3 @@
-// Firestore Database Implementation
-// This replaces the SQLite/Drift database for cross-platform compatibility
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
@@ -16,7 +13,7 @@ import '../models/classroom.dart';
 import '../models/content_version.dart';
 import '../models/sync_queue.dart';
 
-class Database {
+class FirestoreDatabase {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Users Collection
@@ -451,4 +448,4 @@ class Database {
   Future<void> close() async {
     // Firestore doesn't need explicit closing
   }
-} 
+}

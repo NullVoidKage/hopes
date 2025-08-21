@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/providers.dart';
 import '../../../core/theme.dart';
+import '../../../core/providers.dart';
+import '../../../data/db/database.dart';
 import '../../../data/models/assessment.dart';
 import '../../../data/models/attempt.dart';
 import '../../../data/models/progress.dart';
@@ -11,334 +12,378 @@ import '../../../data/models/user.dart';
 class QuizScreen extends ConsumerStatefulWidget {
   final String assessmentId;
 
-  const QuizScreen({super.key, required this.assessmentId});
+  const QuizScreen({
+    super.key,
+    required this.assessmentId,
+  });
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
 }
 
 class _QuizScreenState extends ConsumerState<QuizScreen> {
+  bool _isLoading = true;
+  Assessment? _assessment;
+  User? _currentUser;
   int _currentQuestionIndex = 0;
-  Map<String, int> _answers = {};
-  bool _isSubmitting = false;
+  List<int> _userAnswers = [];
+  bool _quizCompleted = false;
+  int _score = 0;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAssessment();
+  }
+
+  Future<void> _loadAssessment() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
+
+      final database = ref.read(databaseProvider);
+      final userState = ref.read(currentUserProvider);
+
+      if (userState.value == null) {
+        setState(() {
+          _errorMessage = 'User not authenticated';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      _currentUser = userState.value;
+
+      // Load assessment data
+      // We need to search through all modules to find the assessment
+      final subjects = await database.getSubjects();
+      Assessment? foundAssessment;
+      
+      for (final subject in subjects) {
+        final modules = await database.getModules(subject.id);
+        for (final module in modules) {
+          final assessments = await database.getAssessments(module.id);
+          final assessment = assessments.where((a) => a.id == widget.assessmentId).firstOrNull;
+          if (assessment != null) {
+            foundAssessment = assessment;
+            break;
+          }
+        }
+        if (foundAssessment != null) break;
+      }
+
+      if (foundAssessment == null) {
+        setState(() {
+          _errorMessage = 'Assessment not found';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _assessment = foundAssessment;
+        _userAnswers = List.filled(foundAssessment!.items.length, -1);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error loading assessment: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final assessmentRepo = ref.watch(assessmentRepositoryProvider);
-    final authState = ref.watch(currentUserProvider);
-
     return Scaffold(
+      backgroundColor: AppTheme.lightGray,
       appBar: AppBar(
-        title: const Text('Quiz'),
-        automaticallyImplyLeading: false,
+        title: Text(
+          _assessment?.id ?? 'Quiz',
+          style: const TextStyle(fontSize: 18),
+        ),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.black,
+        elevation: 0,
       ),
-      body: authState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
-        data: (user) {
-          if (user == null) {
-            return const Center(child: Text('No user found'));
-          }
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+              ? _buildErrorWidget()
+              : _quizCompleted
+                  ? _buildResultsWidget()
+                  : _buildQuizWidget(),
+    );
+  }
 
-          return FutureBuilder<Assessment?>(
-            future: assessmentRepo.getAssessment(widget.assessmentId),
-            builder: (context, assessmentSnapshot) {
-              if (assessmentSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (assessmentSnapshot.hasError) {
-                return Center(child: Text('Error: ${assessmentSnapshot.error}'));
-              }
-
-              final assessment = assessmentSnapshot.data;
-              if (assessment == null) {
-                return const Center(child: Text('Assessment not found'));
-              }
-
-              if (assessment.items.isEmpty) {
-                return const Center(child: Text('No questions available'));
-              }
-
-              final currentQuestion = assessment.items[_currentQuestionIndex];
-              final isLastQuestion = _currentQuestionIndex == assessment.items.length - 1;
-
-              return Column(
-                children: [
-                  // Progress Bar
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Question ${_currentQuestionIndex + 1} of ${assessment.items.length}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.darkGray,
-                              ),
-                            ),
-                            Text(
-                              '${((_currentQuestionIndex + 1) / assessment.items.length * 100).round()}%',
-                              style: TextStyle(
-                                color: AppTheme.primaryBlue,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        LinearProgressIndicator(
-                          value: (_currentQuestionIndex + 1) / assessment.items.length,
-                          backgroundColor: AppTheme.lightGray,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
-                          minHeight: 8,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Question Content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Question Text
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryBlue.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(
-                                        Icons.quiz,
-                                        color: AppTheme.primaryBlue,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'Question ${_currentQuestionIndex + 1}',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.neutralGray,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  currentQuestion.text,
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.darkGray,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Answer Choices
-                          ...currentQuestion.choices.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final choice = entry.value;
-                            final isSelected = _answers[currentQuestion.id] == index;
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: InkWell(
-                                onTap: () => _selectAnswer(currentQuestion.id, index),
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: isSelected
-                                        ? Border.all(
-                                            color: AppTheme.primaryBlue,
-                                            width: 2,
-                                          )
-                                        : Border.all(
-                                            color: AppTheme.lightGray,
-                                            width: 1,
-                                          ),
-                                    color: isSelected
-                                        ? AppTheme.primaryBlue.withOpacity(0.05)
-                                        : Colors.white,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isSelected
-                                                ? AppTheme.primaryBlue
-                                                : AppTheme.neutralGray,
-                                            width: 2,
-                                          ),
-                                          color: isSelected
-                                              ? AppTheme.primaryBlue
-                                              : Colors.transparent,
-                                        ),
-                                        child: isSelected
-                                            ? const Icon(
-                                                Icons.check,
-                                                color: Colors.white,
-                                                size: 16,
-                                              )
-                                            : null,
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Text(
-                                          choice,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                            color: isSelected
-                                                ? AppTheme.primaryBlue
-                                                : AppTheme.darkGray,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Navigation Buttons
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, -2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        if (_currentQuestionIndex > 0)
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _previousQuestion,
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                side: BorderSide(color: AppTheme.primaryBlue, width: 1),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                'Previous',
-                                style: TextStyle(
-                                  color: AppTheme.primaryBlue,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (_currentQuestionIndex > 0) const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isSubmitting ? null : _nextQuestion,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: _isSubmitting
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : Text(
-                                    isLastQuestion ? 'Submit Quiz' : 'Next',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: AppTheme.accentRed,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Error',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.darkGray,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _errorMessage,
+            style: TextStyle(
+              fontSize: 16,
+              color: AppTheme.neutralGray,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _loadAssessment,
+            child: const Text('Retry'),
+          ),
+        ],
       ),
     );
   }
 
-  void _selectAnswer(String questionId, int choiceIndex) {
-    setState(() {
-      _answers[questionId] = choiceIndex;
-    });
+  Widget _buildQuizWidget() {
+    if (_assessment == null) {
+      return const Center(child: Text('Assessment not found'));
+    }
+
+    final currentQuestion = _assessment!.items[_currentQuestionIndex];
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Progress Bar
+          LinearProgressIndicator(
+            value: (_currentQuestionIndex + 1) / _assessment!.items.length,
+            backgroundColor: AppTheme.lightGray,
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+          ),
+          const SizedBox(height: 16),
+          
+          // Question Counter
+          Text(
+            'Question ${_currentQuestionIndex + 1} of ${_assessment!.items.length}',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.neutralGray,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Question
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    currentQuestion.text,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.darkGray,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Answer Choices
+                  ...currentQuestion.choices.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final choice = entry.value;
+                    final isSelected = _userAnswers[_currentQuestionIndex] == index;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _userAnswers[_currentQuestionIndex] = index;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppTheme.primaryBlue.withOpacity(0.1) : AppTheme.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? AppTheme.primaryBlue : AppTheme.lightGray,
+                              width: 2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isSelected ? AppTheme.primaryBlue : AppTheme.lightGray,
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 16,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  choice,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: AppTheme.darkGray,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
+
+          // Navigation Buttons
+          Row(
+            children: [
+              if (_currentQuestionIndex > 0)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _previousQuestion,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Previous'),
+                  ),
+                ),
+              if (_currentQuestionIndex > 0) const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _userAnswers[_currentQuestionIndex] != -1
+                      ? (_currentQuestionIndex < _assessment!.items.length - 1
+                          ? _nextQuestion
+                          : _completeQuiz)
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(
+                    _currentQuestionIndex < _assessment!.items.length - 1 ? 'Next' : 'Finish',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultsWidget() {
+    final percentage = (_score / _assessment!.items.length * 100).round();
+    final isPassing = percentage >= 70;
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: isPassing ? AppTheme.accentGreen : AppTheme.accentRed,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isPassing ? Icons.check : Icons.close,
+              color: Colors.white,
+              size: 60,
+            ),
+          ),
+          const SizedBox(height: 24),
+          
+          Text(
+            isPassing ? 'Congratulations!' : 'Keep Trying!',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.darkGray,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          Text(
+            'You scored $_score out of ${_assessment!.items.length}',
+            style: TextStyle(
+              fontSize: 18,
+              color: AppTheme.neutralGray,
+            ),
+          ),
+          const SizedBox(height: 8),
+          
+          Text(
+            '($percentage%)',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: isPassing ? AppTheme.accentGreen : AppTheme.accentRed,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Action Buttons
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saveResults,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Save Results'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => context.go('/student/dashboard'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Back to Dashboard'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _previousQuestion() {
@@ -349,120 +394,83 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     }
   }
 
-  void _nextQuestion() async {
-    final assessmentRepo = ref.read(assessmentRepositoryProvider);
-    final authState = ref.read(currentUserProvider);
-    final assessment = await assessmentRepo.getAssessment(widget.assessmentId);
-
-    if (assessment == null) return;
-
-    final isLastQuestion = _currentQuestionIndex == assessment.items.length - 1;
-
-    if (isLastQuestion) {
-      // Submit the quiz
-      _submitQuiz();
-    } else {
-      // Move to next question
+  void _nextQuestion() {
+    if (_currentQuestionIndex < _assessment!.items.length - 1) {
       setState(() {
         _currentQuestionIndex++;
       });
     }
   }
 
-  void _submitQuiz() async {
+  void _completeQuiz() {
+    // Calculate score
+    int correctAnswers = 0;
+    for (int i = 0; i < _assessment!.items.length; i++) {
+      if (_userAnswers[i] == _assessment!.items[i].correctIndex) {
+        correctAnswers++;
+      }
+    }
+
     setState(() {
-      _isSubmitting = true;
+      _score = correctAnswers;
+      _quizCompleted = true;
     });
+  }
+
+  Future<void> _saveResults() async {
+    if (_currentUser == null || _assessment == null) return;
 
     try {
-      final assessmentRepo = ref.read(assessmentRepositoryProvider);
-      final authState = ref.read(currentUserProvider);
-      final user = authState.value;
-
-      if (user == null) return;
-
-      final assessment = await assessmentRepo.getAssessment(widget.assessmentId);
-      if (assessment == null) return;
-
-      // Create attempt
-      final attempt = await assessmentRepo.createAttempt(
-        assessmentId: widget.assessmentId,
-        userId: user.id,
-        answers: _answers,
+      final database = ref.read(databaseProvider);
+      
+      // Save attempt
+      final attempt = Attempt(
+        id: '${_currentUser!.id}_${_assessment!.id}_${DateTime.now().millisecondsSinceEpoch}',
+        assessmentId: _assessment!.id,
+        userId: _currentUser!.id,
+        score: _score.toDouble() / _assessment!.items.length,
+        startedAt: DateTime.now().subtract(const Duration(minutes: 5)), // Approximate start time
+        finishedAt: DateTime.now(),
+        answersJson: Map.fromEntries(
+          _assessment!.items.asMap().entries.map((entry) => 
+            MapEntry(entry.value.id, _userAnswers[entry.key])
+          ),
+        ),
       );
+      
+      await database.saveAttempt(attempt);
 
-      // Update progress if this is a lesson quiz
-      if (assessment.lessonId != null) {
-        final progressRepo = ref.read(progressRepositoryProvider);
-        final status = attempt.score >= 80 ? ProgressStatus.mastered : ProgressStatus.inProgress;
-        
-        await progressRepo.updateProgress(
-          userId: user.id,
-          lessonId: assessment.lessonId!,
-          status: status,
-          lastScore: attempt.score,
-        );
-      }
+      // Update progress
+      final progress = Progress(
+        userId: _currentUser!.id,
+        lessonId: _assessment!.lessonId ?? '',
+        status: _score >= (_assessment!.items.length * 0.7).round() 
+            ? ProgressStatus.mastered 
+            : ProgressStatus.inProgress,
+        lastScore: _score.toDouble() / _assessment!.items.length,
+        attemptCount: 1,
+        updatedAt: DateTime.now(),
+      );
+      
+      await database.saveProgress(progress);
 
       if (mounted) {
-        // Show result dialog
-        _showResultDialog(attempt);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Results saved successfully!'),
+            backgroundColor: AppTheme.accentGreen,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error submitting quiz: $e'),
-            backgroundColor: Colors.red,
+            content: Text('Error saving results: $e'),
+            backgroundColor: AppTheme.accentRed,
           ),
         );
       }
-    } finally {
-      setState(() {
-        _isSubmitting = false;
-      });
     }
-  }
-
-  void _showResultDialog(Attempt attempt) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(
-          attempt.score >= 80 ? 'Excellent!' : 'Good Job!',
-          style: TextStyle(
-            color: attempt.score >= 80 ? Colors.green : Colors.orange,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Your Score: ${attempt.score.round()}%',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              attempt.score >= 80
-                  ? 'You have mastered this content!'
-                  : 'Keep practicing to improve your score.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              context.go('/student/dashboard');
-            },
-            child: const Text('Back to Dashboard'),
-          ),
-        ],
-      ),
-    );
   }
 } 

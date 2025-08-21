@@ -10,18 +10,41 @@ import '../../../data/models/lesson.dart';
 import '../../../data/models/assessment.dart';
 import '../../../data/models/points.dart';
 import '../../../data/models/badge.dart';
-import '../../../data/repos/assessment_repository.dart';
-import '../../../services/sync/content_sync_service.dart';
-import '../../../services/sync/progress_sync_service.dart';
+
 import 'widgets/lesson_editor.dart';
 import 'widgets/quiz_editor.dart';
 import 'widgets/student_progress_widget.dart';
 
-class TeacherPanelScreen extends ConsumerWidget {
+class TeacherPanelScreen extends ConsumerStatefulWidget {
   const TeacherPanelScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TeacherPanelScreen> createState() => _TeacherPanelScreenState();
+}
+
+class _TeacherPanelScreenState extends ConsumerState<TeacherPanelScreen> 
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      setState(() {
+        // This will rebuild the UI when tab changes
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(currentUserProvider);
 
     return authState.when(
@@ -41,105 +64,282 @@ class TeacherPanelScreen extends ConsumerWidget {
         return DefaultTabController(
           length: 4,
           child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Teacher Panel'),
-              bottom: TabBar(
-                tabs: [
-                  Tab(
-                    child: Text(
-                      'Subjects',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+            backgroundColor: AppTheme.lightGray,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // Custom Apple-style header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Title and actions row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Teacher Panel',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.darkGray,
+                                  letterSpacing: -0.8,
+                                ),
+                              ),
+                            ),
+                            _buildSyncStatusIcon(ref),
+                            const SizedBox(width: 16),
+                            _buildMoreOptionsButton(ref),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        
+                        // Custom Apple-style segmented control
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.lightGray,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              _buildSegmentedButton('Subjects', 0, context),
+                              _buildSegmentedButton('Lessons', 1, context),
+                              _buildSegmentedButton('Quizzes', 2, context),
+                              _buildSegmentedButton('Progress', 3, context),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Tab(
-                    child: Text(
-                      'Lessons',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  
+                  // Tab content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _SubjectsTab(),
+                        _LessonsTab(),
+                        _QuizzesTab(),
+                        const StudentProgressWidget(),
+                      ],
                     ),
                   ),
-                  Tab(
-                    child: Text(
-                      'Quizzes',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Tab(
-                    child: Text(
-                      'Progress',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  
+                  // Custom Apple-style action button
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: _buildAppleStyleActionButton(context, ref),
                   ),
                 ],
-                labelColor: AppTheme.primaryBlue,
-                unselectedLabelColor: AppTheme.neutralGray,
-                indicatorColor: AppTheme.primaryBlue,
-                indicatorWeight: 3,
-                indicatorSize: TabBarIndicatorSize.label,
               ),
-              actions: [
-                _buildSyncStatusIcon(ref),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert),
-                  onSelected: (value) async {
-                    if (value == 'switch_role') {
-                      await ref.read(currentUserProvider.notifier).updateRole(UserRole.student);
-                    } else if (value == 'sign_out') {
-                      await ref.read(currentUserProvider.notifier).signOut();
-                      if (context.mounted) {
-                        context.go('/');
-                      }
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'switch_role',
-                      child: Row(
-                        children: [
-                          Icon(Icons.swap_horiz),
-                          SizedBox(width: 8),
-                          Text('Switch to Student'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'sign_out',
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout),
-                          SizedBox(width: 8),
-                          Text('Sign Out'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
-            body: TabBarView(
-              children: [
-                _SubjectsTab(),
-                _LessonsTab(),
-                _QuizzesTab(),
-                const StudentProgressWidget(),
-              ],
-            ),
-            floatingActionButton: _buildFloatingActionButton(context, ref),
           ),
         );
       },
     );
+  }
+
+  Widget _buildMoreOptionsButton(WidgetRef ref) {
+    return Builder(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: AppTheme.lightGray,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: PopupMenuButton<String>(
+          icon: Icon(
+            Icons.more_vert,
+            color: AppTheme.darkGray,
+            size: 20,
+          ),
+          onSelected: (value) async {
+            if (value == 'switch_role') {
+              await ref.read(currentUserProvider.notifier).updateRole(UserRole.student);
+              // Force navigation to student dashboard after role update
+              if (context.mounted) {
+                context.go('/student/dashboard');
+              }
+            } else if (value == 'sign_out') {
+              await ref.read(currentUserProvider.notifier).signOut();
+              if (context.mounted) {
+                context.go('/');
+              }
+            }
+          },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'switch_role',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.swap_horiz,
+                  color: AppTheme.primaryBlue,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Switch to Student',
+                  style: TextStyle(
+                    color: AppTheme.darkGray,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'sign_out',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.logout,
+                  color: AppTheme.accentRed,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Sign Out',
+                  style: TextStyle(
+                    color: AppTheme.darkGray,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSegmentedButton(String text, int index, BuildContext context) {
+    final isSelected = _tabController.index == index;
+    
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _tabController.animateTo(index);
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ] : null,
+          ),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected ? AppTheme.primaryBlue : AppTheme.neutralGray,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppleStyleActionButton(BuildContext context, WidgetRef ref) {
+    final currentIndex = _tabController.index;
+    
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppTheme.primaryBlue,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryBlue.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            switch (currentIndex) {
+              case 0:
+                _showSubjectDialog(context, ref);
+                break;
+              case 1:
+                _showLessonDialog(context, ref);
+                break;
+              case 2:
+                _showQuizDialog(context, ref);
+                break;
+            }
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _getActionButtonText(currentIndex),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getActionButtonText(int tabIndex) {
+    switch (tabIndex) {
+      case 0:
+        return 'Add Subject';
+      case 1:
+        return 'Add Lesson';
+      case 2:
+        return 'Add Quiz';
+      default:
+        return 'Add Item';
+    }
   }
 
   Widget _buildSyncStatusIcon(WidgetRef ref) {

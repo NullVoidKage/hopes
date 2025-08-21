@@ -1,457 +1,253 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/providers.dart';
 import '../../../core/theme.dart';
+import '../../../core/providers.dart';
+import '../../../data/db/database.dart';
 import '../../../data/models/user.dart';
 import '../../../data/models/subject.dart';
 import '../../../data/models/module.dart';
 import '../../../data/models/lesson.dart';
 import '../../../data/models/progress.dart';
 import '../../../data/models/points.dart';
-import '../../../data/models/badge.dart' as models;
-import '../../../services/sync/progress_sync_service.dart';
+import '../../../data/models/badge.dart';
+import '../../../data/models/classroom.dart';
+import '../../../data/models/content_version.dart';
+import '../../../data/models/sync_queue.dart';
+import '../../auth/role_select_screen.dart';
+import '../lesson_reader/lesson_reader_screen.dart';
+import '../quiz/quiz_screen.dart';
+import '../progress/progress_screen.dart';
 
-class StudentDashboardScreen extends ConsumerWidget {
+class StudentDashboardScreen extends ConsumerStatefulWidget {
   const StudentDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(currentUserProvider);
-    final contentRepo = ref.watch(contentRepositoryProvider);
-    final progressRepo = ref.watch(progressRepositoryProvider);
+  ConsumerState<StudentDashboardScreen> createState() => _StudentDashboardScreenState();
+}
+
+class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen> {
+  int _selectedIndex = 0;
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final userState = ref.watch(currentUserProvider);
+    final database = ref.read(databaseProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.lightGray,
       appBar: AppBar(
-        title: const Text('Student Dashboard'),
+        title: const Text('HOPES Dashboard'),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.black,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
-            onPressed: () => context.go('/student/progress'),
+            onPressed: () => _showProfileDialog(context, userState.value),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) async {
-              if (value == 'switch_role') {
-                await ref.read(currentUserProvider.notifier).updateRole(UserRole.teacher);
-              } else if (value == 'sign_out') {
-                await ref.read(currentUserProvider.notifier).signOut();
-                if (context.mounted) {
-                  context.go('/');
-                }
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'switch_role',
-                child: Row(
-                  children: [
-                    Icon(Icons.swap_horiz),
-                    SizedBox(width: 8),
-                    Text('Switch to Teacher'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'sign_out',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 8),
-                    Text('Sign Out'),
-                  ],
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => _handleSignOut(),
           ),
         ],
       ),
-      body: authState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
-        data: (user) {
-          if (user == null) {
-            return const Center(child: Text('No user found'));
-          }
-
-          return FutureBuilder<List<Subject>>(
-            future: contentRepo.getSubjects(),
-            builder: (context, subjectsSnapshot) {
-              if (subjectsSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (subjectsSnapshot.hasError) {
-                return Center(child: Text('Error: ${subjectsSnapshot.error}'));
-              }
-
-              final subjects = subjectsSnapshot.data ?? [];
-              if (subjects.isEmpty) {
-                return const Center(child: Text('No subjects available'));
-              }
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
                   children: [
-                    // Welcome Section
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppTheme.primaryBlue.withOpacity(0.1),
-                            AppTheme.secondaryBlue.withOpacity(0.05),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryBlue,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.school,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Welcome back,',
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: AppTheme.neutralGray,
-                                      ),
-                                    ),
-                                    Text(
-                                      user.name,
-                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        color: AppTheme.primaryBlue,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Ready to continue your learning journey?',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.neutralGray,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Pre-assessment Section
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppTheme.accentGreen.withOpacity(0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.accentGreen,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.quiz,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Pre-Assessment',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.accentGreen,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Take the pre-assessment to determine your learning track',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.neutralGray,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () => context.go('/student/quiz/pretest'),
-                              icon: const Icon(Icons.play_arrow, size: 20),
-                              label: const Text('Start Pre-Assessment'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.accentGreen,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Gamification Section
-                    _buildGamificationCard(context, ref, user),
-                    const SizedBox(height: 16),
-
-                    // Subjects Section
-                    Text(
-                      'Available Subjects',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    ...subjects.map((subject) => _buildSubjectCard(context, ref, subject, user)),
-                  ],
-                ),
-              );
-            },
+          _buildHomeTab(database),
+          _buildSubjectsTab(database),
+          _buildProgressTab(database),
+          _buildProfileTab(database),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
           );
         },
+        selectedItemColor: AppTheme.primaryBlue,
+        unselectedItemColor: AppTheme.neutralGray,
+        backgroundColor: AppTheme.white,
+        elevation: 8,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.book),
+            label: 'Subjects',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics),
+            label: 'Progress',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSubjectCard(BuildContext context, WidgetRef ref, Subject subject, User user) {
-    final contentRepo = ref.watch(contentRepositoryProvider);
-    final progressRepo = ref.watch(progressRepositoryProvider);
+  Widget _buildHomeTab(Database database) {
+    return FutureBuilder<List<Subject>>(
+      future: database.getSubjects(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+        if (snapshot.hasError) {
+          return Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.science,
-                    color: AppTheme.primaryBlue,
-                    size: 20,
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: AppTheme.accentRed,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading subjects',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: AppTheme.darkGray,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    subject.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.darkGray,
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  'Please check your connection and try again',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.neutralGray,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-
-            FutureBuilder<List<Module>>(
-              future: contentRepo.getModulesBySubject(subject.id),
-              builder: (context, modulesSnapshot) {
-                if (modulesSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final modules = modulesSnapshot.data ?? [];
-                if (modules.isEmpty) {
-                  return Text(
-                    'No modules available',
-                    style: TextStyle(
-                      color: AppTheme.neutralGray,
-                      fontStyle: FontStyle.italic,
                     ),
                   );
                 }
 
-                return Column(
-                  children: modules.map((module) => _buildModuleCard(context, ref, module, user)).toList(),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+        final subjects = snapshot.data ?? [];
 
-  Widget _buildModuleCard(BuildContext context, WidgetRef ref, Module module, User user) {
-    final contentRepo = ref.watch(contentRepositoryProvider);
-    final progressRepo = ref.watch(progressRepositoryProvider);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.lightGray,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.lightGray,
-          width: 1,
-        ),
-      ),
+        if (subjects.isEmpty) {
+          return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+              mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.folder,
-                color: AppTheme.primaryBlue,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                module.title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.darkGray,
+                  Icons.book_outlined,
+                  size: 64,
+                  color: AppTheme.neutralGray,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          FutureBuilder<List<Lesson>>(
-            future: contentRepo.getLessonsByModule(module.id),
-            builder: (context, lessonsSnapshot) {
-              if (lessonsSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final lessons = lessonsSnapshot.data ?? [];
-              if (lessons.isEmpty) {
-                return Text(
-                  'No lessons available',
+                const SizedBox(height: 16),
+              Text(
+                  'No subjects available',
                   style: TextStyle(
-                    color: AppTheme.neutralGray,
-                    fontStyle: FontStyle.italic,
-                    fontSize: 13,
+                    fontSize: 18,
+                    color: AppTheme.darkGray,
+                  fontWeight: FontWeight.w600,
                   ),
-                );
-              }
-
-              return Column(
-                children: lessons.map((lesson) => _buildLessonTile(context, ref, lesson, user)).toList(),
-              );
-            },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Subjects will appear here once they are added',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.neutralGray,
+                  ),
+                  textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLessonTile(BuildContext context, WidgetRef ref, Lesson lesson, User user) {
-    final progressRepo = ref.watch(progressRepositoryProvider);
-
-    return FutureBuilder<Progress?>(
-      future: progressRepo.getProgress(user.id, lesson.id),
-      builder: (context, progressSnapshot) {
-        final progress = progressSnapshot.data;
-        final status = progress?.status ?? ProgressStatus.locked;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: _getStatusColor(status).withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: _getStatusIcon(status),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      lesson.title,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                'Welcome back!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                         color: AppTheme.darkGray,
                       ),
                     ),
-                    const SizedBox(height: 4),
+              const SizedBox(height: 8),
                     Text(
-                      '${lesson.estMins} minutes',
+                'Continue your learning journey',
                       style: TextStyle(
-                        fontSize: 13,
+                  fontSize: 16,
                         color: AppTheme.neutralGray,
                       ),
                     ),
-                  ],
+              const SizedBox(height: 24),
+              
+              // Quick Stats
+              _buildQuickStats(database),
+              const SizedBox(height: 24),
+              
+              // Recent Subjects
+              Text(
+                'Your Subjects',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.darkGray,
                 ),
               ),
-              _getStatusChip(status),
+              const SizedBox(height: 16),
+              
+              // Subjects Grid
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.2,
+                ),
+                itemCount: subjects.length,
+                itemBuilder: (context, index) {
+                  final subject = subjects[index];
+                  return _buildSubjectCard(subject, database);
+                },
+              ),
             ],
           ),
         );
@@ -459,300 +255,324 @@ class StudentDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _getStatusIcon(ProgressStatus status) {
-    switch (status) {
-      case ProgressStatus.locked:
-        return const Icon(Icons.lock, color: AppTheme.neutralGray);
-      case ProgressStatus.inProgress:
-        return const Icon(Icons.play_circle, color: AppTheme.primaryBlue);
-      case ProgressStatus.mastered:
-        return const Icon(Icons.check_circle, color: AppTheme.accentGreen);
-    }
+  Widget _buildQuickStats(Database database) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            'Points',
+            '0',
+            Icons.stars,
+            AppTheme.accentOrange,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildStatCard(
+            'Lessons',
+            '0',
+            Icons.book,
+            AppTheme.primaryBlue,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildStatCard(
+            'Badges',
+            '0',
+            Icons.emoji_events,
+            AppTheme.accentPurple,
+          ),
+        ),
+      ],
+    );
   }
 
-  Color _getStatusColor(ProgressStatus status) {
-    switch (status) {
-      case ProgressStatus.locked:
-        return AppTheme.neutralGray;
-      case ProgressStatus.inProgress:
-        return AppTheme.primaryBlue;
-      case ProgressStatus.mastered:
-        return AppTheme.accentGreen;
-    }
-  }
-
-  Widget _getStatusChip(ProgressStatus status) {
-    switch (status) {
-      case ProgressStatus.locked:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppTheme.neutralGray.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.neutralGray.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            'Locked',
-            style: TextStyle(
-              color: AppTheme.neutralGray,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      case ProgressStatus.inProgress:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryBlue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.primaryBlue.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            'In Progress',
-            style: TextStyle(
-              color: AppTheme.primaryBlue,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      case ProgressStatus.mastered:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppTheme.accentGreen.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.accentGreen.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            'Mastered',
-            style: TextStyle(
-              color: AppTheme.accentGreen,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-    }
-  }
-
-  Widget _buildGamificationCard(BuildContext context, WidgetRef ref, User user) {
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentPurple.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.stars,
-                  color: AppTheme.accentPurple,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
+          Icon(
+            icon,
+            size: 32,
+            color: color,
+          ),
+          const SizedBox(height: 8),
               Text(
-                'My Progress',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
                   color: AppTheme.darkGray,
                 ),
-              ),
-            ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildPointsWidget(context, ref, user),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildBadgesWidget(context, ref, user),
-              ),
-            ],
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.neutralGray,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPointsWidget(BuildContext context, WidgetRef ref, User user) {
-    return FutureBuilder<Points?>(
-      future: _getUserPoints(ref, user.id),
-      builder: (context, snapshot) {
-        final points = snapshot.data?.totalPoints ?? 0;
-        
-        return Container(
-          padding: const EdgeInsets.all(16),
+  Widget _buildSubjectCard(Subject subject, Database database) {
+    return GestureDetector(
+      onTap: () => _navigateToSubject(subject, database),
+      child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.accentOrange.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.accentOrange.withOpacity(0.2),
-              width: 1,
+          color: AppTheme.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: AppTheme.accentOrange,
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.stars,
-                  color: Colors.white,
-                  size: 20,
+                child: Icon(
+                  Icons.school,
+                  color: AppTheme.primaryBlue,
+                  size: 24,
                 ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                subject.name,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.darkGray,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
               Text(
-                points.toString(),
+                'Grade ${subject.gradeLevel}',
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.accentOrange,
-                ),
-              ),
-              Text(
-                'Points',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
                   color: AppTheme.neutralGray,
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildBadgesWidget(BuildContext context, WidgetRef ref, User user) {
-    return FutureBuilder<List<models.Badge>>(
-      future: _getUserBadges(ref, user.id),
+  Widget _buildSubjectsTab(Database database) {
+    return FutureBuilder<List<Subject>>(
+      future: database.getSubjects(),
       builder: (context, snapshot) {
-        final badges = snapshot.data ?? [];
-        
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.accentPurple.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.accentPurple.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
           child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentPurple,
-                  borderRadius: BorderRadius.circular(8),
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: AppTheme.accentRed,
                 ),
-                child: const Icon(
-                  Icons.emoji_events,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 16),
               Text(
-                badges.length.toString(),
+                  'Error loading subjects',
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.accentPurple,
+                    fontSize: 18,
+                    color: AppTheme.darkGray,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                'Badges',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              ],
+            ),
+          );
+        }
+
+        final subjects = snapshot.data ?? [];
+
+        if (subjects.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.book_outlined,
+                  size: 64,
                   color: AppTheme.neutralGray,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No subjects available',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: AppTheme.darkGray,
+                    fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: subjects.length,
+          itemBuilder: (context, index) {
+            final subject = subjects[index];
+            return _buildSubjectListItem(subject, database);
+          },
         );
       },
     );
   }
 
-  Future<Points?> _getUserPoints(WidgetRef ref, String userId) async {
+  Widget _buildSubjectListItem(Subject subject, Database database) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: ListTile(
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryBlue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.school,
+            color: AppTheme.primaryBlue,
+            size: 24,
+          ),
+        ),
+        title: Text(
+          subject.name,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.darkGray,
+          ),
+        ),
+        subtitle: Text(
+          'Grade ${subject.gradeLevel}',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppTheme.neutralGray,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          color: AppTheme.neutralGray,
+          size: 16,
+        ),
+        onTap: () => _navigateToSubject(subject, database),
+      ),
+    );
+  }
+
+  Widget _buildProgressTab(Database database) {
+    return const Center(
+      child: Text(
+        'Progress Tab - Coming Soon',
+        style: TextStyle(fontSize: 18),
+      ),
+    );
+  }
+
+  Widget _buildProfileTab(Database database) {
+    return const Center(
+      child: Text(
+        'Profile Tab - Coming Soon',
+        style: TextStyle(fontSize: 18),
+      ),
+    );
+  }
+
+  void _navigateToSubject(Subject subject, Database database) {
+    // Navigate to subject detail page
+    // This would show modules and lessons for the subject
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Opening ${subject.name}...'),
+      ),
+    );
+  }
+
+  void _showProfileDialog(BuildContext context, User? user) {
+    if (user == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Name: ${user.name}'),
+            Text('Email: ${user.email}'),
+            Text('Role: ${user.role.toString().split('.').last}'),
+            Text('Section: ${user.section}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleSignOut() async {
     try {
-      final database = ref.read(databaseProvider);
-      final points = await (database.select(database.points)
-            ..where((tbl) => tbl.userId.equals(userId)))
-          .getSingleOrNull();
-      
-      if (points != null) {
-        return Points(
-          userId: points.userId,
-          totalPoints: points.totalPoints,
+      await ref.read(currentUserProvider.notifier).signOut();
+      if (mounted) {
+        context.go('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out: $e'),
+            backgroundColor: AppTheme.accentRed,
+          ),
         );
       }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Future<List<models.Badge>> _getUserBadges(WidgetRef ref, String userId) async {
-    try {
-      final database = ref.read(databaseProvider);
-      final userBadges = await (database.select(database.userBadges)
-            ..where((tbl) => tbl.userId.equals(userId)))
-          .get();
-      
-      final badgeIds = userBadges.map((ub) => ub.badgeId).toList();
-      if (badgeIds.isEmpty) return [];
-      
-      final badges = await (database.select(database.badges)
-            ..where((tbl) => tbl.id.isIn(badgeIds)))
-          .get();
-      
-      return badges.map((b) => models.Badge(
-        id: b.id,
-        name: b.name,
-        ruleJson: jsonDecode(b.ruleJson),
-      )).toList();
-    } catch (e) {
-      return [];
     }
   }
 } 

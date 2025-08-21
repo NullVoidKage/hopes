@@ -4,7 +4,7 @@ import 'dart:convert';
 import '../../../../core/providers.dart';
 import '../../../../data/models/assessment.dart';
 import '../../../../data/models/sync_queue.dart';
-import '../../../../services/sync/content_sync_service.dart';
+// import '../../../../services/sync/content_sync_service.dart'; // Disabled during migration
 
 class QuizEditor extends ConsumerStatefulWidget {
   final Assessment? assessment; // null for new quiz
@@ -259,53 +259,18 @@ class _QuizEditorState extends ConsumerState<QuizEditor> {
     });
 
     try {
-      final assessmentRepo = ref.read(assessmentRepositoryProvider);
-      final syncService = ref.read(contentSyncServiceProvider);
+      // TODO: Update to use Firestore when implementing teacher features
+      // final assessmentRepo = ref.read(assessmentRepositoryProvider);
+      // final syncService = ref.read(contentSyncServiceProvider);
       
-      final assessmentId = widget.assessment?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-      final questions = _questions.map((q) => Question(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        text: q.question,
-        choices: q.choices,
-        correctIndex: q.correctAnswer,
-      )).toList();
-      
-      final assessment = Assessment(
-        id: assessmentId,
-        lessonId: widget.lessonId,
-        type: AssessmentType.quiz,
-        items: questions,
+      // Temporarily disable quiz saving until teacher features are migrated
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Teacher features coming soon!')),
       );
-
-      if (widget.assessment == null) {
-        // Create new assessment
-        await assessmentRepo.createAssessment(assessment);
-        await syncService.queueContentChange(
-          'assessments',
-          SyncOperation.create,
-          assessmentId,
-          assessment.toJson(),
-        );
-      } else {
-        // Update existing assessment
-        await assessmentRepo.updateAssessment(assessment);
-        await syncService.queueContentChange(
-          'assessments',
-          SyncOperation.update,
-          assessmentId,
-          assessment.toJson(),
-        );
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.assessment == null ? 'Quiz created!' : 'Quiz updated!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop(true);
-      }
+      setState(() {
+        _isSaving = false;
+      });
+      return;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

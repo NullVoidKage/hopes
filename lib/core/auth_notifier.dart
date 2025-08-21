@@ -1,50 +1,52 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/user.dart';
-import '../data/repos/auth_repository.dart';
+import '../services/auth_service.dart';
 
 class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
-  final AuthRepository _authRepository;
+  final AuthService _authService;
 
-  AuthNotifier(this._authRepository) : super(const AsyncValue.loading()) {
+  AuthNotifier(this._authService) : super(const AsyncValue.loading()) {
     _loadCurrentUser();
   }
 
   Future<void> _loadCurrentUser() async {
     try {
       state = const AsyncValue.loading();
-      final user = await _authRepository.getCurrentUser();
-      state = AsyncValue.data(user);
+      
+      final firebaseUser = _authService.user;
+      
+      if (firebaseUser != null) {
+        final user = User(
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName ?? 'Unknown User',
+          email: firebaseUser.email ?? '',
+          role: UserRole.student, // Default role
+          section: '7-A', // Default section
+        );
+        state = AsyncValue.data(user);
+      } else {
+        state = const AsyncValue.data(null);
+      }
     } catch (error, stackTrace) {
+      print('Error loading current user: $error');
       state = AsyncValue.error(error, stackTrace);
     }
   }
 
-  Future<void> signIn({
-    required String name,
-    required String email,
-    required UserRole role,
-    String? section,
-  }) async {
+  Future<void> signInWithGoogle() async {
     try {
       state = const AsyncValue.loading();
-      final user = await _authRepository.createUser(
-        name: name,
-        email: email,
-        role: role,
-        section: section,
-      );
-      state = AsyncValue.data(user);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
-    }
-  }
+      final error = await _authService.signInWithGoogle();
+      
+      if (error != null) {
+        state = AsyncValue.error(error, StackTrace.current);
+        return;
+      }
 
-  Future<void> createDemoUser() async {
-    try {
-      state = const AsyncValue.loading();
-      final user = await _authRepository.createDemoUser();
-      state = AsyncValue.data(user);
+      // Reload user after successful sign-in
+      await _loadCurrentUser();
     } catch (error, stackTrace) {
+      print('Error signing in with Google: $error');
       state = AsyncValue.error(error, stackTrace);
     }
   }
@@ -54,8 +56,29 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       final currentUser = state.value;
       if (currentUser == null) return;
 
+      print('Updating role from ${currentUser.role} to $role'); // Debug log
       state = const AsyncValue.loading();
-      final updatedUser = await _authRepository.updateUserRole(currentUser.id, role);
+      
+      // Update local state
+      final updatedUser = currentUser.copyWith(role: role);
+      state = AsyncValue.data(updatedUser);
+      
+      print('Role updated successfully to ${updatedUser.role}'); // Debug log
+    } catch (error, stackTrace) {
+      print('Error updating role: $error'); // Debug log
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  Future<void> updateSection(String section) async {
+    try {
+      final currentUser = state.value;
+      if (currentUser == null) return;
+
+      state = const AsyncValue.loading();
+      
+      // Update local state
+      final updatedUser = currentUser.copyWith(section: section);
       state = AsyncValue.data(updatedUser);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -64,7 +87,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
 
   Future<void> signOut() async {
     try {
-      await _authRepository.signOut();
+      await _authService.signOut();
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme.dart';
+import '../../../data/db/database.dart';
 import '../../../data/models/user.dart';
 import '../../../data/models/progress.dart';
 import '../../../data/models/lesson.dart';
@@ -14,8 +15,7 @@ class ProgressScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(currentUserProvider);
-    final progressRepo = ref.watch(progressRepositoryProvider);
-    final assessmentRepo = ref.watch(assessmentRepositoryProvider);
+    final database = ref.read(databaseProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +34,7 @@ class ProgressScreen extends ConsumerWidget {
           }
 
           return FutureBuilder<List<Progress>>(
-            future: progressRepo.getProgressByUser(user.id),
+            future: database.getUserProgress(user.id),
             builder: (context, progressSnapshot) {
               if (progressSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -47,7 +47,7 @@ class ProgressScreen extends ConsumerWidget {
               final progressList = progressSnapshot.data ?? [];
 
               return FutureBuilder<List<Attempt>>(
-                future: assessmentRepo.getAttemptsByUser(user.id),
+                future: database.getUserAttempts(user.id),
                 builder: (context, attemptsSnapshot) {
                   final attempts = attemptsSnapshot.data ?? [];
                   final totalAttempts = attempts.length;
