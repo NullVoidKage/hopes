@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -238,9 +239,13 @@ class AuthService extends ChangeNotifier {
   // Google Sign In
   Future<String?> signInWithGoogle() async {
     try {
-      // Configure Google Sign-In - let it use the configuration from google-services.json
+      // Configure Google Sign-In 
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
+        // For web: You need to get the Web Client ID from Google Cloud Console
+        // Go to: Console > APIs & Services > Credentials > OAuth 2.0 Client IDs
+        // Copy the Web client ID that ends with .apps.googleusercontent.com
+        clientId: kIsWeb ? '105306415530-qm2fjqi75l4vbvvfs4t0r4mrg909vipn.apps.googleusercontent.com' : null,
       );
       
       // Check if user is already signed in with Google
