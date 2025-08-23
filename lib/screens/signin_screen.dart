@@ -19,6 +19,7 @@ class _SignInScreenState extends State<SignInScreen> {
       });
 
       await _authService.signInWithGoogle();
+      // AuthWrapper will handle all routing logic
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
