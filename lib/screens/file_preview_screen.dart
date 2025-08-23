@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart';
+
+// Conditional import for web vs mobile
+import 'file_preview_web.dart' if (dart.library.io) 'file_preview_mobile.dart' as platform;
 
 class FilePreviewScreen extends StatelessWidget {
   final String fileUrl;
@@ -34,7 +37,7 @@ class FilePreviewScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.download_rounded),
-            onPressed: () => _downloadFile(fileUrl, fileName),
+            onPressed: () => _downloadFile(context, fileUrl, fileName),
             tooltip: 'Download file',
           ),
         ],
@@ -55,18 +58,18 @@ class FilePreviewScreen extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: const BorderRadius.all(Radius.circular(20)),
-            child: _buildFilePreview(),
+            child: _buildFilePreview(context),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFilePreview() {
+  Widget _buildFilePreview(BuildContext context) {
     final fileExtension = _getFileExtension(fileName).toLowerCase();
     
     if (fileExtension == 'pdf') {
-      return _buildPdfPreview();
+      return _buildPdfPreview(context);
     } else if (fileExtension == 'docx' || fileExtension == 'doc') {
       return _buildDocPreview();
     } else {
@@ -74,7 +77,7 @@ class FilePreviewScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildPdfPreview() {
+  Widget _buildPdfPreview(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -108,7 +111,7 @@ class FilePreviewScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton.icon(
-                onPressed: () => _openPdfInNewTab(),
+                onPressed: () => _openPdfInNewTab(context),
                 icon: const Icon(Icons.open_in_new_rounded),
                 label: const Text('Open PDF'),
                 style: ElevatedButton.styleFrom(
@@ -119,7 +122,7 @@ class FilePreviewScreen extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               OutlinedButton.icon(
-                onPressed: () => _downloadFile(fileUrl, fileName),
+                onPressed: () => _downloadFile(context, fileUrl, fileName),
                 icon: const Icon(Icons.download_rounded),
                 label: const Text('Download'),
                 style: OutlinedButton.styleFrom(
@@ -219,20 +222,107 @@ class FilePreviewScreen extends StatelessWidget {
     );
   }
 
-  void _downloadFile(String url, String fileName) {
+  void _downloadFile(BuildContext context, String url, String fileName) {
     try {
-      // Create a temporary anchor element to trigger download
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', fileName)
-        ..click();
+      if (kIsWeb) {
+        // Web platform: use web-specific implementation
+        platform.downloadFile(url, fileName);
+      } else {
+        // Mobile platform: show a dialog with options
+        _showMobileDownloadOptions(context, url, fileName);
+      }
     } catch (e) {
-      // Fallback: open in new tab
-      html.window.open(url, '_blank');
+      if (kIsWeb) {
+        // Fallback: open in new tab
+        platform.openInNewTab(url);
+      } else {
+        // Mobile fallback
+        _showMobileDownloadOptions(context, url, fileName);
+      }
     }
   }
 
-  void _openPdfInNewTab() {
-    html.window.open(fileUrl, '_blank');
+  void _openPdfInNewTab(BuildContext context) {
+    if (kIsWeb) {
+      platform.openInNewTab(fileUrl);
+    } else {
+      // On mobile, show a dialog with options
+      _showMobilePdfOptions(context);
+    }
+  }
+
+  void _showMobileDownloadOptions(BuildContext context, String url, String fileName) {
+    // Show a dialog with mobile-specific options
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('File Options'),
+          content: Text('Choose how you want to handle: $fileName'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // You could implement clipboard functionality here
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Link copied to clipboard')),
+                );
+              },
+              child: const Text('Copy Link'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // You could implement share functionality here
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Opening share sheet...')),
+                );
+              },
+              child: const Text('Share'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showMobilePdfOptions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('PDF Options'),
+          content: const Text('Choose how you want to handle this PDF file.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // You could implement opening in a PDF viewer app here
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Opening PDF...')),
+                );
+              },
+              child: const Text('Open'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _downloadFile(context, fileUrl, fileName);
+              },
+              child: const Text('Download'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _getFileExtension(String fileName) {
