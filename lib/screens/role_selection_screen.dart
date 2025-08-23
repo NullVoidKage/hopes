@@ -45,76 +45,68 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+      backgroundColor: const Color(0xFFF5F5F7), // Apple's light gray background
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 40),
-                
-                // Welcome Header
+                // App Logo/Icon
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: const BorderRadius.all(Radius.circular(25)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 20,
-                        offset: const Offset(0, 10),
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
                   child: const Icon(
                     Icons.school,
-                    size: 60,
-                    color: Color(0xFF667eea),
+                    size: 50,
+                    color: Color(0xFF007AFF), // Apple's blue
                   ),
                 ),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 32),
                 
+                // Welcome Text
                 Text(
                   'Welcome, ${widget.displayName}!',
                   style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1D1D1F), // Apple's dark text
+                    letterSpacing: -0.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 
                 const Text(
                   'Choose your role to get started',
                   style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w300,
+                    fontSize: 17,
+                    color: Color(0xFF86868B), // Apple's secondary text
+                    fontWeight: FontWeight.w400,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 
-                const SizedBox(height: 40),
+                const SizedBox(height: 48),
                 
                 // Role Selection
                 _buildRoleSelection(),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 32),
                 
                 // Additional Fields based on role
                 if (selectedRole != null) _buildAdditionalFields(),
@@ -123,8 +115,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 
                 // Continue Button
                 if (selectedRole != null) _buildContinueButton(),
-                
-                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -140,13 +130,14 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         const Text(
           'Select Your Role',
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1D1D1F),
+            letterSpacing: -0.3,
           ),
         ),
         
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         
         Row(
           children: [
@@ -154,7 +145,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               child: _buildRoleCard(
                 UserRole.student,
                 'Student',
-                Icons.person,
+                Icons.person_outline,
                 'Access learning materials and track progress',
               ),
             ),
@@ -163,7 +154,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               child: _buildRoleCard(
                 UserRole.teacher,
                 'Teacher',
-                Icons.school,
+                Icons.school_outlined,
                 'Manage courses and monitor students',
               ),
             ),
@@ -186,37 +177,47 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? Colors.white : const Color(0xFFFFFFFF),
+          borderRadius: const BorderRadius.all(Radius.circular(16)),
           border: Border.all(
-            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
-            width: 2,
+            color: isSelected ? const Color(0xFF007AFF) : const Color(0xFFE5E5E7),
+            width: isSelected ? 2 : 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected 
+                ? const Color(0xFF007AFF).withValues(alpha: 0.15)
+                : Colors.black.withValues(alpha: 0.04),
+              blurRadius: isSelected ? 12 : 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           children: [
             Icon(
               icon,
-              size: 40,
-              color: isSelected ? const Color(0xFF667eea) : Colors.white,
+              size: 32,
+              color: isSelected ? const Color(0xFF007AFF) : const Color(0xFF86868B),
             ),
             const SizedBox(height: 16),
             Text(
               title,
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? const Color(0xFF667eea) : Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? const Color(0xFF007AFF) : const Color(0xFF1D1D1F),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               description,
               style: TextStyle(
-                fontSize: 12,
-                color: isSelected ? Colors.grey : Colors.white70,
+                fontSize: 13,
+                color: isSelected ? const Color(0xFF007AFF) : const Color(0xFF86868B),
+                height: 1.3,
               ),
               textAlign: TextAlign.center,
             ),
@@ -242,19 +243,27 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         const Text(
           'Student Information',
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1D1D1F),
+            letterSpacing: -0.3,
           ),
         ),
         
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,35 +271,116 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               const Text(
                 'Grade Level',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: Color(0xFF1D1D1F),
                 ),
               ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: selectedGrade,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  border: Border.all(
+                    color: selectedGrade != null 
+                        ? const Color(0xFF007AFF) 
+                        : const Color(0xFFE5E5E7),
+                    width: selectedGrade != null ? 2 : 1,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  color: const Color(0xFFF5F5F7),
                 ),
-                hint: const Text('Select your grade'),
-                items: grades.map((grade) {
-                  return DropdownMenuItem(
-                    value: grade,
-                    child: Text('Grade $grade'),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedGrade = value;
-                  });
-                },
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedGrade,
+                    isExpanded: true,
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: selectedGrade != null 
+                            ? const Color(0xFF007AFF) 
+                            : const Color(0xFF86868B),
+                        borderRadius: const BorderRadius.all(Radius.circular(8)),
+                      ),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    iconSize: 24,
+                    dropdownColor: Colors.white,
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    elevation: 8,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      color: Color(0xFF1D1D1F),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    hint: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Select your grade',
+                        style: const TextStyle(
+                          color: Color(0xFF86868B),
+                          fontSize: 17,
+                        ),
+                      ),
+                    ),
+                    items: grades.map((grade) {
+                      return DropdownMenuItem<String>(
+                        value: grade,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16, 
+                            vertical: 12
+                          ),
+                          decoration: BoxDecoration(
+                            color: selectedGrade == grade 
+                                ? const Color(0xFF007AFF).withValues(alpha: 0.1)
+                                : Colors.transparent,
+                            borderRadius: const BorderRadius.all(Radius.circular(8)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.school_outlined,
+                                size: 20,
+                                color: selectedGrade == grade 
+                                    ? const Color(0xFF007AFF)
+                                    : const Color(0xFF86868B),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Grade $grade',
+                                style: TextStyle(
+                                  color: selectedGrade == grade 
+                                      ? const Color(0xFF007AFF)
+                                      : const Color(0xFF1D1D1F),
+                                  fontWeight: selectedGrade == grade 
+                                      ? FontWeight.w600 
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                              if (selectedGrade == grade) ...[
+                                const Spacer(),
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 20,
+                                  color: const Color(0xFF007AFF),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedGrade = value;
+                      });
+                    },
+                  ),
+                ),
               ),
             ],
           ),
@@ -306,19 +396,27 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         const Text(
           'Teacher Information',
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1D1D1F),
+            letterSpacing: -0.3,
           ),
         ),
         
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,19 +424,26 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               const Text(
                 'Subjects You Teach',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: Color(0xFF1D1D1F),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 12,
+                runSpacing: 12,
                 children: availableSubjects.map((subject) {
                   final isSelected = selectedSubjects.contains(subject);
                   return FilterChip(
-                    label: Text(subject),
+                    label: Text(
+                      subject,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : const Color(0xFF1D1D1F),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     selected: isSelected,
                     onSelected: (selected) {
                       setState(() {
@@ -349,11 +454,17 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                         }
                       });
                     },
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    selectedColor: const Color(0xFF667eea),
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white,
+                    backgroundColor: const Color(0xFFF5F5F7),
+                    selectedColor: const Color(0xFF007AFF),
+                    checkmarkColor: Colors.white,
+                    side: BorderSide(
+                      color: isSelected ? const Color(0xFF007AFF) : const Color(0xFFE5E5E7),
+                      width: 1,
                     ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   );
                 }).toList(),
               ),
@@ -374,12 +485,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       child: ElevatedButton(
         onPressed: canContinue && !_isLoading ? _continueWithRole : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF667eea),
+          backgroundColor: canContinue ? const Color(0xFF007AFF) : const Color(0xFFE5E5E7),
+          foregroundColor: canContinue ? Colors.white : const Color(0xFF86868B),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 0,
+          shadowColor: canContinue ? const Color(0xFF007AFF).withValues(alpha: 0.3) : Colors.transparent,
         ),
         child: _isLoading
             ? const SizedBox(
@@ -387,14 +499,15 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
-            : const Text(
+            : Text(
                 'Continue',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
+                  color: canContinue ? Colors.white : const Color(0xFF86868B),
                 ),
               ),
       ),
