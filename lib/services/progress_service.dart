@@ -24,9 +24,9 @@ class ProgressService {
 
       // If online, fetch from Firebase and cache
       final DatabaseReference ref = _database.ref('student_progress');
-      final Query query = ref.orderByChild('teacherId').equalTo(teacherId);
       
-      final DatabaseEvent event = await query.once();
+      // Don't filter by teacherId - show all progress to all teachers
+      final DatabaseEvent event = await ref.once();
       final DataSnapshot snapshot = event.snapshot;
       
       if (snapshot.value == null) return [];
@@ -67,13 +67,8 @@ class ProgressService {
       final cachedProgress = await OfflineService.getCachedStudentProgress();
       print('🔍 ProgressService: Total cached progress items: ${cachedProgress.length}');
       
-      // Filter by teacher ID if needed
-      final teacherProgress = cachedProgress.where((data) => 
-        data['teacherId'] == teacherId
-      ).toList();
-      print('🔍 ProgressService: Filtered progress for teacher: ${teacherProgress.length} items');
-      
-      final result = teacherProgress.map((data) => 
+      // Don't filter by teacher ID - show all progress to all teachers
+      final result = cachedProgress.map((data) => 
         StudentProgress.fromRealtimeDatabase(data, data['id'] ?? '')
       ).toList();
       print('🔍 ProgressService: Returning ${result.length} progress items');

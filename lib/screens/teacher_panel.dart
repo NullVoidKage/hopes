@@ -125,6 +125,23 @@ class _TeacherPanelState extends State<TeacherPanel> {
               tooltip: ConnectivityService().isConnected ? 'Go Offline' : 'Go Online',
             ),
           ),
+          // Fix Students button
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F7),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.build_rounded,
+                color: Color(0xFF34C759),
+                size: 22,
+              ),
+              onPressed: () => _fixExistingStudents(),
+              tooltip: 'Fix Existing Students',
+            ),
+          ),
           // Settings button
           Container(
             margin: const EdgeInsets.only(right: 8),
@@ -973,7 +990,45 @@ class _TeacherPanelState extends State<TeacherPanel> {
     setState(() {}); // Refresh the UI to show the new icon
   }
 
-
-
-
+  // Fix existing students who don't have subjects
+  Future<void> _fixExistingStudents() async {
+    try {
+      setState(() => _isLoading = true);
+      
+      await _authService.fixExistingStudents();
+      
+      // Refresh the dashboard data
+      if (_userProfile != null) {
+        final dashboardData = await _dashboardService.getDashboardData(
+          _authService.currentUser!.uid,
+          _userProfile!.subjects ?? [],
+        );
+        setState(() {
+          _dashboardData = dashboardData;
+        });
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Existing students fixed successfully!'),
+            backgroundColor: Color(0xFF34C759),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error fixing students: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 }

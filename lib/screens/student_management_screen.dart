@@ -35,7 +35,19 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
   final List<String> _filters = ['All', 'Active', 'Inactive'];
   final List<String> _grades = ['Grade 7'];
   final String _defaultGrade = 'Grade 7';
-  final List<String> _subjects = ['Mathematics', 'Science', 'English', 'History', 'Geography'];
+  final List<String> _subjects = [
+    'Mathematics',
+    'GMRC',
+    'Values Education',
+    'Araling Panlipunan',
+    'English',
+    'Filipino',
+    'Music & Arts',
+    'Science',
+    'Physical Education & Health',
+    'EPP',
+    'TLE'
+  ];
 
   @override
   void initState() {

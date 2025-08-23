@@ -61,8 +61,47 @@ class TeacherDashboardService {
 
   // Get student progress for teacher's subjects
   Future<List<StudentProgress>> _getStudentProgress(List<String> subjects) async {
-    // For now, return empty list until we implement student progress
-    return [];
+    try {
+      print('🔍 TeacherDashboardService: Fetching student progress for subjects: $subjects');
+      
+      final DatabaseReference ref = _database.ref('student_progress');
+      final DatabaseEvent event = await ref.once();
+      final DataSnapshot snapshot = event.snapshot;
+      
+      if (snapshot.value == null) {
+        print('🔍 TeacherDashboardService: No student progress data found');
+        return [];
+      }
+      
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) {
+        print('🔍 TeacherDashboardService: Student progress data is null');
+        return [];
+      }
+      
+      print('🔍 TeacherDashboardService: Found ${data.entries.length} progress entries');
+      
+      final progressList = data.entries.map((entry) {
+        final entryData = entry.value as Map<dynamic, dynamic>?;
+        if (entryData == null) return null;
+        
+        try {
+          return StudentProgress.fromRealtimeDatabase(
+            Map<String, dynamic>.from(entryData),
+            entry.key.toString(),
+          );
+        } catch (e) {
+          print('🔍 TeacherDashboardService: Error parsing progress data: $e');
+          return null;
+        }
+      }).whereType<StudentProgress>().toList();
+      
+      print('🔍 TeacherDashboardService: Successfully parsed ${progressList.length} progress records');
+      return progressList;
+    } catch (e) {
+      print('🔍 TeacherDashboardService: Error fetching student progress: $e');
+      return [];
+    }
   }
 
   // Get recent activities for teacher

@@ -7,7 +7,7 @@ class StudentService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final ConnectivityService _connectivityService = ConnectivityService();
 
-  // Get all students for a teacher
+  // Get all students for a teacher (now shows all students regardless of teacher ID)
   Future<List<Student>> getStudents(String teacherId) async {
     try {
       print('🔍 StudentService: Getting students for teacher: $teacherId');
@@ -23,11 +23,9 @@ class StudentService {
       // If online, fetch from Firebase and cache
       print('🔍 StudentService: Fetching from Firebase');
       final DatabaseReference ref = _database.ref('students');
-      final Query query = ref.orderByChild('teacherId').equalTo(teacherId);
       
-      print('🔍 StudentService: Query: orderByChild("teacherId").equalTo("$teacherId")');
-      
-      final DatabaseEvent event = await query.once();
+      // Don't filter by teacherId - show all students to all teachers
+      final DatabaseEvent event = await ref.once();
       final DataSnapshot snapshot = event.snapshot;
       
       print('🔍 StudentService: Snapshot exists: ${snapshot.exists}');
@@ -56,8 +54,6 @@ class StudentService {
         
         print('🔍 StudentService: Entry data: $entryData');
         print('🔍 StudentService: Entry teacherId: ${entryData['teacherId']}');
-        print('🔍 StudentService: Expected teacherId: $teacherId');
-        print('🔍 StudentService: teacherId match: ${entryData['teacherId'] == teacherId}');
         
         try {
           final student = Student.fromRealtimeDatabase(

@@ -25,7 +25,20 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   
   late TabController _tabController;
   
-  final List<String> _subjects = ['All', 'Mathematics', 'Science', 'English', 'History', 'Geography'];
+  final List<String> _subjects = [
+    'All',
+    'Mathematics',
+    'GMRC',
+    'Values Education',
+    'Araling Panlipunan',
+    'English',
+    'Filipino',
+    'Music & Arts',
+    'Science',
+    'Physical Education & Health',
+    'EPP',
+    'TLE'
+  ];
   final List<String> _filters = ['All', 'High Performers', 'Needs Help', 'Recently Active'];
 
   @override
@@ -383,7 +396,19 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   List<Widget> _buildChartBars() {
-    final subjects = ['Mathematics', 'Science', 'English', 'History', 'Geography'];
+    final subjects = [
+      'Mathematics',
+      'GMRC',
+      'Values Education',
+      'Araling Panlipunan',
+      'English',
+      'Filipino',
+      'Music & Arts',
+      'Science',
+      'Physical Education & Health',
+      'EPP',
+      'TLE'
+    ];
     final colors = [
       const Color(0xFF007AFF),
       const Color(0xFF34C759),
