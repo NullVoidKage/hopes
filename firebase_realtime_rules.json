@@ -31,6 +31,16 @@
         ".read": "auth != null && auth.uid == $userId",
         ".write": "auth != null && auth.uid == $userId"
       }
+    },
+    "student_progress": {
+      ".indexOn": ["teacherId", "subject", "lastActivity"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$studentId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['studentId', 'studentName', 'studentEmail', 'subject', 'teacherId'])"
+      }
     }
   }
 }

@@ -6,6 +6,7 @@ import 'lesson_upload_screen.dart';
 import 'lesson_library_screen.dart';
 import 'assessment_creation_screen.dart';
 import 'assessment_management_screen.dart';
+import 'monitor_progress_screen.dart';
 
 class TeacherPanel extends StatefulWidget {
   const TeacherPanel({super.key});
@@ -488,7 +489,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
       double averageProgress = 0.0;
       if (subjectProgress.isNotEmpty) {
         averageProgress = subjectProgress
-            .map((p) => p.progressPercentage)
+            .map((p) => p.completionRate)
             .reduce((a, b) => a + b) / subjectProgress.length;
       }
       
@@ -804,9 +805,10 @@ class _TeacherPanelState extends State<TeacherPanel> {
   }
 
   void _navigateToProgressMonitoring() {
-    // TODO: Navigate to progress monitoring screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Progress monitoring coming soon!')),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const MonitorProgressScreen(),
+      ),
     );
   }
 
