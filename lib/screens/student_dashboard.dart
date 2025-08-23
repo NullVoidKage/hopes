@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../widgets/safe_network_image.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -123,19 +124,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
       ),
       child: Row(
         children: [
-          CircleAvatar(
+          SafeCircleAvatar(
             radius: 30,
             backgroundColor: Colors.white,
-            backgroundImage: _userProfile?.photoURL != null
-                ? NetworkImage(_userProfile!.photoURL!)
-                : null,
-            child: _userProfile?.photoURL == null
-                ? const Icon(
-                    Icons.person,
-                    size: 30,
-                    color: Color(0xFF667eea),
-                  )
-                : null,
+            imageUrl: _userProfile?.photoURL,
+            fallbackChild: const Icon(
+              Icons.person,
+              size: 30,
+              color: Color(0xFF667eea),
+            ),
           ),
           const SizedBox(width: 20),
           Expanded(

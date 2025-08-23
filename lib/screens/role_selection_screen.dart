@@ -29,17 +29,16 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   final List<String> grades = ['7'];
   final List<String> availableSubjects = [
     'Mathematics',
-    'Science',
+    'GMRC',
+    'Values Education',
+    'Araling Panlipunan',
     'English',
-    'History',
-    'Geography',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'Computer Science',
-    'Art',
-    'Music',
-    'Physical Education',
+    'Filipino',
+    'Music & Arts',
+    'Science',
+    'Physical Education & Health',
+    'EPP',
+    'TLE',
   ];
 
   @override

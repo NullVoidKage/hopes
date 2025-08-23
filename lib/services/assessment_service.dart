@@ -1,12 +1,20 @@
 import 'package:firebase_database/firebase_database.dart';
 import '../models/assessment.dart';
+import 'connectivity_service.dart';
+import 'offline_service.dart';
 
 class AssessmentService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   // Create a new assessment
   Future<String> createAssessment(Assessment assessment) async {
     try {
+      // Only allow creation when online
+      if (_connectivityService.shouldUseCachedData) {
+        throw Exception('Cannot create assessment while offline. Please connect to the internet.');
+      }
+
       final ref = _database.ref('assessments').push();
       await ref.set(assessment.toRealtimeDatabase());
       return ref.key!;
@@ -18,6 +26,12 @@ class AssessmentService {
   // Get assessments by teacher
   Future<List<Assessment>> getAssessmentsByTeacher(String teacherId) async {
     try {
+      // Check if we should use cached data
+      if (_connectivityService.shouldUseCachedData) {
+        return await _getCachedAssessmentsByTeacher(teacherId);
+      }
+
+      // If online, fetch from Firebase and cache
       final snapshot = await _database
           .ref('assessments')
           .orderByChild('teacherId')
@@ -41,12 +55,50 @@ class AssessmentService {
 
         // Sort by creation date (newest first)
         assessments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        
+        // Cache the data for offline use
+        await _cacheAssessmentsLocally(assessments);
+        
         return assessments;
       }
       
       return [];
     } catch (e) {
-      throw Exception('Failed to get assessments: ${e.toString()}');
+      print('Error getting assessments: $e');
+      // If Firebase fails, try to return cached data
+      return await _getCachedAssessmentsByTeacher(teacherId);
+    }
+  }
+
+  // Get cached assessments by teacher
+  Future<List<Assessment>> _getCachedAssessmentsByTeacher(String teacherId) async {
+    try {
+      final cachedAssessments = await OfflineService.getCachedAssessments();
+      
+      // Filter by teacher ID
+      final teacherAssessments = cachedAssessments.where((data) => 
+        data['teacherId'] == teacherId
+      ).toList();
+      
+      return teacherAssessments.map((data) => 
+        Assessment.fromRealtimeDatabase(data['id'] ?? '', data)
+      ).toList();
+    } catch (e) {
+      print('Error getting cached assessments: $e');
+      return [];
+    }
+  }
+
+  // Cache assessments locally
+  Future<void> _cacheAssessmentsLocally(List<Assessment> assessments) async {
+    try {
+      final assessmentData = assessments.map((assessment) => {
+        'id': assessment.id,
+        ...assessment.toRealtimeDatabase(),
+      }).toList();
+      await OfflineService.cacheAssessments(assessmentData);
+    } catch (e) {
+      print('Error caching assessments: $e');
     }
   }
 

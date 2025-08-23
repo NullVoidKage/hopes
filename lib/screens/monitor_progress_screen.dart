@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/progress_service.dart';
 import '../models/student_progress.dart';
+import '../models/student.dart';
+import '../services/student_service.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class MonitorProgressScreen extends StatefulWidget {
   const MonitorProgressScreen({super.key});
@@ -13,9 +16,11 @@ class MonitorProgressScreen extends StatefulWidget {
 class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     with TickerProviderStateMixin {
   final ProgressService _progressService = ProgressService();
+  final StudentService _studentService = StudentService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   
-  List<StudentProgress> _students = [];
+  List<Student> _students = [];
+  List<StudentProgress> _studentProgress = [];
   Map<String, dynamic> _statistics = {};
   List<Map<String, dynamic>> _recentActivity = [];
   bool _isLoading = true;
@@ -24,7 +29,20 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   
   late TabController _tabController;
   
-  final List<String> _subjects = ['All', 'Mathematics', 'Science', 'English', 'History', 'Geography'];
+  final List<String> _subjects = [
+    'All',
+    'Mathematics',
+    'GMRC',
+    'Values Education',
+    'Araling Panlipunan',
+    'English',
+    'Filipino',
+    'Music & Arts',
+    'Science',
+    'Physical Education & Health',
+    'EPP',
+    'TLE'
+  ];
   final List<String> _filters = ['All', 'High Performers', 'Needs Help', 'Recently Active'];
 
   @override
@@ -46,45 +64,121 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     try {
       final String? teacherId = _auth.currentUser?.uid;
       if (teacherId != null) {
-        final students = await _progressService.getStudentProgress(teacherId);
-        final stats = await _progressService.getProgressStatistics(teacherId);
+        print('🔍 MonitorProgress: Loading data for teacher: $teacherId');
+        print('🔍 MonitorProgress: Current user email: ${_auth.currentUser?.email}');
+        
+        // First, let's check what's actually in the student_progress collection
+        final DatabaseReference ref = FirebaseDatabase.instance.ref('student_progress');
+        final DatabaseEvent event = await ref.once();
+        final DataSnapshot snapshot = event.snapshot;
+        
+        print('🔍 MonitorProgress: Firebase student_progress snapshot exists: ${snapshot.exists}');
+        if (snapshot.value != null) {
+          final data = snapshot.value as Map<dynamic, dynamic>?;
+          print('🔍 MonitorProgress: Total progress items in Firebase: ${data?.length ?? 0}');
+          print('🔍 MonitorProgress: Firebase data keys: ${data?.keys.toList()}');
+          
+          // Log each progress item's data structure
+          data?.forEach((key, value) {
+            print('🔍 MonitorProgress: Progress $key: $value');
+            if (value is Map) {
+              print('🔍 MonitorProgress: Progress $key teacherId: ${value['teacherId']}');
+              print('🔍 MonitorProgress: Progress $key studentName: ${value['studentName']}');
+            }
+          });
+        }
+        
+        // Get students from Firestore (like Student Management does)
+        final students = await _studentService.getAllStudents();
+        print('🔍 MonitorProgress: Loaded ${students.length} students from Firestore');
+        
+        // Get progress data for those students
+        final progress = await _progressService.getStudentProgress(teacherId);
+        print('🔍 MonitorProgress: Loaded ${progress.length} progress items');
+        
+        // Calculate statistics from student data (like Student Management does)
+        final stats = _calculateStatistics(students);
+        print('🔍 MonitorProgress: Calculated statistics: $stats');
+        
         final activity = await _progressService.getRecentActivity(teacherId);
+        print('🔍 MonitorProgress: Loaded activity: ${activity.length} items');
+        
+        print('🔍 MonitorProgress: Setting state with ${students.length} students');
+        print('🔍 MonitorProgress: First student: ${students.isNotEmpty ? students.first.name : 'No students'}');
+        print('🔍 MonitorProgress: First student subjects: ${students.isNotEmpty ? students.first.subjects : 'No subjects'}');
         
         setState(() {
           _students = students;
+          _studentProgress = progress;
           _statistics = stats;
           _recentActivity = activity;
           _isLoading = false;
         });
+        
+        print('🔍 MonitorProgress: State updated. _students length: ${_students.length}');
+        print('🔍 MonitorProgress: _filteredStudents length: ${_filteredStudents.length}');
       }
     } catch (e) {
-      print('Error loading progress data: $e');
+      print('🔍 MonitorProgress: Error loading progress data: $e');
       setState(() => _isLoading = false);
     }
   }
 
-  List<StudentProgress> get _filteredStudents {
-    List<StudentProgress> filtered = _students;
+  // Calculate statistics from student data (like Student Management does)
+  Map<String, dynamic> _calculateStatistics(List<Student> students) {
+    final totalStudents = students.length;
     
-    // Filter by subject
-    if (_selectedSubject != 'All') {
-      filtered = filtered.where((s) => s.subject == _selectedSubject).toList();
+    // Calculate grade distribution
+    final gradeDistribution = <String, int>{};
+    for (final student in students) {
+      final grade = student.grade;
+      gradeDistribution[grade] = (gradeDistribution[grade] ?? 0) + 1;
     }
     
-    // Filter by performance
+    // Calculate subject distribution
+    final subjectDistribution = <String, int>{};
+    for (final student in students) {
+      for (final subject in student.subjects) {
+        subjectDistribution[subject] = (subjectDistribution[subject] ?? 0) + 1;
+      }
+    }
+    
+    return {
+      'totalStudents': totalStudents,
+      'gradeDistribution': gradeDistribution,
+      'subjectDistribution': subjectDistribution,
+      'averageScore': 0.0, // TODO: Calculate from progress data
+      'averageCompletionRate': 0.0, // TODO: Calculate from progress data
+    };
+  }
+
+  List<Student> get _filteredStudents {
+    print('🔍 MonitorProgress: _filteredStudents called. _students length: ${_students.length}');
+    print('🔍 MonitorProgress: _selectedSubject: $_selectedSubject');
+    print('🔍 MonitorProgress: _selectedFilter: $_selectedFilter');
+    
+    List<Student> filtered = _students;
+    
+    // Filter by subject (check if student has the selected subject)
+    if (_selectedSubject != 'All') {
+      filtered = filtered.where((s) => s.subjects.contains(_selectedSubject)).toList();
+      print('🔍 MonitorProgress: After subject filter: ${filtered.length} students');
+    }
+    
+    // Filter by performance (this will need to be implemented based on progress data)
     switch (_selectedFilter) {
       case 'High Performers':
-        filtered = filtered.where((s) => s.averageScore >= 80).toList();
+        // TODO: Implement based on progress data
         break;
       case 'Needs Help':
-        filtered = filtered.where((s) => s.averageScore < 60).toList();
+        // TODO: Implement based on progress data
         break;
       case 'Recently Active':
-        final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-        filtered = filtered.where((s) => s.lastActivity.isAfter(weekAgo)).toList();
+        // TODO: Implement based on progress data
         break;
     }
     
+    print('🔍 MonitorProgress: Final filtered students: ${filtered.length}');
     return filtered;
   }
 
@@ -353,13 +447,31 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   List<Widget> _buildChartBars() {
-    final subjects = ['Mathematics', 'Science', 'English', 'History', 'Geography'];
+    final subjects = [
+      'Mathematics',
+      'GMRC',
+      'Values Education',
+      'Araling Panlipunan',
+      'English',
+      'Filipino',
+      'Music & Arts',
+      'Science',
+      'Physical Education & Health',
+      'EPP',
+      'TLE'
+    ];
     final colors = [
-      const Color(0xFF007AFF),
-      const Color(0xFF34C759),
-      const Color(0xFFFF9500),
-      const Color(0xFFFF3B30),
-      const Color(0xFFAF52DE),
+      const Color(0xFF007AFF),    // Blue
+      const Color(0xFF34C759),    // Green
+      const Color(0xFFFF9500),    // Orange
+      const Color(0xFFFF3B30),    // Red
+      const Color(0xFFAF52DE),    // Purple
+      const Color(0xFFFF6B35),    // Deep Orange
+      const Color(0xFF4ECDC4),    // Teal
+      const Color(0xFFFFD93D),    // Yellow
+      const Color(0xFF6C5CE7),    // Indigo
+      const Color(0xFF00B894),    // Emerald
+      const Color(0xFFE84393),    // Pink
     ];
 
     return subjects.asMap().entries.map((entry) {
@@ -368,10 +480,10 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
       final color = colors[index];
       
       // Calculate average score for this subject
-      final subjectStudents = _students.where((s) => s.subject == subject).toList();
+      final subjectStudents = _students.where((s) => s.subjects.contains(subject)).toList();
       final averageScore = subjectStudents.isEmpty 
           ? 0.0 
-          : subjectStudents.map((s) => s.averageScore).reduce((a, b) => a + b) / subjectStudents.length;
+          : 0.0; // TODO: Calculate from progress data
       
       final barHeight = (averageScore / 100) * 100; // Scale to 100px max height
       
@@ -439,11 +551,11 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
           ),
           const SizedBox(height: 16),
           ..._subjects.where((s) => s != 'All').map((subject) {
-            final subjectStudents = _students.where((s) => s.subject == subject).toList();
+            final subjectStudents = _students.where((s) => s.subjects.contains(subject)).toList();
             final count = subjectStudents.length;
             final avgScore = subjectStudents.isEmpty 
                 ? 0.0 
-                : subjectStudents.map((s) => s.averageScore).reduce((a, b) => a + b) / subjectStudents.length;
+                : 0.0; // TODO: Calculate from progress data
             
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -492,6 +604,10 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   Widget _buildStudentsTab() {
+    print('🔍 MonitorProgress: Building Students tab');
+    print('🔍 MonitorProgress: _students length: ${_students.length}');
+    print('🔍 MonitorProgress: _filteredStudents length: ${_filteredStudents.length}');
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -533,7 +649,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     );
   }
 
-  Widget _buildStudentCard(StudentProgress student) {
+  Widget _buildStudentCard(Student student) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -556,7 +672,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               CircleAvatar(
                 backgroundColor: const Color(0xFF007AFF),
                 child: Text(
-                  student.studentName.substring(0, 1).toUpperCase(),
+                  student.name.substring(0, 1).toUpperCase(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -569,7 +685,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      student.studentName,
+                      student.name,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -577,7 +693,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
                       ),
                     ),
                     Text(
-                      student.studentEmail,
+                      student.email,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF86868B),
@@ -589,15 +705,15 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getScoreColor(student.averageScore).withOpacity(0.1),
+                  color: const Color(0xFF007AFF).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  '${student.averageScore.toStringAsFixed(1)}%',
+                child: const Text(
+                  'N/A',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: _getScoreColor(student.averageScore),
+                    color: Color(0xFF007AFF),
                   ),
                 ),
               ),
@@ -608,24 +724,24 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
             children: [
               Expanded(
                 child: _buildProgressItem(
-                  'Lessons',
-                  '${student.lessonsCompleted}/${student.totalLessons}',
-                  student.completionRate,
+                  'Subjects',
+                  '${student.subjects.length} enrolled',
+                  100.0,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildProgressItem(
-                  'Assessments',
-                  '${student.assessmentsTaken}/${student.totalAssessments}',
-                  student.assessmentsTaken > 0 ? 100.0 : 0.0,
+                  'Grade',
+                  '${student.grade} - ${student.section}',
+                  100.0,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            'Last active: ${_formatDate(student.lastActivity)}',
+            'Joined: ${_formatDate(student.joinedAt)}',
             style: const TextStyle(
               fontSize: 12,
               color: Color(0xFF86868B),

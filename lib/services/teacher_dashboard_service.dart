@@ -1,6 +1,9 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/student_progress.dart';
 import '../models/teacher_activity.dart';
+import 'offline_service.dart';
+import 'connectivity_service.dart';
 
 class TeacherDashboardData {
   final List<StudentProgress> studentProgress;
@@ -22,20 +25,23 @@ class TeacherDashboardData {
 
 class TeacherDashboardService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   // Get all dashboard data for a teacher
   Future<TeacherDashboardData> getDashboardData(String teacherId, List<String> teacherSubjects) async {
     try {
-      // Fetch student progress for teacher's subjects
+      // Check if we should use cached data
+      if (_connectivityService.shouldUseCachedData) {
+        return await _getCachedDashboardData(teacherId, teacherSubjects);
+      }
+
+      // If online, fetch from Firebase and cache
       final studentProgress = await _getStudentProgress(teacherSubjects);
-      
-      // Fetch recent activities for this teacher
       final recentActivities = await _getRecentActivities(teacherId);
+      final studentCount = await _getStudentCount();
+      final stats = _calculateStats(studentProgress, studentCount);
       
-      // Calculate statistics
-      final stats = _calculateStats(studentProgress);
-      
-      return TeacherDashboardData(
+      final dashboardData = TeacherDashboardData(
         studentProgress: studentProgress,
         recentActivities: recentActivities,
         subjectStats: stats['subjectStats'],
@@ -43,15 +49,61 @@ class TeacherDashboardService {
         activeStudents: stats['activeStudents'],
         averageProgress: stats['averageProgress'],
       );
+
+      // Cache the data for offline use
+      await _cacheDashboardData(dashboardData);
+      
+      return dashboardData;
     } catch (e) {
-      throw Exception('Failed to load dashboard data: ${e.toString()}');
+      // If Firebase fails, try to return cached data
+      print('Firebase error, trying cached data: $e');
+      return await _getCachedDashboardData(teacherId, teacherSubjects);
     }
   }
 
   // Get student progress for teacher's subjects
   Future<List<StudentProgress>> _getStudentProgress(List<String> subjects) async {
-    // For now, return empty list until we implement student progress
-    return [];
+    try {
+      print('🔍 TeacherDashboardService: Fetching student progress for subjects: $subjects');
+      
+      final DatabaseReference ref = _database.ref('student_progress');
+      final DatabaseEvent event = await ref.once();
+      final DataSnapshot snapshot = event.snapshot;
+      
+      if (snapshot.value == null) {
+        print('🔍 TeacherDashboardService: No student progress data found');
+        return [];
+      }
+      
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) {
+        print('🔍 TeacherDashboardService: Student progress data is null');
+        return [];
+      }
+      
+      print('🔍 TeacherDashboardService: Found ${data.entries.length} progress entries');
+      
+      final progressList = data.entries.map((entry) {
+        final entryData = entry.value as Map<dynamic, dynamic>?;
+        if (entryData == null) return null;
+        
+        try {
+          return StudentProgress.fromRealtimeDatabase(
+            Map<String, dynamic>.from(entryData),
+            entry.key.toString(),
+          );
+        } catch (e) {
+          print('🔍 TeacherDashboardService: Error parsing progress data: $e');
+          return null;
+        }
+      }).whereType<StudentProgress>().toList();
+      
+      print('🔍 TeacherDashboardService: Successfully parsed ${progressList.length} progress records');
+      return progressList;
+    } catch (e) {
+      print('🔍 TeacherDashboardService: Error fetching student progress: $e');
+      return [];
+    }
   }
 
   // Get recent activities for teacher
@@ -90,12 +142,28 @@ class TeacherDashboardService {
     }
   }
 
+  // Get student count from Firestore
+  Future<int> _getStudentCount() async {
+    try {
+      final studentsQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'student')
+          .get();
+      
+      print('🔍 TeacherDashboardService: Found ${studentsQuery.docs.length} students in Firestore');
+      return studentsQuery.docs.length;
+    } catch (e) {
+      print('🔍 TeacherDashboardService: Error getting student count: $e');
+      return 0;
+    }
+  }
+
   // Calculate dashboard statistics
-  Map<String, dynamic> _calculateStats(List<StudentProgress> studentProgress) {
+  Map<String, dynamic> _calculateStats(List<StudentProgress> studentProgress, int totalStudents) {
     if (studentProgress.isEmpty) {
       return {
         'subjectStats': <String, int>{},
-        'totalStudents': 0,
+        'totalStudents': totalStudents,
         'activeStudents': 0,
         'averageProgress': 0.0,
       };
@@ -142,6 +210,93 @@ class TeacherDashboardService {
       });
     } catch (e) {
       throw Exception('Failed to log activity: ${e.toString()}');
+    }
+  }
+
+  // Get cached dashboard data
+  Future<TeacherDashboardData> _getCachedDashboardData(String teacherId, List<String> teacherSubjects) async {
+    try {
+      final cachedProgress = await OfflineService.getCachedStudentProgress();
+      final cachedActivities = await OfflineService.getCachedTeacherActivities();
+      
+      // Convert cached data to proper models
+      final studentProgress = cachedProgress.map((data) => 
+        StudentProgress.fromRealtimeDatabase(data, data['id'] ?? '')
+      ).toList();
+      
+      final recentActivities = cachedActivities.map((data) => 
+        TeacherActivity.fromRealtimeDatabase(data['id'] ?? '', data)
+      ).toList();
+      
+      final stats = _calculateStats(studentProgress, studentProgress.length);
+      
+      return TeacherDashboardData(
+        studentProgress: studentProgress,
+        recentActivities: recentActivities,
+        subjectStats: stats['subjectStats'],
+        totalStudents: stats['totalStudents'],
+        activeStudents: stats['activeStudents'],
+        averageProgress: stats['averageProgress'],
+      );
+    } catch (e) {
+      print('Error getting cached dashboard data: $e');
+      // Return empty dashboard data if cache fails
+      return TeacherDashboardData(
+        studentProgress: [],
+        recentActivities: [],
+        subjectStats: <String, int>{},
+        totalStudents: 0,
+        activeStudents: 0,
+        averageProgress: 0.0,
+      );
+    }
+  }
+
+  // Cache dashboard data
+  Future<void> _cacheDashboardData(TeacherDashboardData data) async {
+    try {
+      // Cache student progress
+      final progressData = data.studentProgress.map((progress) => {
+        'id': progress.id,
+        'studentId': progress.studentId,
+        'studentName': progress.studentName,
+        'studentEmail': progress.studentEmail,
+        'subject': progress.subject,
+        'lessonsCompleted': progress.lessonsCompleted,
+        'totalLessons': progress.totalLessons,
+        'assessmentsTaken': progress.assessmentsTaken,
+        'totalAssessments': progress.totalAssessments,
+        'averageScore': progress.averageScore,
+        'completionRate': progress.completionRate,
+        'lastActivity': progress.lastActivity.millisecondsSinceEpoch,
+        'lessonProgress': progress.lessonProgress.fold<Map<String, dynamic>>({}, (map, lesson) {
+          map[lesson.lessonId] = lesson.toMap();
+          return map;
+        }),
+        'assessmentProgress': progress.assessmentProgress.fold<Map<String, dynamic>>({}, (map, assessment) {
+          map[assessment.assessmentId] = assessment.toMap();
+          return map;
+        }),
+        'metadata': progress.metadata,
+      }).toList();
+      
+      await OfflineService.cacheStudentProgress(progressData);
+      
+      // Cache teacher activities
+      final activitiesData = data.recentActivities.map((activity) => {
+        'id': activity.id,
+        'teacherId': activity.teacherId,
+        'type': activity.type.toString().split('.').last,
+        'title': activity.title,
+        'description': activity.description,
+        'subject': activity.subject,
+        'timestamp': activity.timestamp.millisecondsSinceEpoch,
+        'metadata': activity.metadata,
+      }).toList();
+      
+      await OfflineService.cacheTeacherActivities(activitiesData);
+    } catch (e) {
+      print('Error caching dashboard data: $e');
     }
   }
 }
