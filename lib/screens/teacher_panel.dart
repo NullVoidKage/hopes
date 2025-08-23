@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/teacher_dashboard_service.dart';
@@ -103,11 +103,17 @@ class _TeacherPanelState extends State<TeacherPanel> {
         centerTitle: false,
         titleSpacing: 0,
         actions: [
+          // Simplified offline indicator - just one clear button
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F7),
+              color: ConnectivityService().isConnected 
+                ? const Color(0xFFF5F5F7) 
+                : const Color(0xFFFF9500).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.all(Radius.circular(12)),
+              border: !ConnectivityService().isConnected 
+                ? Border.all(color: const Color(0xFFFF9500), width: 1)
+                : null,
             ),
             child: IconButton(
               icon: Icon(
@@ -116,28 +122,10 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 size: 22,
               ),
               onPressed: () => _toggleOfflineMode(),
-              tooltip: 'Toggle Offline Mode',
+              tooltip: ConnectivityService().isConnected ? 'Go Offline' : 'Go Online',
             ),
           ),
-          // Force offline button (for testing)
-          if (kDebugMode)
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
-                border: Border.all(color: Colors.red, width: 1),
-              ),
-              child: IconButton(
-                icon: const Icon(
-                  Icons.cloud_off_rounded,
-                  color: Colors.red,
-                  size: 22,
-                ),
-                onPressed: () => _forceOfflineMode(),
-                tooltip: 'Force Offline Mode (Debug)',
-              ),
-            ),
+          // Settings button
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
@@ -151,9 +139,10 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 size: 22,
               ),
               onPressed: () => _navigateToOfflineSettings(),
-              tooltip: 'Offline Settings',
+              tooltip: 'Settings',
             ),
           ),
+          // Logout button
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
@@ -316,40 +305,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
             ],
           ),
           
-          // Offline status indicator
-          if (_isOffline()) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF9500).withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
-                border: Border.all(
-                  color: const Color(0xFFFF9500).withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: const Color(0xFFFF9500),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Showing cached data',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: const Color(0xFFFF9500),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+
         ],
       ),
     );
@@ -379,14 +335,14 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 Expanded(child: _buildActionCard(
                   'Upload Lessons',
                   Icons.upload_file_rounded,
-                  'Add new learning content',
+                  'Add new content',
                   () => _navigateToLessonUpload(),
                 )),
                 const SizedBox(width: 16),
                 Expanded(child: _buildActionCard(
                   'My Lessons',
                   Icons.library_books_rounded,
-                  'View and manage lessons',
+                  'View and manage',
                   () => _navigateToLessonLibrary(),
                 )),
               ],
@@ -397,14 +353,14 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 Expanded(child: _buildActionCard(
                   'Monitor Progress',
                   Icons.analytics_rounded,
-                  'Track student performance',
+                  'Track performance',
                   () => _navigateToProgressMonitoring(),
                 )),
                 const SizedBox(width: 16),
                 Expanded(child: _buildActionCard(
                   'Create Assessments',
                   Icons.quiz_rounded,
-                  'Design tests and quizzes',
+                  'Design tests',
                   () => _navigateToAssessmentCreation(),
                 )),
               ],
@@ -415,7 +371,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 Expanded(child: _buildActionCard(
                   'Student Management',
                   Icons.people_rounded,
-                  'Manage your students',
+                  'Manage students',
                   () => _navigateToStudentManagement(),
                 )),
                 const SizedBox(width: 16),
@@ -1003,6 +959,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
     }
   }
 
+
   void _navigateToOfflineSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -1016,10 +973,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
     setState(() {}); // Refresh the UI to show the new icon
   }
 
-  void _forceOfflineMode() {
-    ConnectivityService().forceOfflineMode();
-    setState(() {}); // Refresh the UI to show the new icon
-  }
+
 
 
 }

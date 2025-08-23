@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/student.dart';
 import '../services/student_service.dart';
 import '../models/user_model.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 
 class StudentManagementScreen extends StatefulWidget {
   final UserModel teacherProfile;
@@ -38,7 +40,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _loadData();
   }
 
@@ -54,13 +56,36 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
     try {
       final String? teacherId = _auth.currentUser?.uid;
       if (teacherId != null) {
-        print('Loading data for teacher: $teacherId');
+        print('🔍 StudentManagement: Loading data for teacher: $teacherId');
+        print('🔍 StudentManagement: Current user email: ${_auth.currentUser?.email}');
         
-        final students = await _studentService.getStudents(teacherId);
-        print('Loaded ${students.length} students');
+        // Load ALL students in the system, not just teacher's students
+        final DatabaseReference ref = FirebaseDatabase.instance.ref('students');
+        final DatabaseEvent event = await ref.once();
+        final DataSnapshot snapshot = event.snapshot;
+        
+        print('🔍 StudentManagement: Firebase students snapshot exists: ${snapshot.exists}');
+        if (snapshot.value != null) {
+          final data = snapshot.value as Map<dynamic, dynamic>?;
+          print('🔍 StudentManagement: Total students in Firebase: ${data?.length ?? 0}');
+          print('🔍 StudentManagement: Firebase data keys: ${data?.keys.toList()}');
+          
+          // Log each student's data structure
+          data?.forEach((key, value) {
+            print('🔍 StudentManagement: Student $key: $value');
+            if (value is Map) {
+              print('🔍 StudentManagement: Student $key teacherId: ${value['teacherId']}');
+              print('🔍 StudentManagement: Student $key name: ${value['name']}');
+            }
+          });
+        }
+        
+        // Get all students from the service
+        final students = await _studentService.getAllStudents();
+        print('🔍 StudentManagement: Loaded ${students.length} students from service');
         
         final stats = await _studentService.getStudentStatistics(teacherId);
-        print('Loaded statistics: $stats');
+        print('🔍 StudentManagement: Loaded statistics: $stats');
         
         setState(() {
           _students = students;
@@ -68,11 +93,11 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
           _isLoading = false;
         });
       } else {
-        print('No teacher ID found');
+        print('🔍 StudentManagement: No teacher ID found');
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Error loading student data: $e');
+      print('🔍 StudentManagement: Error loading student data: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -86,9 +111,6 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
     } else if (_selectedFilter == 'Inactive') {
       filtered = filtered.where((s) => !s.isActive).toList();
     }
-    
-    // Filter by grade (only Grade 7)
-    filtered = filtered.where((s) => s.grade == _defaultGrade).toList();
     
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
@@ -109,7 +131,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
       backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
         title: const Text(
-          'Grade 7 Student Management',
+          'Student Management',
           style: TextStyle(
             color: Color(0xFF1D1D1F),
             fontWeight: FontWeight.w600,
@@ -150,7 +172,6 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
                     tabs: const [
                       Tab(text: 'Students'),
                       Tab(text: 'Analytics'),
-                      Tab(text: 'Add Student'),
                     ],
                   ),
                 ),
@@ -161,12 +182,12 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
                     children: [
                       _buildStudentsTab(),
                       _buildAnalyticsTab(),
-                      _buildAddStudentTab(),
                     ],
                   ),
                 ),
               ],
             ),
+
     );
   }
 
@@ -288,7 +309,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Grade 7 Students',
+                'All Students',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -370,12 +391,19 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
                         color: Color(0xFF86868B),
                       ),
                     ),
+                    Text(
+                      '${student.grade} - Section ${student.section}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF007AFF),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF86868B)),
-                onSelected: (value) => _handleStudentAction(value, student),
+                onSelected: (action) => _handleStudentAction(action, student),
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                     value: 'edit',
@@ -394,6 +422,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
                         Icon(
                           student.isActive ? Icons.block_rounded : Icons.check_circle_rounded,
                           size: 18,
+                          color: student.isActive ? Colors.red : Colors.green,
                         ),
                         const SizedBox(width: 8),
                         Text(student.isActive ? 'Deactivate' : 'Activate'),
@@ -404,77 +433,82 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_rounded, size: 18, color: Color(0xFFFF3B30)),
+                        Icon(Icons.delete_rounded, size: 18, color: Colors.red),
                         SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Color(0xFFFF3B30))),
+                        Text('Delete', style: TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
                 ],
+                child: const Icon(Icons.more_vert_rounded, color: Color(0xFF86868B)),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
+          
+          // Current subjects
+          if (student.subjects.isNotEmpty) ...[
+            Text(
+              'Current Subjects:',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: student.subjects.map((subject) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withOpacity(0.1),
+                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  student.grade,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF007AFF),
+                  border: Border.all(
+                    color: const Color(0xFF007AFF).withValues(alpha: 0.3),
+                    width: 1,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF34C759).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      subject,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF007AFF),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => _removeSubjectFromStudent(student, subject),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 14,
+                        color: Color(0xFF007AFF),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  student.section,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF34C759),
-                  ),
-                ),
+              )).toList(),
+            ),
+            const SizedBox(height: 12),
+          ],
+          
+          // Add subject button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showAddSubjectDialog(student),
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: const Text('Add Subject'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF007AFF),
+                side: const BorderSide(color: Color(0xFF007AFF)),
+                padding: const EdgeInsets.symmetric(vertical: 8),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: student.subjects.map((subject) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF9500).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                subject,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFFFF9500),
-                ),
-              ),
-            )).toList(),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Joined: ${_formatDate(student.joinedAt)}',
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF86868B),
             ),
           ),
         ],
@@ -535,7 +569,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
             ),
           ),
           const SizedBox(height: 20),
-          ..._grades.where((grade) => grade != 'All').map((grade) {
+          ..._grades.map((grade) {
             final count = gradeStats[grade] ?? 0;
             final percentage = _students.isEmpty ? 0.0 : (count / _students.length) * 100;
             
@@ -653,211 +687,6 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
     );
   }
 
-  Widget _buildAddStudentTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Add Grade 7 Student',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1D1D1F),
-            ),
-          ),
-          const SizedBox(height: 24),
-          _buildAddStudentForm(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddStudentForm() {
-    final _formKey = GlobalKey<FormState>();
-    final _nameController = TextEditingController();
-    final _emailController = TextEditingController();
-    String _selectedGrade = _defaultGrade;
-    String _selectedSection = 'A';
-    final List<String> _selectedSubjects = [];
-    
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Student Name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter student name';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email Address',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter email address';
-                }
-                if (!value.contains('@')) {
-                  return 'Please enter a valid email';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedGrade,
-                    decoration: const InputDecoration(
-                      labelText: 'Grade',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                    ),
-                    items: _grades.where((grade) => grade != 'All').map((grade) => DropdownMenuItem(
-                      value: grade,
-                      child: Text(grade),
-                    )).toList(),
-                    onChanged: (value) => _selectedGrade = value!,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedSection,
-                    decoration: const InputDecoration(
-                      labelText: 'Section',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                    ),
-                    items: ['A', 'B', 'C', 'D'].map((section) => DropdownMenuItem(
-                      value: section,
-                      child: Text(section),
-                    )).toList(),
-                    onChanged: (value) => _selectedSection = value!,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Subjects',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1D1D1F),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: _subjects.map((subject) => FilterChip(
-                label: Text(subject),
-                selected: _selectedSubjects.contains(subject),
-                onSelected: (selected) {
-                  setState(() {
-                    if (selected) {
-                      _selectedSubjects.add(subject);
-                    } else {
-                      _selectedSubjects.remove(subject);
-                    }
-                  });
-                },
-              )).toList(),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate() && _selectedSubjects.isNotEmpty) {
-                    final student = Student(
-                      id: '',
-                      name: _nameController.text,
-                      email: _emailController.text,
-                      grade: _selectedGrade,
-                      section: _selectedSection,
-                      subjects: _selectedSubjects,
-                      teacherId: _auth.currentUser?.uid ?? '',
-                      teacherName: widget.teacherProfile.displayName,
-                      joinedAt: DateTime.now(),
-                    );
-                    
-                    final success = await _studentService.addStudent(student);
-                    if (success) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Student added successfully!')),
-                      );
-                      _loadData();
-                      _tabController.animateTo(0); // Switch to students tab
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Failed to add student')),
-                      );
-                    }
-                  } else if (_selectedSubjects.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select at least one subject')),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF007AFF),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Add Student',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -888,8 +717,6 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
         return Icons.people_rounded;
       case 1:
         return Icons.analytics_rounded;
-      case 2:
-        return Icons.person_add_rounded;
       default:
         return Icons.info_rounded;
     }
@@ -898,11 +725,9 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
   String _getEmptyStateMessage() {
     switch (_tabController.index) {
       case 0:
-        return 'No Grade 7 students found\nAdd your first Grade 7 student to get started';
+        return 'No students found\nAdd your first student to get started';
       case 1:
-        return 'No Grade 7 analytics available\nStudent data will appear here';
-      case 2:
-        return 'Fill out the form above\nto add a new Grade 7 student';
+        return 'No analytics available\nStudent data will appear here';
       default:
         return 'No data available';
     }
@@ -994,6 +819,106 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
       return '${difference.inDays} days ago';
     } else {
       return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+
+
+
+
+  // Remove subject from student
+  Future<void> _removeSubjectFromStudent(Student student, String subject) async {
+    try {
+      final updatedSubjects = List<String>.from(student.subjects)..remove(subject);
+      final updatedStudent = student.copyWith(subjects: updatedSubjects);
+      
+      final success = await _studentService.updateStudent(updatedStudent);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Removed $subject from ${student.name}')),
+        );
+        _loadData();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to remove subject')),
+        );
+      }
+    } catch (e) {
+      print('Error removing subject: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  // Show dialog to add subject to student
+  void _showAddSubjectDialog(Student student) {
+    String? selectedSubject;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add Subject to ${student.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Select a subject to add:'),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: selectedSubject,
+              decoration: const InputDecoration(
+                labelText: 'Subject',
+                border: OutlineInputBorder(),
+              ),
+              items: _subjects
+                  .where((subject) => !student.subjects.contains(subject))
+                  .map((subject) => DropdownMenuItem(
+                    value: subject,
+                    child: Text(subject),
+                  )).toList(),
+              onChanged: (value) => selectedSubject = value,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: selectedSubject == null ? null : () async {
+              Navigator.pop(context);
+              await _addSubjectToStudent(student, selectedSubject!);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Add subject to student
+  Future<void> _addSubjectToStudent(Student student, String subject) async {
+    try {
+      final updatedSubjects = List<String>.from(student.subjects)..add(subject);
+      final updatedStudent = student.copyWith(subjects: updatedSubjects);
+      
+      final success = await _studentService.updateStudent(updatedStudent);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Added $subject to ${student.name}')),
+        );
+        _loadData();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to add subject')),
+        );
+      }
+    } catch (e) {
+      print('Error adding subject: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 }

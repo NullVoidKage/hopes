@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/progress_service.dart';
 import '../models/student_progress.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class MonitorProgressScreen extends StatefulWidget {
   const MonitorProgressScreen({super.key});
@@ -46,9 +47,38 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     try {
       final String? teacherId = _auth.currentUser?.uid;
       if (teacherId != null) {
+        print('🔍 MonitorProgress: Loading data for teacher: $teacherId');
+        print('🔍 MonitorProgress: Current user email: ${_auth.currentUser?.email}');
+        
+        // First, let's check what's actually in the student_progress collection
+        final DatabaseReference ref = FirebaseDatabase.instance.ref('student_progress');
+        final DatabaseEvent event = await ref.once();
+        final DataSnapshot snapshot = event.snapshot;
+        
+        print('🔍 MonitorProgress: Firebase student_progress snapshot exists: ${snapshot.exists}');
+        if (snapshot.value != null) {
+          final data = snapshot.value as Map<dynamic, dynamic>?;
+          print('🔍 MonitorProgress: Total progress items in Firebase: ${data?.length ?? 0}');
+          print('🔍 MonitorProgress: Firebase data keys: ${data?.keys.toList()}');
+          
+          // Log each progress item's data structure
+          data?.forEach((key, value) {
+            print('🔍 MonitorProgress: Progress $key: $value');
+            if (value is Map) {
+              print('🔍 MonitorProgress: Progress $key teacherId: ${value['teacherId']}');
+              print('🔍 MonitorProgress: Progress $key studentName: ${value['studentName']}');
+            }
+          });
+        }
+        
         final students = await _progressService.getStudentProgress(teacherId);
+        print('🔍 MonitorProgress: Loaded ${students.length} students from service');
+        
         final stats = await _progressService.getProgressStatistics(teacherId);
+        print('🔍 MonitorProgress: Loaded statistics: $stats');
+        
         final activity = await _progressService.getRecentActivity(teacherId);
+        print('🔍 MonitorProgress: Loaded activity: ${activity.length} items');
         
         setState(() {
           _students = students;
@@ -58,7 +88,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
         });
       }
     } catch (e) {
-      print('Error loading progress data: $e');
+      print('🔍 MonitorProgress: Error loading progress data: $e');
       setState(() => _isLoading = false);
     }
   }

@@ -10,62 +10,150 @@ class StudentService {
   // Get all students for a teacher
   Future<List<Student>> getStudents(String teacherId) async {
     try {
+      print('🔍 StudentService: Getting students for teacher: $teacherId');
+      print('🔍 StudentService: shouldUseCachedData: ${_connectivityService.shouldUseCachedData}');
+      print('🔍 StudentService: isConnected: ${_connectivityService.isConnected}');
+      
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
+        print('🔍 StudentService: Using cached data');
         return await _getCachedStudents(teacherId);
       }
 
       // If online, fetch from Firebase and cache
-      print('Getting students for teacher: $teacherId');
+      print('🔍 StudentService: Fetching from Firebase');
       final DatabaseReference ref = _database.ref('students');
       final Query query = ref.orderByChild('teacherId').equalTo(teacherId);
+      
+      print('🔍 StudentService: Query: orderByChild("teacherId").equalTo("$teacherId")');
       
       final DatabaseEvent event = await query.once();
       final DataSnapshot snapshot = event.snapshot;
       
-      print('Snapshot exists: ${snapshot.exists}');
+      print('🔍 StudentService: Snapshot exists: ${snapshot.exists}');
       if (snapshot.value == null) {
-        print('Snapshot value is null');
+        print('🔍 StudentService: Snapshot value is null');
         return [];
       }
       
-      print('Snapshot value type: ${snapshot.value.runtimeType}');
+      print('🔍 StudentService: Snapshot value type: ${snapshot.value.runtimeType}');
       final data = snapshot.value as Map<dynamic, dynamic>?;
       if (data == null) {
-        print('Data is null after casting');
+        print('🔍 StudentService: Snapshot value is null after casting');
         return [];
       }
       
-      print('Data entries count: ${data.entries.length}');
+      print('🔍 StudentService: Data entries count: ${data.entries.length}');
+      print('🔍 StudentService: Data keys: ${data.keys.toList()}');
+      
       final studentsList = data.entries.map((entry) {
-        print('Processing entry: ${entry.key}');
+        print('🔍 StudentService: Processing entry: ${entry.key}');
         final entryData = entry.value as Map<dynamic, dynamic>?;
         if (entryData == null) {
-          print('Entry data is null for key: ${entry.key}');
+          print('🔍 StudentService: Entry data is null for key: ${entry.key}');
           return null;
         }
+        
+        print('🔍 StudentService: Entry data: $entryData');
+        print('🔍 StudentService: Entry teacherId: ${entryData['teacherId']}');
+        print('🔍 StudentService: Expected teacherId: $teacherId');
+        print('🔍 StudentService: teacherId match: ${entryData['teacherId'] == teacherId}');
         
         try {
           final student = Student.fromRealtimeDatabase(
             entryData,
             entry.key.toString(),
           );
-          print('Successfully parsed student: ${student.name}');
+          print('🔍 StudentService: Successfully parsed student: ${student.name}');
           return student;
         } catch (e) {
-          print('Error parsing student data for key ${entry.key}: $e');
+          print('🔍 StudentService: Error parsing student data for key ${entry.key}: $e');
           return null;
         }
       }).whereType<Student>().toList();
 
+      print('🔍 StudentService: Final students list length: ${studentsList.length}');
+      
       // Cache the data for offline use
       await _cacheStudentsLocally(studentsList);
       
       return studentsList;
     } catch (e) {
-      print('Error getting students: $e');
+      print('🔍 StudentService: Error getting students: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedStudents(teacherId);
+    }
+  }
+
+  // Get ALL students in the system (for teachers to manage)
+  Future<List<Student>> getAllStudents() async {
+    try {
+      print('🔍 StudentService: Getting ALL students in the system');
+      print('🔍 StudentService: shouldUseCachedData: ${_connectivityService.shouldUseCachedData}');
+      print('🔍 StudentService: isConnected: ${_connectivityService.isConnected}');
+      
+      // Check if we should use cached data
+      if (_connectivityService.shouldUseCachedData) {
+        print('🔍 StudentService: Using cached data for all students');
+        return await _getCachedAllStudents();
+      }
+
+      // If online, fetch from Firebase and cache
+      print('🔍 StudentService: Fetching all students from Firebase');
+      final DatabaseReference ref = _database.ref('students');
+      
+      final DatabaseEvent event = await ref.once();
+      final DataSnapshot snapshot = event.snapshot;
+      
+      print('🔍 StudentService: All students snapshot exists: ${snapshot.exists}');
+      if (snapshot.value == null) {
+        print('🔍 StudentService: All students snapshot value is null');
+        return [];
+      }
+      
+      print('🔍 StudentService: All students snapshot value type: ${snapshot.value.runtimeType}');
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) {
+        print('🔍 StudentService: All students data is null after casting');
+        return [];
+      }
+      
+      print('🔍 StudentService: All students data entries count: ${data.entries.length}');
+      print('🔍 StudentService: All students data keys: ${data.keys.toList()}');
+      
+      final studentsList = data.entries.map((entry) {
+        print('🔍 StudentService: Processing all students entry: ${entry.key}');
+        final entryData = entry.value as Map<dynamic, dynamic>?;
+        if (entryData == null) {
+          print('🔍 StudentService: All students entry data is null for key: ${entry.key}');
+          return null;
+        }
+        
+        print('🔍 StudentService: All students entry data: $entryData');
+        
+        try {
+          final student = Student.fromRealtimeDatabase(
+            entryData,
+            entry.key.toString(),
+          );
+          print('🔍 StudentService: Successfully parsed all students student: ${student.name}');
+          return student;
+        } catch (e) {
+          print('🔍 StudentService: Error parsing all students student data for key ${entry.key}: $e');
+          return null;
+        }
+      }).whereType<Student>().toList();
+
+      print('🔍 StudentService: Final all students list length: ${studentsList.length}');
+      
+      // Cache the data for offline use
+      await _cacheAllStudentsLocally(studentsList);
+      
+      return studentsList;
+    } catch (e) {
+      print('🔍 StudentService: Error getting all students: $e');
+      // If Firebase fails, try to return cached data
+      return await _getCachedAllStudents();
     }
   }
 
@@ -98,6 +186,32 @@ class StudentService {
       await OfflineService.cacheStudents(studentData);
     } catch (e) {
       print('Error caching students: $e');
+    }
+  }
+
+  // Get cached all students
+  Future<List<Student>> _getCachedAllStudents() async {
+    try {
+      final cachedStudents = await OfflineService.getCachedStudents();
+      return cachedStudents.map((data) => 
+        Student.fromRealtimeDatabase(data, data['id'] ?? '')
+      ).toList();
+    } catch (e) {
+      print('Error getting cached all students: $e');
+      return [];
+    }
+  }
+
+  // Cache all students locally
+  Future<void> _cacheAllStudentsLocally(List<Student> students) async {
+    try {
+      final studentData = students.map((student) => {
+        'id': student.id,
+        ...student.toRealtimeDatabase(),
+      }).toList();
+      await OfflineService.cacheStudents(studentData);
+    } catch (e) {
+      print('Error caching all students: $e');
     }
   }
 

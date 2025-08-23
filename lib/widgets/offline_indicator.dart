@@ -96,45 +96,17 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'You\'re offline',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFFF9500),
-                  ),
-                ),
-                if (_offlineInfo['hasData'] == true)
-                  Text(
-                    'Showing cached data from ${_offlineInfo['lastSync'] != null ? _formatLastSync(_offlineInfo['lastSync']) : 'previous session'}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: const Color(0xFFFF9500).withValues(alpha: 0.8),
-                    ),
-                  ),
-              ],
+            child: Text(
+              _offlineInfo['hasData'] == true 
+                ? 'Offline - ${_offlineInfo['lessonsCount']} lessons available'
+                : 'Offline - No data available',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFFFF9500),
+              ),
             ),
           ),
-          if (_offlineInfo['hasData'] == true)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF9500).withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${_offlineInfo['lessonsCount']} lessons cached',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFFFF9500),
-                ),
-              ),
-            ),
         ],
       ),
     );
