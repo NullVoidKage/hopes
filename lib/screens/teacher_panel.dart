@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/teacher_dashboard_service.dart';
+import 'lesson_upload_screen.dart';
+import 'lesson_library_screen.dart';
 
 class TeacherPanel extends StatefulWidget {
   const TeacherPanel({super.key});
@@ -249,6 +251,12 @@ class _TeacherPanelState extends State<TeacherPanel> {
               Icons.upload_file_rounded,
               'Add new learning content',
               () => _navigateToLessonUpload(),
+            ),
+            _buildActionCard(
+              'My Lessons',
+              Icons.library_books_rounded,
+              'View and manage lessons',
+              () => _navigateToLessonLibrary(),
             ),
             _buildActionCard(
               'Monitor Progress',
@@ -770,10 +778,27 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
   // Navigation methods
   void _navigateToLessonUpload() {
-    // TODO: Navigate to lesson upload screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lesson upload feature coming soon!')),
-    );
+    if (_userProfile != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => LessonUploadScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _navigateToLessonLibrary() {
+    if (_userProfile != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => LessonLibraryScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
   }
 
   void _navigateToProgressMonitoring() {

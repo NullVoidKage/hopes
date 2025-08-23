@@ -47,6 +47,30 @@ class Lesson {
     );
   }
 
+  // Create from Realtime Database
+  factory Lesson.fromRealtimeDatabase(String id, Map<dynamic, dynamic> data) {
+    return Lesson(
+      id: id,
+      title: data['title']?.toString() ?? '',
+      subject: data['subject']?.toString() ?? '',
+      content: data['content']?.toString() ?? '',
+      teacherId: data['teacherId']?.toString() ?? '',
+      teacherName: data['teacherName']?.toString() ?? '',
+      createdAt: data['createdAt'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(data['createdAt'] as int)
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(data['updatedAt'] as int)
+          : DateTime.now(),
+      isPublished: data['isPublished'] as bool? ?? false,
+      tags: data['tags'] != null 
+          ? List<String>.from((data['tags'] as List).map((e) => e.toString()))
+          : [],
+      description: data['description']?.toString(),
+      fileUrl: data['fileUrl']?.toString(),
+    );
+  }
+
   // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
