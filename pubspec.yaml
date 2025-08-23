@@ -47,6 +47,9 @@ dependencies:
   # Local storage
   shared_preferences: ^2.2.2
 
+  # Utilities
+  uuid: ^4.3.3
+
   # UI
   cupertino_icons: ^1.0.2
 

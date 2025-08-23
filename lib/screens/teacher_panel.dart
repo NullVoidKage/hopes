@@ -13,6 +13,10 @@ import 'assessment_management_screen.dart';
 import 'monitor_progress_screen.dart';
 import 'student_management_screen.dart';
 import 'offline_settings_screen.dart';
+import 'learning_path_creation_screen.dart';
+import 'learning_path_management_screen.dart';
+import 'learning_path_assignment_screen.dart';
+import 'learning_path_overview_screen.dart';
 import '../services/connectivity_service.dart';
 
 class TeacherPanel extends StatefulWidget {
@@ -392,8 +396,30 @@ class _TeacherPanelState extends State<TeacherPanel> {
                   () => _navigateToStudentManagement(),
                 )),
                 const SizedBox(width: 16),
-                // Empty space to maintain grid alignment
-                const Expanded(child: SizedBox()),
+                Expanded(child: _buildActionCard(
+                  'Learning Paths',
+                  Icons.layers_rounded,
+                  'Create & assign',
+                  () => _navigateToLearningPathManagement(),
+                )),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _buildActionCard(
+                  'Assign Paths',
+                  Icons.assignment_rounded,
+                  'Assign to students',
+                  () => _navigateToLearningPathAssignment(),
+                )),
+                const SizedBox(width: 16),
+                Expanded(child: _buildActionCard(
+                  'Path Overview',
+                  Icons.analytics_rounded,
+                  'Track assignments',
+                  () => _navigateToLearningPathOverview(),
+                )),
               ],
             ),
           ],
@@ -976,6 +1002,41 @@ class _TeacherPanelState extends State<TeacherPanel> {
     }
   }
 
+  void _navigateToLearningPathManagement() {
+    if (_userProfile != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => LearningPathManagementScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _navigateToLearningPathAssignment() {
+    if (_userProfile != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => LearningPathAssignmentScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _navigateToLearningPathOverview() {
+    if (_userProfile != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => LearningPathOverviewScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
+  }
 
   void _navigateToOfflineSettings() {
     Navigator.of(context).push(
