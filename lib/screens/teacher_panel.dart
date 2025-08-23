@@ -378,14 +378,14 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionCard('Adaptive Difficulty', Icons.tune_rounded, 'Adjust difficulty based on performance', () => _navigateToAdaptiveDifficulty()),
-                ),
-              ],
-            ),
+            // const SizedBox(height: 20),
+            // Row(
+            //   children: [
+            //     Expanded(
+            //       child: _buildActionCard('Adaptive Difficulty', Icons.tune_rounded, 'Adjust difficulty based on performance', () => _navigateToAdaptiveDifficulty()),
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ],
