@@ -17,6 +17,10 @@ import 'learning_path_creation_screen.dart';
 import 'learning_path_management_screen.dart';
 import 'learning_path_assignment_screen.dart';
 import 'learning_path_overview_screen.dart';
+import 'feedback_management_screen.dart';
+import 'feedback_creation_screen.dart';
+import 'leaderboard_screen.dart';
+import 'adaptive_difficulty_screen.dart';
 import '../services/connectivity_service.dart';
 
 class TeacherPanel extends StatefulWidget {
@@ -348,78 +352,38 @@ class _TeacherPanelState extends State<TeacherPanel> {
           maxLines: 1,
         ),
         const SizedBox(height: 20),
-        // Use a more flexible layout instead of fixed GridView
+        // Action cards in 2 columns for better UX
         Column(
           children: [
             Row(
               children: [
-                Expanded(child: _buildActionCard(
-                  'Upload Lessons',
-                  Icons.upload_file_rounded,
-                  'Add new content',
-                  () => _navigateToLessonUpload(),
-                )),
+                Expanded(
+                  child: _buildActionCard('Lessons & Assessments', Icons.library_books_rounded, 'Upload, manage & create tests', () => _navigateToLessonUpload()),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: _buildActionCard(
-                  'My Lessons',
-                  Icons.library_books_rounded,
-                  'View and manage',
-                  () => _navigateToLessonLibrary(),
-                )),
+                Expanded(
+                  child: _buildActionCard('Students & Progress', Icons.people_rounded, 'Manage students & track performance', () => _navigateToStudentManagement()),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Row(
               children: [
-                Expanded(child: _buildActionCard(
-                  'Monitor Progress',
-                  Icons.analytics_rounded,
-                  'Track performance',
-                  () => _navigateToProgressMonitoring(),
-                )),
+                Expanded(
+                  child: _buildActionCard('Learning Paths', Icons.layers_rounded, 'Create, assign & track', () => _navigateToLearningPathManagement()),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: _buildActionCard(
-                  'Create Assessments',
-                  Icons.quiz_rounded,
-                  'Design tests',
-                  () => _navigateToAssessmentCreation(),
-                )),
+                Expanded(
+                  child: _buildActionCard('Feedback & Leaderboard', Icons.feedback_rounded, 'Manage feedback & view rankings', () => _navigateToFeedbackManagement()),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Row(
               children: [
-                Expanded(child: _buildActionCard(
-                  'Student Management',
-                  Icons.people_rounded,
-                  'Manage students',
-                  () => _navigateToStudentManagement(),
-                )),
-                const SizedBox(width: 16),
-                Expanded(child: _buildActionCard(
-                  'Learning Paths',
-                  Icons.layers_rounded,
-                  'Create & assign',
-                  () => _navigateToLearningPathManagement(),
-                )),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(child: _buildActionCard(
-                  'Assign Paths',
-                  Icons.assignment_rounded,
-                  'Assign to students',
-                  () => _navigateToLearningPathAssignment(),
-                )),
-                const SizedBox(width: 16),
-                Expanded(child: _buildActionCard(
-                  'Path Overview',
-                  Icons.analytics_rounded,
-                  'Track assignments',
-                  () => _navigateToLearningPathOverview(),
-                )),
+                Expanded(
+                  child: _buildActionCard('Adaptive Difficulty', Icons.tune_rounded, 'Adjust difficulty based on performance', () => _navigateToAdaptiveDifficulty()),
+                ),
               ],
             ),
           ],
@@ -473,7 +437,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               description,
               style: const TextStyle(
@@ -489,6 +453,118 @@ class _TeacherPanelState extends State<TeacherPanel> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCategorySection(String title, List<Widget> actions) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E5E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _getCategoryIcon(title),
+                  size: 20,
+                  color: const Color(0xFF007AFF),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Responsive grid layout for actions
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 600) {
+                // Wide screen - 3 columns
+                return Row(
+                  children: actions.map((action) => Expanded(child: action)).toList(),
+                );
+              } else {
+                // Narrow screen - single column with spacing
+                return Column(
+                  children: actions.map((action) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: action,
+                  )).toList(),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Content Management':
+        return Icons.library_books_rounded;
+      case 'Student & Progress':
+        return Icons.people_rounded;
+      case 'Learning Paths':
+        return Icons.layers_rounded;
+      case 'Engagement & Feedback':
+        return Icons.feedback_rounded;
+      default:
+        return Icons.category_rounded;
+    }
+  }
+
+  Widget _buildModalOption(String title, IconData icon, String description, VoidCallback onTap) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: const Color(0xFF007AFF), size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1D1D1F),
+        ),
+      ),
+      subtitle: Text(
+        description,
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF86868B),
+        ),
+      ),
+      onTap: onTap,
     );
   }
 
@@ -947,15 +1023,92 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
   // Navigation methods
   void _navigateToLessonUpload() {
-    if (_userProfile != null) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => LessonUploadScreen(
-            teacherProfile: _userProfile!,
-          ),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-      );
-    }
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E5E7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Content Management',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildModalOption(
+              'Upload Lessons',
+              Icons.upload_file_rounded,
+              'Add new learning content',
+              () {
+                Navigator.pop(context);
+                if (_userProfile != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => LessonUploadScreen(
+                        teacherProfile: _userProfile!,
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+            _buildModalOption(
+              'My Lessons',
+              Icons.library_books_rounded,
+              'View and manage existing lessons',
+              () {
+                Navigator.pop(context);
+                if (_userProfile != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => LessonLibraryScreen(
+                        teacherProfile: _userProfile!,
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+            _buildModalOption(
+              'Create Assessments',
+              Icons.quiz_rounded,
+              'Design tests and quizzes',
+              () {
+                Navigator.pop(context);
+                if (_userProfile != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => AssessmentManagementScreen(
+                        teacherProfile: _userProfile!,
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   void _navigateToLessonLibrary() {
@@ -991,27 +1144,160 @@ class _TeacherPanelState extends State<TeacherPanel> {
   }
 
   void _navigateToStudentManagement() {
-    if (_userProfile != null) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => StudentManagementScreen(
-            teacherProfile: _userProfile!,
-          ),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-      );
-    }
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E5E7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Student & Progress',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildModalOption(
+              'Student Management',
+              Icons.people_rounded,
+              'Manage student accounts and classes',
+              () {
+                Navigator.pop(context);
+                if (_userProfile != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => StudentManagementScreen(
+                        teacherProfile: _userProfile!,
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+            _buildModalOption(
+              'Monitor Progress',
+              Icons.analytics_rounded,
+              'Track student performance and analytics',
+              () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MonitorProgressScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   void _navigateToLearningPathManagement() {
-    if (_userProfile != null) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => LearningPathManagementScreen(
-            teacherProfile: _userProfile!,
-          ),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-      );
-    }
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E5E7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Learning Paths',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildModalOption(
+              'Create Paths',
+              Icons.layers_rounded,
+              'Design and create learning sequences',
+              () {
+                Navigator.pop(context);
+                if (_userProfile != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => LearningPathManagementScreen(
+                        teacherProfile: _userProfile!,
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+            _buildModalOption(
+              'Assign Paths',
+              Icons.assignment_rounded,
+              'Assign learning paths to students',
+              () {
+                Navigator.pop(context);
+                if (_userProfile != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => LearningPathAssignmentScreen(
+                        teacherProfile: _userProfile!,
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+            _buildModalOption(
+              'Path Overview',
+              Icons.analytics_rounded,
+              'Track assignments and progress',
+              () {
+                Navigator.pop(context);
+                if (_userProfile != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => LearningPathOverviewScreen(
+                        teacherProfile: _userProfile!,
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   void _navigateToLearningPathAssignment() {
@@ -1036,6 +1322,104 @@ class _TeacherPanelState extends State<TeacherPanel> {
         ),
       );
     }
+  }
+
+  void _navigateToFeedbackManagement() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E5E7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Engagement & Feedback',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildModalOption(
+              'Feedback Management',
+              Icons.feedback_rounded,
+              'View and manage student feedback',
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (context) => const FeedbackManagementScreen(),
+                ));
+              },
+            ),
+            _buildModalOption(
+              'Create Feedback',
+              Icons.add_comment_rounded,
+              'Create new feedback for students',
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (context) => const FeedbackCreationScreen(),
+                ));
+              },
+            ),
+            _buildModalOption(
+              'Leaderboard',
+              Icons.leaderboard_rounded,
+              'View student rankings and achievements',
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (context) => const LeaderboardScreen(),
+                ));
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _navigateToFeedbackCreation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const FeedbackCreationScreen(),
+      ),
+    );
+  }
+
+  void _navigateToLeaderboard() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LeaderboardScreen(),
+      ),
+    );
+  }
+
+  void _navigateToAchievements() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LeaderboardScreen(), // Using leaderboard screen for now
+      ),
+    );
   }
 
   void _navigateToOfflineSettings() {
@@ -1091,5 +1475,14 @@ class _TeacherPanelState extends State<TeacherPanel> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _navigateToAdaptiveDifficulty() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AdaptiveDifficultyScreen(),
+      ),
+    );
   }
 }

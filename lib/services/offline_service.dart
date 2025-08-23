@@ -11,6 +11,13 @@ class OfflineService {
   static const String _teacherActivitiesKey = 'cached_teacher_activities';
   static const String _learningPathsKey = 'cached_learning_paths';
   static const String _studentLearningPathsKey = 'cached_student_learning_paths';
+  static const String _feedbackKey = 'cached_feedback';
+  static const String _recommendationsKey = 'cached_recommendations';
+  static const String _achievementsKey = 'cached_achievements';
+  static const String _studentAchievementsKey = 'cached_student_achievements';
+  static const String _leaderboardKey = 'cached_leaderboard';
+  static const String _adaptiveDifficultiesKey = 'cached_adaptive_difficulties';
+  static const String _difficultyAdjustmentsKey = 'cached_difficulty_adjustments';
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _isOnlineKey = 'is_online_status';
 
@@ -525,6 +532,13 @@ class OfflineService {
       final activities = prefs.getString(_teacherActivitiesKey)?.length ?? 0;
       final learningPaths = prefs.getString(_learningPathsKey)?.length ?? 0;
       final studentLearningPaths = prefs.getString(_studentLearningPathsKey)?.length ?? 0;
+      final feedback = prefs.getString(_feedbackKey)?.length ?? 0;
+      final recommendations = prefs.getString(_recommendationsKey)?.length ?? 0;
+      final achievements = prefs.getString(_achievementsKey)?.length ?? 0;
+      final studentAchievements = prefs.getString(_studentAchievementsKey)?.length ?? 0;
+      final leaderboard = prefs.getString(_leaderboardKey)?.length ?? 0;
+      final adaptiveDifficulties = prefs.getString(_adaptiveDifficultiesKey)?.length ?? 0;
+      final difficultyAdjustments = prefs.getString(_difficultyAdjustmentsKey)?.length ?? 0;
       
       return {
         'lessons': lessons,
@@ -535,7 +549,14 @@ class OfflineService {
         'activities': activities,
         'learningPaths': learningPaths,
         'studentLearningPaths': studentLearningPaths,
-        'total': lessons + assessments + progress + students + profile + activities + learningPaths + studentLearningPaths,
+        'feedback': feedback,
+        'recommendations': recommendations,
+        'achievements': achievements,
+        'studentAchievements': studentAchievements,
+        'leaderboard': leaderboard,
+        'adaptiveDifficulties': adaptiveDifficulties,
+        'difficultyAdjustments': difficultyAdjustments,
+        'total': lessons + assessments + progress + students + profile + activities + learningPaths + studentLearningPaths + feedback + recommendations + achievements + studentAchievements + leaderboard + adaptiveDifficulties + difficultyAdjustments,
       };
     } catch (e) {
       return {
@@ -547,6 +568,13 @@ class OfflineService {
         'activities': 0,
         'learningPaths': 0,
         'studentLearningPaths': 0,
+        'feedback': 0,
+        'recommendations': 0,
+        'achievements': 0,
+        'studentAchievements': 0,
+        'leaderboard': 0,
+        'adaptiveDifficulties': 0,
+        'difficultyAdjustments': 0,
         'total': 0,
       };
     }
@@ -578,6 +606,13 @@ class OfflineService {
       await prefs.remove(_teacherActivitiesKey);
       await prefs.remove(_learningPathsKey);
       await prefs.remove(_studentLearningPathsKey);
+      await prefs.remove(_feedbackKey);
+      await prefs.remove(_recommendationsKey);
+      await prefs.remove(_achievementsKey);
+      await prefs.remove(_studentAchievementsKey);
+      await prefs.remove(_leaderboardKey);
+      await prefs.remove(_adaptiveDifficultiesKey);
+      await prefs.remove(_difficultyAdjustmentsKey);
       await prefs.remove(_lastSyncKey);
     } catch (e) {
       if (kDebugMode) {
@@ -796,12 +831,98 @@ class OfflineService {
         },
       ];
 
+      // Sample feedback data
+      final sampleFeedback = [
+        {
+          'id': 'sample_feedback_1',
+          'studentId': 'student_1',
+          'studentName': 'John Doe',
+          'teacherId': currentTeacherId ?? 'current_teacher',
+          'teacherName': 'Current Teacher',
+          'feedbackType': 'assessment',
+          'contentId': 'assessment_1',
+          'contentTitle': 'Mathematics Quiz',
+          'feedback': 'Great work on algebraic expressions! Your problem-solving approach shows strong analytical thinking.',
+          'recommendations': 'Continue practicing with more complex equations. Consider using visual aids for geometry problems.',
+          'rating': 4.5,
+          'createdAt': DateTime.now().subtract(const Duration(days: 2)).millisecondsSinceEpoch,
+          'updatedAt': null,
+          'isRead': false,
+          'metadata': {},
+        },
+        {
+          'id': 'sample_feedback_2',
+          'studentId': 'student_2',
+          'studentName': 'Jane Smith',
+          'teacherId': currentTeacherId ?? 'current_teacher',
+          'teacherName': 'Current Teacher',
+          'feedbackType': 'lesson',
+          'contentId': 'lesson_1',
+          'contentTitle': 'Introduction to Physics',
+          'feedback': 'Excellent participation in class discussions. Your questions demonstrate deep understanding.',
+          'recommendations': 'Try to connect theoretical concepts with real-world examples. Practice problem-solving regularly.',
+          'rating': 5.0,
+          'createdAt': DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+          'updatedAt': null,
+          'isRead': true,
+          'metadata': {},
+        },
+      ];
+
+      // Sample recommendations data
+      final sampleRecommendations = [
+        {
+          'id': 'sample_recommendation_1',
+          'studentId': 'student_1',
+          'studentName': 'John Doe',
+          'teacherId': currentTeacherId ?? 'current_teacher',
+          'teacherName': 'Current Teacher',
+          'recommendationType': 'content',
+          'title': 'Advanced Algebra Practice',
+          'description': 'Focus on mastering quadratic equations and complex algebraic expressions',
+          'reason': 'Strong foundation in basic algebra, ready for advanced topics',
+          'actionItems': 'Complete 10 practice problems daily, use online resources for additional practice',
+          'priority': 2,
+          'createdAt': DateTime.now().subtract(const Duration(days: 3)).millisecondsSinceEpoch,
+          'dueDate': DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch,
+          'isCompleted': false,
+          'isRead': false,
+          'metadata': {},
+        },
+        {
+          'id': 'sample_recommendation_2',
+          'studentId': 'student_2',
+          'studentName': 'Jane Smith',
+          'teacherId': currentTeacherId ?? 'current_teacher',
+          'teacherName': 'Current Teacher',
+          'recommendationType': 'study_habit',
+          'title': 'Study Schedule Optimization',
+          'description': 'Create a consistent study routine for better retention',
+          'reason': 'Irregular study patterns affecting long-term memory',
+          'actionItems': 'Set aside 2 hours daily, use spaced repetition techniques, review notes weekly',
+          'priority': 3,
+          'createdAt': DateTime.now().subtract(const Duration(days: 2)).millisecondsSinceEpoch,
+          'dueDate': null,
+          'isCompleted': false,
+          'isRead': true,
+          'metadata': {},
+        },
+      ];
+
       await cacheStudentProgress(sampleProgress);
       await cacheAssessments(sampleAssessments);
       await cacheTeacherActivities(sampleActivities);
       await cacheStudents(sampleStudents);
       await cacheLearningPath(sampleLearningPaths[0]);
       await cacheStudentLearningPath(sampleStudentLearningPaths[0]);
+      
+      // Cache sample feedback and recommendations
+      for (final feedback in sampleFeedback) {
+        await cacheFeedback(feedback);
+      }
+      for (final recommendation in sampleRecommendations) {
+        await cacheRecommendation(recommendation);
+      }
       
       if (kDebugMode) {
         print('Sample data populated successfully');
@@ -811,6 +932,183 @@ class OfflineService {
         print('📊 Cached ${sampleStudents.length} students');
         print('📊 Cached ${sampleLearningPaths.length} learning paths');
         print('📊 Cached ${sampleStudentLearningPaths.length} student learning paths');
+        print('📊 Cached ${sampleFeedback.length} feedback items');
+        print('📊 Cached ${sampleRecommendations.length} recommendations');
+        
+        // Sample achievements data
+        final sampleAchievements = [
+          {
+            'id': 'achievement_1',
+            'title': 'First Steps',
+            'description': 'Complete your first lesson',
+            'category': 'milestone',
+            'points': 10,
+            'iconName': 'school',
+            'colorHex': '#007AFF',
+            'criteria': {'totalLessons': 1},
+            'isActive': true,
+            'createdAt': DateTime.now().subtract(const Duration(days: 30)).millisecondsSinceEpoch,
+            'updatedAt': null,
+          },
+          {
+            'id': 'achievement_2',
+            'title': 'Perfect Score',
+            'description': 'Get 100% on an assessment',
+            'category': 'academic',
+            'points': 25,
+            'iconName': 'star',
+            'colorHex': '#FFD700',
+            'criteria': {'minScore': 100, 'minAssessments': 1},
+            'isActive': true,
+            'createdAt': DateTime.now().subtract(const Duration(days: 25)).millisecondsSinceEpoch,
+            'updatedAt': null,
+          },
+          {
+            'id': 'achievement_3',
+            'title': 'Weekend Warrior',
+            'description': 'Study on weekends for 3 consecutive weeks',
+            'category': 'streak',
+            'points': 15,
+            'iconName': 'fire',
+            'colorHex': '#FF6B35',
+            'criteria': {'minStreak': 3, 'streakType': 'weekly'},
+            'isActive': true,
+            'createdAt': DateTime.now().subtract(const Duration(days: 20)).millisecondsSinceEpoch,
+            'updatedAt': null,
+          },
+          {
+            'id': 'achievement_4',
+            'title': 'Knowledge Seeker',
+            'description': 'Complete 10 lessons',
+            'category': 'participation',
+            'points': 50,
+            'iconName': 'book',
+            'colorHex': '#34C759',
+            'criteria': {'minLessons': 10},
+            'isActive': true,
+            'createdAt': DateTime.now().subtract(const Duration(days: 15)).millisecondsSinceEpoch,
+            'updatedAt': null,
+          },
+        ];
+
+        // Sample student achievements data
+        final sampleStudentAchievements = [
+          {
+            'id': 'student_achievement_1',
+            'studentId': 'student_1',
+            'studentName': 'John Doe',
+            'achievementId': 'achievement_1',
+            'achievementTitle': 'First Steps',
+            'achievementDescription': 'Complete your first lesson',
+            'points': 10,
+            'unlockedAt': DateTime.now().subtract(const Duration(days: 28)).millisecondsSinceEpoch,
+            'metadata': {'autoAwarded': true},
+          },
+          {
+            'id': 'student_achievement_2',
+            'studentId': 'student_2',
+            'studentName': 'Jane Smith',
+            'achievementId': 'achievement_2',
+            'achievementTitle': 'Perfect Score',
+            'achievementDescription': 'Get 100% on an assessment',
+            'points': 25,
+            'unlockedAt': DateTime.now().subtract(const Duration(days: 22)).millisecondsSinceEpoch,
+            'metadata': {'autoAwarded': true},
+          },
+        ];
+
+        // Sample leaderboard data
+        final sampleLeaderboard = [
+          {
+            'studentId': 'student_1',
+            'studentName': 'John Doe',
+            'studentEmail': 'john@example.com',
+            'totalPoints': 85,
+            'achievementsCount': 3,
+            'rank': 1,
+            'lastActivity': DateTime.now().subtract(const Duration(hours: 2)).millisecondsSinceEpoch,
+            'stats': {'lessonsCompleted': 8, 'assessmentsCompleted': 3, 'streakDays': 5},
+          },
+          {
+            'studentId': 'student_2',
+            'studentName': 'Jane Smith',
+            'studentEmail': 'jane@example.com',
+            'totalPoints': 72,
+            'achievementsCount': 2,
+            'rank': 2,
+            'lastActivity': DateTime.now().subtract(const Duration(hours: 5)).millisecondsSinceEpoch,
+            'stats': {'lessonsCompleted': 6, 'assessmentsCompleted': 2, 'streakDays': 3},
+          },
+          {
+            'studentId': 'student_3',
+            'studentName': 'Mike Johnson',
+            'studentEmail': 'mike@example.com',
+            'totalPoints': 65,
+            'achievementsCount': 2,
+            'rank': 3,
+            'lastActivity': DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+            'stats': {'lessonsCompleted': 5, 'assessmentsCompleted': 2, 'streakDays': 2},
+          },
+        ];
+
+        // Sample adaptive difficulties
+        final sampleAdaptiveDifficulties = [
+          {
+            'id': 'adaptive_1',
+            'studentId': 'student_1',
+            'studentName': 'John Doe',
+            'subject': 'Mathematics',
+            'currentLevel': 'intermediate',
+            'performanceScore': 0.75,
+            'consecutiveCorrect': 2,
+            'consecutiveIncorrect': 0,
+            'totalAttempts': 15,
+            'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+            'subjectPerformance': {
+              'Algebra': {'correct': 8, 'incorrect': 2, 'total': 10, 'averageScore': 0.8},
+              'Geometry': {'correct': 3, 'incorrect': 2, 'total': 5, 'averageScore': 0.6},
+            },
+            'difficultyHistory': {},
+            'metadata': {'createdAt': DateTime.now().subtract(const Duration(days: 10)).toIso8601String()},
+          },
+          {
+            'id': 'adaptive_2',
+            'studentId': 'student_2',
+            'studentName': 'Jane Smith',
+            'subject': 'Mathematics',
+            'currentLevel': 'beginner',
+            'performanceScore': 0.6,
+            'consecutiveCorrect': 1,
+            'consecutiveIncorrect': 1,
+            'totalAttempts': 12,
+            'lastUpdated': DateTime.now().subtract(const Duration(hours: 3)).millisecondsSinceEpoch,
+            'subjectPerformance': {
+              'Algebra': {'correct': 5, 'incorrect': 3, 'total': 8, 'averageScore': 0.625},
+              'Geometry': {'correct': 2, 'incorrect': 2, 'total': 4, 'averageScore': 0.5},
+            },
+            'difficultyHistory': {},
+            'metadata': {'createdAt': DateTime.now().subtract(const Duration(days: 8)).toIso8601String()},
+          },
+        ];
+
+        // Cache sample achievements data
+        for (final achievement in sampleAchievements) {
+          await cacheAchievement(achievement);
+        }
+        for (final studentAchievement in sampleStudentAchievements) {
+          await cacheStudentAchievement(studentAchievement);
+        }
+        for (final leaderboardEntry in sampleLeaderboard) {
+          await cacheLeaderboardEntry(leaderboardEntry);
+        }
+        for (final adaptiveDifficulty in sampleAdaptiveDifficulties) {
+          await cacheAdaptiveDifficulty(adaptiveDifficulty);
+        }
+        
+        print('📊 Cached ${sampleAchievements.length} achievements');
+        print('📊 Cached ${sampleStudentAchievements.length} student achievements');
+        print('📊 Cached ${sampleLeaderboard.length} leaderboard entries');
+        print('📊 Cached ${sampleAdaptiveDifficulties.length} adaptive difficulties');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -848,6 +1146,491 @@ class OfflineService {
         print('Error getting cached students: $e');
       }
       return [];
+    }
+  }
+
+  // Cache feedback data
+  static Future<void> cacheFeedback(Map<String, dynamic> feedback) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingFeedback = await getCachedFeedback();
+      existingFeedback.add(feedback);
+      final feedbackJson = jsonEncode(existingFeedback);
+      await prefs.setString(_feedbackKey, feedbackJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching feedback: $e');
+      }
+    }
+  }
+
+  // Get cached feedback
+  static Future<List<Map<String, dynamic>>> getCachedFeedback() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final feedbackJson = prefs.getString(_feedbackKey);
+      if (feedbackJson != null) {
+        final List<dynamic> feedbackList = jsonDecode(feedbackJson);
+        return feedbackList.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached feedback: $e');
+      }
+      return [];
+    }
+  }
+
+  // Cache recommendation data
+  static Future<void> cacheRecommendation(Map<String, dynamic> recommendation) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingRecommendations = await getCachedRecommendations();
+      existingRecommendations.add(recommendation);
+      final recommendationsJson = jsonEncode(existingRecommendations);
+      await prefs.setString(_recommendationsKey, recommendationsJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching recommendation: $e');
+      }
+    }
+  }
+
+  // Get cached recommendations
+  static Future<List<Map<String, dynamic>>> getCachedRecommendations() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final recommendationsJson = prefs.getString(_recommendationsKey);
+      if (recommendationsJson != null) {
+        final List<dynamic> recommendationsList = jsonDecode(recommendationsJson);
+        return recommendationsList.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached recommendations: $e');
+      }
+      return [];
+    }
+  }
+
+  // Queue feedback for sync
+  static Future<void> queueFeedbackForSync(Map<String, dynamic> feedback) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_feedback';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(feedback);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing feedback for sync: $e');
+      }
+    }
+  }
+
+  // Queue recommendation for sync
+  static Future<void> queueRecommendationForSync(Map<String, dynamic> recommendation) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_recommendations';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(recommendation);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing recommendation for sync: $e');
+      }
+    }
+  }
+
+  // Queue feedback read status for sync
+  static Future<void> queueFeedbackReadStatusForSync(Map<String, dynamic> readStatus) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_feedback_read_status';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(readStatus);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing feedback read status for sync: $e');
+      }
+    }
+  }
+
+  // Queue recommendation read status for sync
+  static Future<void> queueRecommendationReadStatusForSync(Map<String, dynamic> readStatus) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_recommendation_read_status';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(readStatus);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing recommendation read status for sync: $e');
+      }
+    }
+  }
+
+  // Update cached feedback read status
+  static Future<void> updateCachedFeedbackReadStatus(String feedbackId, bool isRead) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingFeedback = await getCachedFeedback();
+      final feedbackIndex = existingFeedback.indexWhere((f) => f['id'] == feedbackId);
+      if (feedbackIndex != -1) {
+        existingFeedback[feedbackIndex]['isRead'] = isRead;
+        final feedbackJson = jsonEncode(existingFeedback);
+        await prefs.setString(_feedbackKey, feedbackJson);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating cached feedback read status: $e');
+      }
+    }
+  }
+
+  // Update cached recommendation read status
+  static Future<void> updateCachedRecommendationReadStatus(String recommendationId, bool isRead) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingRecommendations = await getCachedRecommendations();
+      final recommendationIndex = existingRecommendations.indexWhere((r) => r['id'] == recommendationId);
+      if (recommendationIndex != -1) {
+        existingRecommendations[recommendationIndex]['isRead'] = isRead;
+        final recommendationsJson = jsonEncode(existingRecommendations);
+        await prefs.setString(_recommendationsKey, recommendationsJson);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating cached recommendation read status: $e');
+      }
+    }
+  }
+
+  // Get cached feedback statistics
+  static Future<Map<String, dynamic>> getCachedFeedbackStatistics(String teacherId) async {
+    try {
+      final feedback = await getCachedFeedback();
+      final recommendations = await getCachedRecommendations();
+      
+      final teacherFeedback = feedback.where((f) => f['teacherId'] == teacherId).toList();
+      final teacherRecommendations = recommendations.where((r) => r['teacherId'] == teacherId).toList();
+      
+      final unreadFeedback = teacherFeedback.where((f) => !(f['isRead'] ?? false)).length;
+      final completedRecommendations = teacherRecommendations.where((r) => r['isCompleted'] ?? false).length;
+      
+      return {
+        'totalFeedback': teacherFeedback.length,
+        'unreadFeedback': unreadFeedback,
+        'totalRecommendations': teacherRecommendations.length,
+        'completedRecommendations': completedRecommendations,
+        'completionRate': teacherRecommendations.isNotEmpty ? (completedRecommendations / teacherRecommendations.length * 100).round() : 0,
+      };
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached feedback statistics: $e');
+      }
+      return {
+        'totalFeedback': 0,
+        'unreadFeedback': 0,
+        'totalRecommendations': 0,
+        'completedRecommendations': 0,
+        'completionRate': 0,
+      };
+    }
+  }
+
+  // Cache achievement data
+  static Future<void> cacheAchievement(Map<String, dynamic> achievement) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingAchievements = await getCachedAchievements();
+      final existingIndex = existingAchievements.indexWhere((a) => a['id'] == achievement['id']);
+      
+      if (existingIndex != -1) {
+        existingAchievements[existingIndex] = achievement;
+      } else {
+        existingAchievements.add(achievement);
+      }
+      
+      final achievementsJson = jsonEncode(existingAchievements);
+      await prefs.setString(_achievementsKey, achievementsJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching achievement: $e');
+      }
+    }
+  }
+
+  // Get cached achievements
+  static Future<List<Map<String, dynamic>>> getCachedAchievements() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final achievementsJson = prefs.getString(_achievementsKey);
+      if (achievementsJson != null) {
+        final List<dynamic> achievementsList = jsonDecode(achievementsJson);
+        return achievementsList.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached achievements: $e');
+      }
+      return [];
+    }
+  }
+
+  // Cache student achievement data
+  static Future<void> cacheStudentAchievement(Map<String, dynamic> studentAchievement) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingStudentAchievements = await getCachedStudentAchievements();
+      final existingIndex = existingStudentAchievements.indexWhere((sa) => sa['id'] == studentAchievement['id']);
+      
+      if (existingIndex != -1) {
+        existingStudentAchievements[existingIndex] = studentAchievement;
+      } else {
+        existingStudentAchievements.add(studentAchievement);
+      }
+      
+      final studentAchievementsJson = jsonEncode(existingStudentAchievements);
+      await prefs.setString(_studentAchievementsKey, studentAchievementsJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching student achievement: $e');
+      }
+    }
+  }
+
+  // Get cached student achievements
+  static Future<List<Map<String, dynamic>>> getCachedStudentAchievements() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final studentAchievementsJson = prefs.getString(_studentAchievementsKey);
+      if (studentAchievementsJson != null) {
+        final List<dynamic> studentAchievementsList = jsonDecode(studentAchievementsJson);
+        return studentAchievementsList.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached student achievements: $e');
+      }
+      return [];
+    }
+  }
+
+  // Cache leaderboard entry data
+  static Future<void> cacheLeaderboardEntry(Map<String, dynamic> leaderboardEntry) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingLeaderboard = await getCachedLeaderboard();
+      final existingIndex = existingLeaderboard.indexWhere((le) => le['studentId'] == leaderboardEntry['studentId']);
+      
+      if (existingIndex != -1) {
+        existingLeaderboard[existingIndex] = leaderboardEntry;
+      } else {
+        existingLeaderboard.add(leaderboardEntry);
+      }
+      
+      final leaderboardJson = jsonEncode(existingLeaderboard);
+      await prefs.setString(_leaderboardKey, leaderboardJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching leaderboard entry: $e');
+      }
+    }
+  }
+
+  // Get cached leaderboard
+  static Future<List<Map<String, dynamic>>> getCachedLeaderboard() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final leaderboardJson = prefs.getString(_leaderboardKey);
+      if (leaderboardJson != null) {
+        final List<dynamic> leaderboardList = jsonDecode(leaderboardJson);
+        return leaderboardList.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached leaderboard: $e');
+      }
+      return [];
+    }
+  }
+
+  // Queue achievement for sync
+  static Future<void> queueAchievementForSync(Map<String, dynamic> achievement) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_achievements';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(achievement);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing achievement for sync: $e');
+      }
+    }
+  }
+
+  // Queue student achievement for sync
+  static Future<void> queueStudentAchievementForSync(Map<String, dynamic> studentAchievement) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_student_achievements';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(studentAchievement);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing student achievement for sync: $e');
+      }
+    }
+  }
+
+  // Cache adaptive difficulty data
+  static Future<void> cacheAdaptiveDifficulty(Map<String, dynamic> adaptiveDifficulty) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final existingAdaptiveDifficulties = await getCachedAdaptiveDifficulties();
+      final existingIndex = existingAdaptiveDifficulties.indexWhere((ad) => ad['id'] == adaptiveDifficulty['id']);
+      
+      if (existingIndex != -1) {
+        existingAdaptiveDifficulties[existingIndex] = adaptiveDifficulty;
+      } else {
+        existingAdaptiveDifficulties.add(adaptiveDifficulty);
+      }
+      
+      final adaptiveDifficultiesJson = jsonEncode(existingAdaptiveDifficulties);
+      await prefs.setString(_adaptiveDifficultiesKey, adaptiveDifficultiesJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching adaptive difficulty: $e');
+      }
+    }
+  }
+
+  // Get cached adaptive difficulties
+  static Future<List<Map<String, dynamic>>> getCachedAdaptiveDifficulties() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final adaptiveDifficultiesJson = prefs.getString(_adaptiveDifficultiesKey);
+      if (adaptiveDifficultiesJson != null) {
+        final List<dynamic> adaptiveDifficultiesList = jsonDecode(adaptiveDifficultiesJson);
+        return adaptiveDifficultiesList.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached adaptive difficulties: $e');
+      }
+      return [];
+    }
+  }
+
+  // Queue adaptive difficulty for sync
+  static Future<void> queueAdaptiveDifficultyForSync(Map<String, dynamic> adaptiveDifficulty) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_adaptive_difficulties';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(adaptiveDifficulty);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing adaptive difficulty for sync: $e');
+      }
+    }
+  }
+
+  // Queue difficulty adjustment for sync
+  static Future<void> queueDifficultyAdjustmentForSync(Map<String, dynamic> difficultyAdjustment) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_difficulty_adjustments';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(difficultyAdjustment);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing difficulty adjustment for sync: $e');
+      }
     }
   }
 }
