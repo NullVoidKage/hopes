@@ -113,13 +113,14 @@ class TeacherDashboardService {
       // Count unique students
       uniqueStudents.add(progress.studentId);
       
-      // Count active students
-      if (progress.isActive) {
+      // Count active students (with activity in last 7 days)
+      final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+      if (progress.lastActivity.isAfter(weekAgo)) {
         activeStudents++;
       }
       
       // Calculate total progress
-      totalProgress += progress.progressPercentage;
+      totalProgress += progress.completionRate;
     }
 
     return {
