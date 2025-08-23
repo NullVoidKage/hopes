@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../models/lesson.dart';
 import '../services/lesson_service_realtime.dart';
 import '../models/user_model.dart';
+import 'edit_lesson_screen.dart'; // Added import for EditLessonScreen
+import 'file_preview_screen.dart'; // Added import for FilePreviewScreen
 
 class LessonLibraryScreen extends StatefulWidget {
   final UserModel teacherProfile;
@@ -375,39 +378,50 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
             ],
             
             // File attachment indicator
-            if (lesson.fileUrl?.isNotEmpty == true) ...[
+            if (lesson.fileUrl?.isNotEmpty == true)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  border: Border.all(
-                    color: const Color(0xFF007AFF),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.attach_file_rounded,
-                      color: Color(0xFF007AFF),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'File attached',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF007AFF),
-                        fontWeight: FontWeight.w600,
+                margin: const EdgeInsets.only(top: 8),
+                child: InkWell(
+                  onTap: () => _previewFile(lesson.fileUrl!),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF007AFF),
+                        width: 1,
                       ),
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.attach_file_rounded,
+                          color: Color(0xFF007AFF),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            _getFileNameFromUrl(lesson.fileUrl!),
+                            style: const TextStyle(
+                              color: Color(0xFF007AFF),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-            ],
+            
+            const SizedBox(height: 16),
             
             // Footer
             Row(
@@ -598,44 +612,137 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
   }
 
   void _editLesson(Lesson lesson) {
-    // TODO: Navigate to lesson edit screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Edit lesson feature coming soon!'),
-        backgroundColor: Color(0xFFFF9500),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditLessonScreen(
+          lesson: lesson,
+          teacherProfile: widget.teacherProfile,
+        ),
       ),
-    );
+    ).then((updatedLesson) {
+      // Refresh the lessons list if a lesson was updated
+      if (updatedLesson != null) {
+        _loadLessons();
+      }
+    });
   }
 
   Future<void> _togglePublishStatus(Lesson lesson) async {
     try {
-      await _lessonService.toggleLessonPublish(lesson.id, !lesson.isPublished);
+      final lessonService = LessonServiceRealtime();
+      final newStatus = !lesson.isPublished;
       
-      // Update local state
-      setState(() {
-        final index = _lessons.indexWhere((l) => l.id == lesson.id);
-        if (index != -1) {
-          _lessons[index] = lesson.copyWith(isPublished: !lesson.isPublished);
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lesson.isPublished 
-                ? 'Lesson unpublished successfully'
-                : 'Lesson published successfully',
+      await lessonService.toggleLessonPublish(lesson.id, newStatus);
+      
+      // Log the activity
+      await _logTeacherActivity(
+        newStatus ? 'Lesson Published' : 'Lesson Unpublished',
+        '${newStatus ? 'Published' : 'Unpublished'} lesson: ${lesson.title}'
+      );
+      
+      // Refresh the lessons list
+      _loadLessons();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lesson ${newStatus ? 'published' : 'unpublished'} successfully!'),
+            backgroundColor: const Color(0xFF34C759),
           ),
-          backgroundColor: const Color(0xFF34C759),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating lesson: ${e.toString()}'),
-          backgroundColor: const Color(0xFFFF3B30),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating lesson status: ${e.toString()}'),
+            backgroundColor: const Color(0xFFFF3B30),
+          ),
+        );
+      }
     }
+  }
+
+  void _previewFile(String fileUrl) {
+    final fileName = _getFileNameFromUrl(fileUrl);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FilePreviewScreen(
+          fileUrl: fileUrl,
+          fileName: fileName,
+        ),
+      ),
+    );
+  }
+
+  String _getFileNameFromUrl(String fileUrl) {
+    // Handle Firebase Storage URLs specifically
+    if (fileUrl.contains('firebasestorage.googleapis.com')) {
+      // Extract filename from Firebase Storage URL
+      // Format: https://firebasestorage.googleapis.com/v0/b/bucket/o/path%2Fto%2Ffile.pdf
+      try {
+        final uri = Uri.parse(fileUrl);
+        final path = Uri.decodeComponent(uri.queryParameters['name'] ?? uri.path);
+        
+        // Split by '/' and get the last part
+        final pathParts = path.split('/');
+        if (pathParts.isNotEmpty) {
+          String fileName = pathParts.last;
+          
+          // Remove timestamp prefix if it exists
+          fileName = _removeTimestampPrefix(fileName);
+          
+          return fileName;
+        }
+      } catch (e) {
+        // Firebase Storage parsing failed, continue to fallback
+      }
+    }
+    
+    // Fallback for other URL types
+    try {
+      final uri = Uri.parse(fileUrl);
+      String fileName = uri.pathSegments.last;
+      
+      fileName = _removeTimestampPrefix(fileName);
+      
+      return fileName;
+    } catch (e) {
+      // URI parsing failed, continue to fallback
+    }
+    
+    // Last resort: split by '/' and get last part
+    final parts = fileUrl.split('/');
+    if (parts.isNotEmpty) {
+      String fileName = parts.last;
+      fileName = _removeTimestampPrefix(fileName);
+      return fileName;
+    }
+    
+    return 'Unknown file';
+  }
+  
+  String _removeTimestampPrefix(String fileName) {
+    if (fileName.contains('_')) {
+      final parts = fileName.split('_');
+      if (parts.length > 1) {
+        // Check if first part is a timestamp (13 digits)
+        if (parts[0].length == 13 && int.tryParse(parts[0]) != null) {
+          return parts.sublist(1).join('_');
+        }
+      }
+    }
+    return fileName;
+  }
+
+  Future<void> _logTeacherActivity(String action, String description) async {
+    final DatabaseReference ref = FirebaseDatabase.instance.ref();
+    final UserModel teacherProfile = widget.teacherProfile;
+
+    await ref.child('teacher_activities').child(teacherProfile.uid).push().set({
+      'action': action,
+      'description': description,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
   }
 }

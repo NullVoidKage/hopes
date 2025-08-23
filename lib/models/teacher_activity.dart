@@ -29,6 +29,27 @@ class TeacherActivity {
     this.metadata = const {},
   });
 
+  // Create from Realtime Database
+  factory TeacherActivity.fromRealtimeDatabase(String id, Map<dynamic, dynamic> data) {
+    return TeacherActivity(
+      id: id,
+      teacherId: data['teacherId']?.toString() ?? '',
+      type: ActivityType.values.firstWhere(
+        (e) => e.toString().split('.').last == data['type'],
+        orElse: () => ActivityType.lessonUpload,
+      ),
+      title: data['title']?.toString() ?? '',
+      description: data['description']?.toString() ?? '',
+      subject: data['subject']?.toString() ?? '',
+      timestamp: data['timestamp'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(data['timestamp'] as int)
+          : DateTime.now(),
+      metadata: data['metadata'] != null 
+          ? Map<String, dynamic>.from(data['metadata'] as Map)
+          : {},
+    );
+  }
+
   // Create from Firestore document
   factory TeacherActivity.fromFirestore(Map<String, dynamic> data, String id) {
     return TeacherActivity(

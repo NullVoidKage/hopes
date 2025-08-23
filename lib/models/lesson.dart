@@ -88,6 +88,23 @@ class Lesson {
     };
   }
 
+  // Convert to Realtime Database
+  Map<String, dynamic> toRealtimeDatabase() {
+    return {
+      'title': title,
+      'subject': subject,
+      'content': content,
+      'teacherId': teacherId,
+      'teacherName': teacherName,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+      'updatedAt': updatedAt.millisecondsSinceEpoch,
+      'isPublished': isPublished,
+      'tags': tags,
+      'description': description,
+      'fileUrl': fileUrl,
+    };
+  }
+
   // Create copy with updated fields
   Lesson copyWith({
     String? id,

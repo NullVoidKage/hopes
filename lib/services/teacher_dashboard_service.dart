@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../models/student_progress.dart';
 import '../models/teacher_activity.dart';
 
@@ -21,7 +21,7 @@ class TeacherDashboardData {
 }
 
 class TeacherDashboardService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseDatabase _database = FirebaseDatabase.instance;
 
   // Get all dashboard data for a teacher
   Future<TeacherDashboardData> getDashboardData(String teacherId, List<String> teacherSubjects) async {
@@ -50,44 +50,40 @@ class TeacherDashboardService {
 
   // Get student progress for teacher's subjects
   Future<List<StudentProgress>> _getStudentProgress(List<String> subjects) async {
-    try {
-      final List<StudentProgress> allProgress = [];
-      
-      for (String subject in subjects) {
-        final query = await _firestore
-            .collection('student_progress')
-            .where('subject', isEqualTo: subject)
-            .orderBy('progressPercentage', descending: true)
-            .limit(20)
-            .get();
-        
-        final subjectProgress = query.docs
-            .map((doc) => StudentProgress.fromFirestore(doc.data(), doc.id))
-            .toList();
-        
-        allProgress.addAll(subjectProgress);
-      }
-      
-      return allProgress;
-    } catch (e) {
-      // Return empty list if collection doesn't exist yet
-      return [];
-    }
+    // For now, return empty list until we implement student progress
+    return [];
   }
 
   // Get recent activities for teacher
   Future<List<TeacherActivity>> _getRecentActivities(String teacherId) async {
     try {
-      final query = await _firestore
-          .collection('teacher_activities')
-          .where('teacherId', isEqualTo: teacherId)
-          .orderBy('timestamp', descending: true)
-          .limit(10)
+      final snapshot = await _database
+          .ref('teacher_activities')
+          .child(teacherId)
           .get();
       
-      return query.docs
-          .map((doc) => TeacherActivity.fromFirestore(doc.data(), doc.id))
-          .toList();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>?;
+        if (data != null) {
+          final activities = <TeacherActivity>[];
+          data.forEach((key, value) {
+            if (value is Map) {
+              try {
+                final activity = TeacherActivity.fromRealtimeDatabase(key.toString(), value);
+                activities.add(activity);
+              } catch (e) {
+                print('Error parsing teacher activity: $e');
+              }
+            }
+          });
+          
+          // Sort by timestamp (newest first) and take last 10
+          activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return activities.take(10).toList();
+        }
+      }
+      
+      return [];
     } catch (e) {
       // Return empty list if collection doesn't exist yet
       return [];
@@ -134,29 +130,17 @@ class TeacherDashboardService {
     };
   }
 
-
-
-  // Add a new activity (called when teacher performs actions)
-  Future<void> addActivity({
-    required String teacherId,
-    required ActivityType type,
-    required String title,
-    required String description,
-    required String subject,
-    Map<String, dynamic> metadata = const {},
-  }) async {
+  // Log a new teacher activity
+  Future<void> logActivity(String teacherId, String type, String title, String description) async {
     try {
-      await _firestore.collection('teacher_activities').add({
-        'teacherId': teacherId,
+      await _database.ref('teacher_activities').child(teacherId).push().set({
         'type': type.toString().split('.').last,
         'title': title,
         'description': description,
-        'subject': subject,
-        'timestamp': FieldValue.serverTimestamp(),
-        'metadata': metadata,
+        'timestamp': ServerValue.timestamp,
       });
     } catch (e) {
-      throw Exception('Failed to add activity: ${e.toString()}');
+      throw Exception('Failed to log activity: ${e.toString()}');
     }
   }
 }
