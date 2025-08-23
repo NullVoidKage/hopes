@@ -52,6 +52,35 @@ class AuthService {
     }
   }
 
+  // Sign up with email and password
+  Future<UserCredential> signUpWithEmailAndPassword(String email, String password, String displayName) async {
+    try {
+      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      // Update display name
+      await userCredential.user?.updateDisplayName(displayName);
+      
+      return userCredential;
+    } catch (e) {
+      throw Exception('Sign up failed: ${e.toString()}');
+    }
+  }
+
+  // Sign in with email and password
+  Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
+    try {
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } catch (e) {
+      throw Exception('Sign in failed: ${e.toString()}');
+    }
+  }
+
   // Sign out
   Future<void> signOut() async {
     try {

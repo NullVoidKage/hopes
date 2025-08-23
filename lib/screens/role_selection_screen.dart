@@ -26,7 +26,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   List<String> selectedSubjects = [];
   bool _isLoading = false;
 
-  final List<String> grades = ['7', '8', '9', '10', '11', '12'];
+  final List<String> grades = ['7'];
   final List<String> availableSubjects = [
     'Mathematics',
     'Science',
@@ -171,8 +171,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       onTap: () {
         setState(() {
           selectedRole = role;
-          // Reset additional fields when role changes
-          selectedGrade = null;
+          // Set default values based on role
+          if (role == UserRole.student) {
+            selectedGrade = '7'; // Default to Grade 7 for students
+          } else {
+            selectedGrade = null;
+          }
           selectedSubjects.clear();
         });
       },
@@ -269,7 +273,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Grade Level',
+                'Grade Level (Grade 7)',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
@@ -319,10 +323,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                     hint: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'Select your grade',
+                        'Grade 7',
                         style: const TextStyle(
-                          color: Color(0xFF86868B),
+                          color: Color(0xFF007AFF),
                           fontSize: 17,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -477,7 +482,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   Widget _buildContinueButton() {
     final canContinue = selectedRole != null &&
-        (selectedRole == UserRole.student ? selectedGrade != null : selectedSubjects.isNotEmpty);
+        (selectedRole == UserRole.student ? selectedGrade == '7' : selectedSubjects.isNotEmpty);
 
     return SizedBox(
       width: double.infinity,
@@ -503,7 +508,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 ),
               )
             : Text(
-                'Continue',
+                selectedRole == UserRole.student ? 'Continue as Grade 7 Student' : 'Continue',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
