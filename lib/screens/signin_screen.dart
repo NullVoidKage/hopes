@@ -75,7 +75,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
   }
 
   Future<void> _signInWithEmail() async {
-    if (!_signInFormKey.currentState!.validate()) return;
+    if (_signInFormKey.currentState?.validate() != true) return;
     
     try {
       setState(() {
@@ -110,7 +110,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
   }
 
   Future<void> _signUpWithEmail() async {
-    if (!_signUpFormKey.currentState!.validate()) return;
+    if (_signUpFormKey.currentState?.validate() != true) return;
     
     try {
       setState(() {

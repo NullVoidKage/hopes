@@ -41,7 +41,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 // Error loading profile, likely user doesn't have one yet
                 return RoleSelectionScreen(
                   uid: user.uid,
-                  email: user.email!,
+                  email: user.email ?? 'user@example.com',
                   displayName: user.displayName ?? 'User',
                   photoURL: user.photoURL,
                 );
@@ -53,7 +53,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 // No profile exists, show role selection
                 return RoleSelectionScreen(
                   uid: user.uid,
-                  email: user.email!,
+                  email: user.email ?? 'user@example.com',
                   displayName: user.displayName ?? 'User',
                   photoURL: user.photoURL,
                 );

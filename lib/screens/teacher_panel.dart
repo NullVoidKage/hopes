@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/teacher_dashboard_service.dart';
+import '../services/offline_service.dart';
+import '../widgets/offline_indicator.dart';
+import '../widgets/safe_network_image.dart';
 import 'lesson_upload_screen.dart';
 import 'lesson_library_screen.dart';
 import 'assessment_creation_screen.dart';
 import 'assessment_management_screen.dart';
 import 'monitor_progress_screen.dart';
 import 'student_management_screen.dart';
+import 'offline_settings_screen.dart';
+import '../services/connectivity_service.dart';
 
 class TeacherPanel extends StatefulWidget {
   const TeacherPanel({super.key});
@@ -57,6 +63,15 @@ class _TeacherPanelState extends State<TeacherPanel> {
     }
   }
 
+  // Safe method to check connectivity status
+  bool _isOffline() {
+    try {
+      return !ConnectivityService().isConnected;
+    } catch (e) {
+      return false; // Default to online if there's an error
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -95,6 +110,57 @@ class _TeacherPanelState extends State<TeacherPanel> {
               borderRadius: const BorderRadius.all(Radius.circular(12)),
             ),
             child: IconButton(
+              icon: Icon(
+                ConnectivityService().isConnected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                color: ConnectivityService().isConnected ? Colors.green : const Color(0xFFFF9500),
+                size: 22,
+              ),
+              onPressed: () => _toggleOfflineMode(),
+              tooltip: 'Toggle Offline Mode',
+            ),
+          ),
+          // Force offline button (for testing)
+          if (kDebugMode)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                border: Border.all(color: Colors.red, width: 1),
+              ),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.cloud_off_rounded,
+                  color: Colors.red,
+                  size: 22,
+                ),
+                onPressed: () => _forceOfflineMode(),
+                tooltip: 'Force Offline Mode (Debug)',
+              ),
+            ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F7),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.settings_rounded,
+                color: Color(0xFF007AFF),
+                size: 22,
+              ),
+              onPressed: () => _navigateToOfflineSettings(),
+              tooltip: 'Offline Settings',
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F7),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+            ),
+            child: IconButton(
               icon: const Icon(
                 Icons.logout_rounded,
                 color: Color(0xFF007AFF),
@@ -108,37 +174,48 @@ class _TeacherPanelState extends State<TeacherPanel> {
                   }
                 });
               },
+              tooltip: 'Logout',
             ),
           ),
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome Header
-                _buildWelcomeHeader(),
-                
-                const SizedBox(height: 24),
-                
-                // Quick Actions Grid
-                _buildQuickActions(),
-                
-                const SizedBox(height: 24),
-                
-                // Student Progress Overview
-                _buildStudentProgressOverview(),
-                
-                const SizedBox(height: 24),
-                
-                // Recent Activities
-                _buildRecentActivities(),
-              ],
+        child: Column(
+          children: [
+            // Offline indicator
+            const OfflineIndicator(),
+            
+            // Main content
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Welcome Header
+                      _buildWelcomeHeader(),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Quick Actions Grid
+                      _buildQuickActions(),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Student Progress Overview
+                      _buildStudentProgressOverview(),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Recent Activities
+                      _buildRecentActivities(),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -158,77 +235,121 @@ class _TeacherPanelState extends State<TeacherPanel> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.all(Radius.circular(18)),
-            ),
-            child: _userProfile?.photoURL != null
-                ? ClipRRect(
-                    borderRadius: const BorderRadius.all(Radius.circular(18)),
-                    child: Image.network(
-                      _userProfile!.photoURL!,
-                      fit: BoxFit.cover,
+          Row(
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  borderRadius: const BorderRadius.all(Radius.circular(18)),
+                ),
+                child: _userProfile?.photoURL != null
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.all(Radius.circular(18)),
+                        child: SafeNetworkImage(
+                          imageUrl: _userProfile!.photoURL!,
+                          fit: BoxFit.cover,
+                          fallback: const Icon(
+                            Icons.school_rounded,
+                            size: 36,
+                            color: Color(0xFF007AFF),
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.school_rounded,
+                        size: 36,
+                        color: Color(0xFF007AFF),
+                      ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome back, ${_userProfile?.displayName ?? 'Teacher'}!',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1D1D1F),
+                        letterSpacing: -0.4,
+                      ),
                     ),
-                  )
-                : const Icon(
-                    Icons.school_rounded,
-                    size: 36,
-                    color: Color(0xFF007AFF),
-                  ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Ready to inspire your students today?',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: const Color(0xFF86868B),
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                        borderRadius: const BorderRadius.all(Radius.circular(16)),
+                        border: Border.all(
+                          color: const Color(0xFF007AFF).withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'Subjects: ${_userProfile?.subjects?.join(', ') ?? 'Not specified'}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: const Color(0xFF007AFF),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome back, ${_userProfile?.displayName ?? 'Teacher'}!',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1D1D1F),
-                    letterSpacing: -0.4,
-                  ),
+          
+          // Offline status indicator
+          if (_isOffline()) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF9500).withValues(alpha: 0.1),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                border: Border.all(
+                  color: const Color(0xFFFF9500).withValues(alpha: 0.3),
+                  width: 1,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Ready to inspire your students today?',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF86868B),
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: -0.2,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: const Color(0xFFFF9500),
+                    size: 16,
                   ),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                    borderRadius: const BorderRadius.all(Radius.circular(16)),
-                    border: Border.all(
-                      color: const Color(0xFF007AFF).withValues(alpha: 0.2),
-                      width: 1,
+                  const SizedBox(width: 8),
+                  Text(
+                    'Showing cached data',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: const Color(0xFFFF9500),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  child: Text(
-                    'Subjects: ${_userProfile?.subjects?.join(', ') ?? 'Not specified'}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF007AFF),
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.1,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -881,4 +1002,24 @@ class _TeacherPanelState extends State<TeacherPanel> {
       );
     }
   }
+
+  void _navigateToOfflineSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const OfflineSettingsScreen(),
+      ),
+    );
+  }
+
+  void _toggleOfflineMode() {
+    ConnectivityService().toggleOfflineMode();
+    setState(() {}); // Refresh the UI to show the new icon
+  }
+
+  void _forceOfflineMode() {
+    ConnectivityService().forceOfflineMode();
+    setState(() {}); // Refresh the UI to show the new icon
+  }
+
+
 }

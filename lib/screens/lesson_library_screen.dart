@@ -117,7 +117,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
     final List<String> subjects = [
       'All',
       if (widget.teacherProfile.subjects != null)
-        ...widget.teacherProfile.subjects!.cast<String>()
+                        ...(widget.teacherProfile.subjects ?? []).cast<String>()
     ];
     final statuses = ['All', 'Published', 'Draft'];
 
@@ -155,7 +155,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                   items: subjects,
                   onChanged: (value) {
                     setState(() {
-                      _selectedSubject = value!;
+                      _selectedSubject = value ?? 'All';
                     });
                   },
                   label: 'Subject',
@@ -168,7 +168,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                   items: statuses,
                   onChanged: (value) {
                     setState(() {
-                      _selectedStatus = value!;
+                      _selectedStatus = value ?? 'All';
                     });
                   },
                   label: 'Status',
@@ -339,7 +339,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
             if (lesson.description?.isNotEmpty == true) ...[
               const SizedBox(height: 12),
               Text(
-                lesson.description!,
+                                        lesson.description ?? 'No description available',
                 style: const TextStyle(
                   fontSize: 14,
                   color: Color(0xFF86868B),
@@ -382,7 +382,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
               Container(
                 margin: const EdgeInsets.only(top: 8),
                 child: InkWell(
-                  onTap: () => _previewFile(lesson.fileUrl!),
+                  onTap: lesson.fileUrl != null ? () => _previewFile(lesson.fileUrl!) : null,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -405,7 +405,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            _getFileNameFromUrl(lesson.fileUrl!),
+                            lesson.fileUrl != null ? _getFileNameFromUrl(lesson.fileUrl!) : 'No file attached',
                             style: const TextStyle(
                               color: Color(0xFF007AFF),
                               fontSize: 12,

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -48,8 +49,8 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   @override
   void initState() {
     super.initState();
-    // Set first subject as default if available
-    if (widget.teacherProfile.subjects?.isNotEmpty == true) {
+    // Set default subject if teacher has subjects
+    if (widget.teacherProfile.subjects != null && widget.teacherProfile.subjects!.isNotEmpty) {
       _selectedSubject = widget.teacherProfile.subjects!.first;
     }
   }
@@ -400,7 +401,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
           Row(
             children: [
               Icon(
-                _getFileIcon(_selectedFile!.extension ?? ''),
+                _getFileIcon(_selectedFile?.extension ?? ''),
                 color: const Color(0xFF007AFF),
                 size: 24,
               ),
@@ -410,7 +411,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _selectedFile!.name,
+                      _selectedFile?.name ?? 'Unknown file',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -420,7 +421,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      '${(_selectedFile!.size / 1024 / 1024).toStringAsFixed(2)} MB',
+                      '${((_selectedFile?.size ?? 0) / 1024 / 1024).toStringAsFixed(2)} MB',
                       style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF86868B),
@@ -621,7 +622,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _downloadFile(_uploadedFileUrl!),
+                  onPressed: _uploadedFileUrl != null ? () => _downloadFile(_uploadedFileUrl!) : null,
                   icon: const Icon(Icons.download_rounded),
                   label: const Text('Download'),
                   style: OutlinedButton.styleFrom(
@@ -633,7 +634,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _previewFile(_uploadedFileUrl!),
+                  onPressed: _uploadedFileUrl != null ? () => _previewFile(_uploadedFileUrl!) : null,
                   icon: const Icon(Icons.preview_rounded),
                   label: const Text('Preview'),
                   style: OutlinedButton.styleFrom(
@@ -756,19 +757,19 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
 
     try {
       print('🚀 Starting file upload...');
-      print('📁 File name: ${_selectedFile!.name}');
-      print('📏 File size: ${_selectedFile!.size} bytes');
+      print('📁 File name: ${_selectedFile?.name ?? 'Unknown'}');
+      print('📏 File size: ${_selectedFile?.size ?? 0} bytes');
       print('🔑 Teacher ID: ${widget.teacherProfile.uid}');
       
       final storage = FirebaseStorage.instance;
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${_selectedFile!.name}';
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${_selectedFile?.name ?? 'unknown_file'}';
       final ref = storage.ref().child('lesson_files/${widget.teacherProfile.uid}/$fileName');
       
       print('📤 Storage path: lesson_files/${widget.teacherProfile.uid}/$fileName');
       
       // Upload file
       print('⏳ Starting upload...');
-      final uploadTask = ref.putData(_selectedFile!.bytes!);
+      final uploadTask = ref.putData(_selectedFile?.bytes ?? Uint8List(0));
       final snapshot = await uploadTask;
       print('✅ Upload completed!');
       
@@ -778,7 +779,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
 
       setState(() {
         _uploadedFileUrl = downloadUrl;
-        _uploadedFileName = _selectedFile!.name;
+        _uploadedFileName = _selectedFile?.name ?? 'unknown_file';
         _isUploadingFile = false;
       });
 
@@ -1162,7 +1163,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   }
 
   Future<void> _uploadLesson() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() != true) {
       return;
     }
 
@@ -1188,7 +1189,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
       final lesson = Lesson(
         id: '', // Will be set by Firestore
         title: _titleController.text.trim(),
-        subject: _selectedSubject!,
+        subject: _selectedSubject ?? 'Unknown Subject',
         content: _contentController.text.trim(),
         teacherId: widget.teacherProfile.uid,
         teacherName: widget.teacherProfile.displayName,
@@ -1241,7 +1242,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   }
 
   Widget _buildMainUploadButton() {
-    final bool canUpload = _formKey.currentState!.validate() && 
+    final bool canUpload = _formKey.currentState?.validate() == true && 
                            _selectedSubject != null && 
                            (_uploadedFileUrl != null || _selectedFile == null);
     
@@ -1252,7 +1253,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
       disabledReason = 'Please select a subject';
     } else if (_selectedFile != null && _uploadedFileUrl == null) {
       disabledReason = 'Please upload your file first';
-    } else if (!_formKey.currentState!.validate()) {
+    } else if (_formKey.currentState?.validate() != true) {
       disabledReason = 'Please fill in all required fields';
     }
     

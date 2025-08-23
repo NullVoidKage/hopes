@@ -1378,7 +1378,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   }
 
   Future<void> _createAssessment() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() != true) {
       return;
     }
 
@@ -1411,7 +1411,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         id: '',
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        subject: _selectedSubject!,
+        subject: _selectedSubject ?? 'Unknown Subject',
         teacherId: widget.teacherProfile.uid,
         teacherName: widget.teacherProfile.displayName,
         createdAt: DateTime.now(),

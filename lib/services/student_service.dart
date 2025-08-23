@@ -1,12 +1,21 @@
 import 'package:firebase_database/firebase_database.dart';
 import '../models/student.dart';
+import 'connectivity_service.dart';
+import 'offline_service.dart';
 
 class StudentService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   // Get all students for a teacher
   Future<List<Student>> getStudents(String teacherId) async {
     try {
+      // Check if we should use cached data
+      if (_connectivityService.shouldUseCachedData) {
+        return await _getCachedStudents(teacherId);
+      }
+
+      // If online, fetch from Firebase and cache
       print('Getting students for teacher: $teacherId');
       final DatabaseReference ref = _database.ref('students');
       final Query query = ref.orderByChild('teacherId').equalTo(teacherId);
@@ -28,7 +37,7 @@ class StudentService {
       }
       
       print('Data entries count: ${data.entries.length}');
-      return data.entries.map((entry) {
+      final studentsList = data.entries.map((entry) {
         print('Processing entry: ${entry.key}');
         final entryData = entry.value as Map<dynamic, dynamic>?;
         if (entryData == null) {
@@ -48,9 +57,47 @@ class StudentService {
           return null;
         }
       }).whereType<Student>().toList();
+
+      // Cache the data for offline use
+      await _cacheStudentsLocally(studentsList);
+      
+      return studentsList;
     } catch (e) {
       print('Error getting students: $e');
+      // If Firebase fails, try to return cached data
+      return await _getCachedStudents(teacherId);
+    }
+  }
+
+  // Get cached students by teacher
+  Future<List<Student>> _getCachedStudents(String teacherId) async {
+    try {
+      final cachedStudents = await OfflineService.getCachedStudents();
+      
+      // Filter by teacher ID
+      final teacherStudents = cachedStudents.where((data) => 
+        data['teacherId'] == teacherId
+      ).toList();
+      
+      return teacherStudents.map((data) => 
+        Student.fromRealtimeDatabase(data, data['id'] ?? '')
+      ).toList();
+    } catch (e) {
+      print('Error getting cached students: $e');
       return [];
+    }
+  }
+
+  // Cache students locally
+  Future<void> _cacheStudentsLocally(List<Student> students) async {
+    try {
+      final studentData = students.map((student) => {
+        'id': student.id,
+        ...student.toRealtimeDatabase(),
+      }).toList();
+      await OfflineService.cacheStudents(studentData);
+    } catch (e) {
+      print('Error caching students: $e');
     }
   }
 
