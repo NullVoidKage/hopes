@@ -6,6 +6,7 @@ import '../models/lesson.dart';
 import '../services/lesson_service_realtime.dart';
 import '../models/user_model.dart';
 import 'package:firebase_database/firebase_database.dart';
+import '../screens/file_preview_screen.dart'; // Added import for FilePreviewScreen
 
 class LessonUploadScreen extends StatefulWidget {
   final UserModel teacherProfile;
@@ -827,21 +828,25 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   }
 
   void _downloadFile(String url) {
-    // TODO: Implement file download
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Download feature coming soon!'),
-        backgroundColor: Color(0xFFFF9500),
+    // Navigate to file preview screen for download
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FilePreviewScreen(
+          fileUrl: url,
+          fileName: _uploadedFileName ?? 'Downloaded File',
+        ),
       ),
     );
   }
 
   void _previewFile(String url) {
-    // TODO: Implement file preview
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Preview feature coming soon!'),
-        backgroundColor: Color(0xFFFF9500),
+    // Navigate to file preview screen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FilePreviewScreen(
+          fileUrl: url,
+          fileName: _uploadedFileName ?? 'File Preview',
+        ),
       ),
     );
   }

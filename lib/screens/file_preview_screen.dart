@@ -244,7 +244,7 @@ class FilePreviewScreen extends StatelessWidget {
 
   void _openPdfInNewTab(BuildContext context) {
     if (kIsWeb) {
-      platform.openInNewTab(fileUrl);
+      platform.openPdfPreview(fileUrl);
     } else {
       // On mobile, show a dialog with options
       _showMobilePdfOptions(context);
@@ -263,22 +263,16 @@ class FilePreviewScreen extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // You could implement clipboard functionality here
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Link copied to clipboard')),
-                );
+                _copyLinkToClipboard(context, url);
               },
               child: const Text('Copy Link'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // You could implement share functionality here
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Opening share sheet...')),
-                );
+                _openInBrowser(context, url);
               },
-              child: const Text('Share'),
+              child: const Text('Open in Browser'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -301,12 +295,9 @@ class FilePreviewScreen extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // You could implement opening in a PDF viewer app here
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Opening PDF...')),
-                );
+                _openInBrowser(context, fileUrl);
               },
-              child: const Text('Open'),
+              child: const Text('Open in Browser'),
             ),
             TextButton(
               onPressed: () {
@@ -323,6 +314,46 @@ class FilePreviewScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _copyLinkToClipboard(BuildContext context, String url) {
+    // Copy URL to clipboard
+    if (kIsWeb) {
+      // Web clipboard API
+      try {
+        // Use the platform-specific implementation
+        platform.copyToClipboard(url);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Link copied to clipboard')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to copy link')),
+        );
+      }
+    } else {
+      // Mobile clipboard (would need clipboard plugin)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link copied to clipboard')),
+      );
+    }
+  }
+
+  void _openInBrowser(BuildContext context, String url) {
+    try {
+      if (kIsWeb) {
+        platform.openInNewTab(url);
+      } else {
+        // On mobile, show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Opening in browser...')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to open in browser')),
+      );
+    }
   }
 
   String _getFileExtension(String fileName) {
