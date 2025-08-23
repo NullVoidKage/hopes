@@ -1,12 +1,29 @@
 {
   "rules": {
     "lessons": {
+      ".indexOn": ["teacherId", "subject", "createdAt"],
       ".read": "auth != null",
       ".write": "auth != null",
       "$lessonId": {
         ".read": "auth != null && (data.child('teacherId').val() == auth.uid || data.child('isPublished').val() == true)",
         ".write": "auth != null && data.child('teacherId').val() == auth.uid",
         ".validate": "newData.hasChildren(['title', 'subject', 'content', 'teacherId', 'teacherName'])"
+      }
+    },
+    "assessments": {
+      ".indexOn": ["teacherId", "subject", "createdAt"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$assessmentId": {
+        ".read": "auth != null && (data.child('teacherId').val() == auth.uid || data.child('isPublished').val() == true)",
+        ".write": "auth != null && data.child('teacherId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['title', 'subject', 'teacherId', 'teacherName'])"
+      }
+    },
+    "teacher_activities": {
+      "$teacherId": {
+        ".read": "auth != null && auth.uid == $teacherId",
+        ".write": "auth != null && auth.uid == $teacherId"
       }
     },
     "users": {

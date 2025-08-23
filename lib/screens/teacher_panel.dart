@@ -4,6 +4,8 @@ import '../services/auth_service.dart';
 import '../services/teacher_dashboard_service.dart';
 import 'lesson_upload_screen.dart';
 import 'lesson_library_screen.dart';
+import 'assessment_creation_screen.dart';
+import 'assessment_management_screen.dart';
 
 class TeacherPanel extends StatefulWidget {
   const TeacherPanel({super.key});
@@ -809,10 +811,15 @@ class _TeacherPanelState extends State<TeacherPanel> {
   }
 
   void _navigateToAssessmentCreation() {
-    // TODO: Navigate to assessment creation screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Assessment creation coming soon!')),
-    );
+    if (_userProfile != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => AssessmentManagementScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
   }
 
   void _navigateToStudentManagement() {
