@@ -3,8 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/student.dart';
 import '../services/student_service.dart';
 import '../models/user_model.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/foundation.dart';
 
 class StudentManagementScreen extends StatefulWidget {
   final UserModel teacherProfile;
@@ -26,15 +24,11 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
   List<Student> _students = [];
   Map<String, dynamic> _statistics = {};
   bool _isLoading = true;
-  String _selectedFilter = 'All';
-  String _selectedGrade = 'Grade 7';
   String _searchQuery = '';
   
   late TabController _tabController;
   
-  final List<String> _filters = ['All', 'Active', 'Inactive'];
   final List<String> _grades = ['Grade 7'];
-  final String _defaultGrade = 'Grade 7';
   final List<String> _subjects = [
     'Mathematics',
     'GMRC',
@@ -66,48 +60,40 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
     setState(() => _isLoading = true);
     
     try {
-      final String? teacherId = _auth.currentUser?.uid;
-      if (teacherId != null) {
-        print('🔍 StudentManagement: Loading data for teacher: $teacherId');
-        print('🔍 StudentManagement: Current user email: ${_auth.currentUser?.email}');
-        
-        // Load ALL students in the system, not just teacher's students
-        final DatabaseReference ref = FirebaseDatabase.instance.ref('students');
-        final DatabaseEvent event = await ref.once();
-        final DataSnapshot snapshot = event.snapshot;
-        
-        print('🔍 StudentManagement: Firebase students snapshot exists: ${snapshot.exists}');
-        if (snapshot.value != null) {
-          final data = snapshot.value as Map<dynamic, dynamic>?;
-          print('🔍 StudentManagement: Total students in Firebase: ${data?.length ?? 0}');
-          print('🔍 StudentManagement: Firebase data keys: ${data?.keys.toList()}');
-          
-          // Log each student's data structure
-          data?.forEach((key, value) {
-            print('🔍 StudentManagement: Student $key: $value');
-            if (value is Map) {
-              print('🔍 StudentManagement: Student $key teacherId: ${value['teacherId']}');
-              print('🔍 StudentManagement: Student $key name: ${value['name']}');
-            }
-          });
-        }
-        
-        // Get all students from the service
-        final students = await _studentService.getAllStudents();
-        print('🔍 StudentManagement: Loaded ${students.length} students from service');
-        
-        final stats = await _studentService.getStudentStatistics(teacherId);
-        print('🔍 StudentManagement: Loaded statistics: $stats');
-        
-        setState(() {
-          _students = students;
-          _statistics = stats;
-          _isLoading = false;
-        });
-      } else {
-        print('🔍 StudentManagement: No teacher ID found');
-        setState(() => _isLoading = false);
+      print('🔍 StudentManagement: Loading students from Firestore');
+      
+      // Get all students from the service (now fetches from Firestore)
+      final students = await _studentService.getAllStudents();
+      print('🔍 StudentManagement: Loaded ${students.length} students from Firestore');
+      
+      // Calculate statistics manually from the loaded students
+      final gradeDistribution = <String, int>{};
+      final subjectDistribution = <String, int>{};
+      
+      // Calculate grade distribution
+      for (final student in students) {
+        final grade = student.grade;
+        gradeDistribution[grade] = (gradeDistribution[grade] ?? 0) + 1;
       }
+      
+      // Calculate subject distribution
+      for (final student in students) {
+        for (final subject in student.subjects) {
+          subjectDistribution[subject] = (subjectDistribution[subject] ?? 0) + 1;
+        }
+      }
+      
+      final stats = {
+        'totalStudents': students.length,
+        'gradeDistribution': gradeDistribution,
+        'subjectDistribution': subjectDistribution,
+      };
+      
+      setState(() {
+        _students = students;
+        _statistics = stats;
+        _isLoading = false;
+      });
     } catch (e) {
       print('🔍 StudentManagement: Error loading student data: $e');
       setState(() => _isLoading = false);
@@ -117,14 +103,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
   List<Student> get _filteredStudents {
     List<Student> filtered = _students;
     
-    // Filter by status
-    if (_selectedFilter == 'Active') {
-      filtered = filtered.where((s) => s.isActive).toList();
-    } else if (_selectedFilter == 'Inactive') {
-      filtered = filtered.where((s) => !s.isActive).toList();
-    }
-    
-    // Filter by search query
+    // Filter by search query only
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((s) {
         return s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -206,57 +185,27 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
   Widget _buildFilters() {
     return Container(
       margin: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Search bar
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E5E7)),
-            ),
-            child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
-              decoration: const InputDecoration(
-                hintText: 'Search students...',
-                prefixIcon: Icon(Icons.search_rounded, color: Color(0xFF86868B)),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E5E7)),
+        ),
+        child: TextField(
+          onChanged: (value) => setState(() => _searchQuery = value),
+          decoration: const InputDecoration(
+            hintText: 'Search students...',
+            prefixIcon: Icon(Icons.search_rounded, color: Color(0xFF86868B)),
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          const SizedBox(height: 12),
-          // Filter dropdowns
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E5E7)),
-            ),
-            child: DropdownButtonFormField<String>(
-              value: _selectedFilter,
-              decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: InputBorder.none,
-                hintText: 'Status',
-              ),
-              items: _filters.map((filter) => DropdownMenuItem(
-                value: filter,
-                child: Text(filter),
-              )).toList(),
-              onChanged: (value) {
-                setState(() => _selectedFilter = value!);
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildStatistics() {
     final totalStudents = _statistics['totalStudents'] as int? ?? 0;
-    final activeStudents = _statistics['activeStudents'] as int? ?? 0;
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -264,9 +213,10 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
         children: [
           Expanded(child: _buildStatCard('Total Students', '$totalStudents', Icons.people_rounded, const Color(0xFF007AFF))),
           const SizedBox(width: 12),
-          Expanded(child: _buildStatCard('Active Students', '$activeStudents', Icons.check_circle_rounded, const Color(0xFF34C759))),
-          const SizedBox(width: 12),
           Expanded(child: _buildStatCard('Subjects', '${_subjects.length}', Icons.book_rounded, const Color(0xFFFF9500))),
+          const SizedBox(width: 12),
+          // Empty space to maintain balance
+          const Expanded(child: SizedBox()),
         ],
       ),
     );

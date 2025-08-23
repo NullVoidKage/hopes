@@ -1,4 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/student.dart';
 import 'connectivity_service.dart';
 import 'offline_service.dart';
@@ -84,7 +85,7 @@ class StudentService {
   // Get ALL students in the system (for teachers to manage)
   Future<List<Student>> getAllStudents() async {
     try {
-      print('🔍 StudentService: Getting ALL students in the system');
+      print('🔍 StudentService: Getting ALL students from Firestore');
       print('🔍 StudentService: shouldUseCachedData: ${_connectivityService.shouldUseCachedData}');
       print('🔍 StudentService: isConnected: ${_connectivityService.isConnected}');
       
@@ -94,61 +95,63 @@ class StudentService {
         return await _getCachedAllStudents();
       }
 
-      // If online, fetch from Firebase and cache
-      print('🔍 StudentService: Fetching all students from Firebase');
-      final DatabaseReference ref = _database.ref('students');
+      // If online, fetch from Firestore
+      print('🔍 StudentService: Fetching all students from Firestore');
+      final studentsQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'student')
+          .get();
       
-      final DatabaseEvent event = await ref.once();
-      final DataSnapshot snapshot = event.snapshot;
+      print('🔍 StudentService: Found ${studentsQuery.docs.length} students in Firestore');
       
-      print('🔍 StudentService: All students snapshot exists: ${snapshot.exists}');
-      if (snapshot.value == null) {
-        print('🔍 StudentService: All students snapshot value is null');
-        return [];
-      }
-      
-      print('🔍 StudentService: All students snapshot value type: ${snapshot.value.runtimeType}');
-      final data = snapshot.value as Map<dynamic, dynamic>?;
-      if (data == null) {
-        print('🔍 StudentService: All students data is null after casting');
-        return [];
-      }
-      
-      print('🔍 StudentService: All students data entries count: ${data.entries.length}');
-      print('🔍 StudentService: All students data keys: ${data.keys.toList()}');
-      
-      final studentsList = data.entries.map((entry) {
-        print('🔍 StudentService: Processing all students entry: ${entry.key}');
-        final entryData = entry.value as Map<dynamic, dynamic>?;
-        if (entryData == null) {
-          print('🔍 StudentService: All students entry data is null for key: ${entry.key}');
-          return null;
-        }
-        
-        print('🔍 StudentService: All students entry data: $entryData');
+      final studentsList = studentsQuery.docs.map((doc) {
+        final data = doc.data();
+        print('🔍 StudentService: Processing student: ${data['displayName']}');
+        print('🔍 StudentService: Student subjects: ${data['subjects']}');
+        print('🔍 StudentService: Student email: ${data['email']}');
+        print('🔍 StudentService: Student grade: ${data['grade']}');
         
         try {
-          final student = Student.fromRealtimeDatabase(
-            entryData,
-            entry.key.toString(),
+          // Convert Firestore data to Student model
+          final subjects = (data['subjects'] as List<dynamic>?)?.cast<String>() ?? [];
+          print('🔍 StudentService: Converted subjects: $subjects (length: ${subjects.length})');
+          
+          final student = Student(
+            id: doc.id,
+            name: data['displayName'] ?? 'Unknown',
+            email: data['email'] ?? '',
+            grade: data['grade'] ?? 'Grade 7',
+            section: 'A', // Default section
+            subjects: subjects,
+            teacherId: data['teacherId'] ?? 'default_teacher',
+            teacherName: data['teacherName'] ?? 'Default Teacher',
+            joinedAt: data['createdAt'] != null 
+                ? (data['createdAt'] as Timestamp).toDate() 
+                : DateTime.now(),
+            isActive: true,
+            metadata: {
+              'source': 'firestore',
+              'firestoreId': doc.id,
+            },
           );
-          print('🔍 StudentService: Successfully parsed all students student: ${student.name}');
+          
+          print('🔍 StudentService: Successfully created student: ${student.name} with ${student.subjects.length} subjects');
           return student;
         } catch (e) {
-          print('🔍 StudentService: Error parsing all students student data for key ${entry.key}: $e');
+          print('🔍 StudentService: Error creating student from Firestore data: $e');
           return null;
         }
       }).whereType<Student>().toList();
 
-      print('🔍 StudentService: Final all students list length: ${studentsList.length}');
+      print('🔍 StudentService: Final students list length: ${studentsList.length}');
       
       // Cache the data for offline use
       await _cacheAllStudentsLocally(studentsList);
       
       return studentsList;
     } catch (e) {
-      print('🔍 StudentService: Error getting all students: $e');
-      // If Firebase fails, try to return cached data
+      print('🔍 StudentService: Error getting all students from Firestore: $e');
+      // If Firestore fails, try to return cached data
       return await _getCachedAllStudents();
     }
   }

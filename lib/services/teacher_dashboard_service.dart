@@ -1,4 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/student_progress.dart';
 import '../models/teacher_activity.dart';
 import 'offline_service.dart';
@@ -37,7 +38,8 @@ class TeacherDashboardService {
       // If online, fetch from Firebase and cache
       final studentProgress = await _getStudentProgress(teacherSubjects);
       final recentActivities = await _getRecentActivities(teacherId);
-      final stats = _calculateStats(studentProgress);
+      final studentCount = await _getStudentCount();
+      final stats = _calculateStats(studentProgress, studentCount);
       
       final dashboardData = TeacherDashboardData(
         studentProgress: studentProgress,
@@ -140,12 +142,28 @@ class TeacherDashboardService {
     }
   }
 
+  // Get student count from Firestore
+  Future<int> _getStudentCount() async {
+    try {
+      final studentsQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'student')
+          .get();
+      
+      print('🔍 TeacherDashboardService: Found ${studentsQuery.docs.length} students in Firestore');
+      return studentsQuery.docs.length;
+    } catch (e) {
+      print('🔍 TeacherDashboardService: Error getting student count: $e');
+      return 0;
+    }
+  }
+
   // Calculate dashboard statistics
-  Map<String, dynamic> _calculateStats(List<StudentProgress> studentProgress) {
+  Map<String, dynamic> _calculateStats(List<StudentProgress> studentProgress, int totalStudents) {
     if (studentProgress.isEmpty) {
       return {
         'subjectStats': <String, int>{},
-        'totalStudents': 0,
+        'totalStudents': totalStudents,
         'activeStudents': 0,
         'averageProgress': 0.0,
       };
@@ -210,7 +228,7 @@ class TeacherDashboardService {
         TeacherActivity.fromRealtimeDatabase(data['id'] ?? '', data)
       ).toList();
       
-      final stats = _calculateStats(studentProgress);
+      final stats = _calculateStats(studentProgress, studentProgress.length);
       
       return TeacherDashboardData(
         studentProgress: studentProgress,
