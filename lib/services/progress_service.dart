@@ -17,13 +17,23 @@ class ProgressService {
       
       if (snapshot.value == null) return [];
       
-      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) return [];
+      
       return data.entries.map((entry) {
-        return StudentProgress.fromRealtimeDatabase(
-          Map<String, dynamic>.from(entry.value),
-          entry.key.toString(),
-        );
-      }).toList();
+        final entryData = entry.value as Map<dynamic, dynamic>?;
+        if (entryData == null) return null;
+        
+        try {
+          return StudentProgress.fromRealtimeDatabase(
+            Map<String, dynamic>.from(entryData),
+            entry.key.toString(),
+          );
+        } catch (e) {
+          print('Error parsing student progress data: $e');
+          return null;
+        }
+      }).whereType<StudentProgress>().toList();
     } catch (e) {
       print('Error getting student progress: $e');
       return [];
@@ -39,11 +49,18 @@ class ProgressService {
       
       if (snapshot.value == null) return null;
       
-      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
-      return StudentProgress.fromRealtimeDatabase(
-        Map<String, dynamic>.from(data),
-        studentId,
-      );
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) return null;
+      
+      try {
+        return StudentProgress.fromRealtimeDatabase(
+          Map<String, dynamic>.from(data),
+          studentId,
+        );
+      } catch (e) {
+        print('Error parsing student progress data: $e');
+        return null;
+      }
     } catch (e) {
       print('Error getting student progress by ID: $e');
       return null;
@@ -177,16 +194,20 @@ class ProgressService {
       
       if (snapshot.value == null) return [];
       
-      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) return [];
+      
       final List<Map<String, dynamic>> activities = [];
       
       data.forEach((studentId, studentData) {
+        if (studentData is! Map) return;
         final student = Map<String, dynamic>.from(studentData);
         
         // Add lesson completions
-        if (student['lessonProgress'] != null) {
+        if (student['lessonProgress'] != null && student['lessonProgress'] is Map) {
           final lessonProgress = Map<String, dynamic>.from(student['lessonProgress']);
           lessonProgress.forEach((lessonId, lessonData) {
+            if (lessonData is! Map) return;
             final lesson = Map<String, dynamic>.from(lessonData);
             if (lesson['isCompleted'] == true && lesson['completedAt'] != null) {
               activities.add({
@@ -201,9 +222,10 @@ class ProgressService {
         }
         
         // Add assessment completions
-        if (student['assessmentProgress'] != null) {
+        if (student['assessmentProgress'] != null && student['assessmentProgress'] is Map) {
           final assessmentProgress = Map<String, dynamic>.from(student['assessmentProgress']);
           assessmentProgress.forEach((assessmentId, assessmentData) {
+            if (assessmentData is! Map) return;
             final assessment = Map<String, dynamic>.from(assessmentData);
             if (assessment['isCompleted'] == true && assessment['completedAt'] != null) {
               activities.add({

@@ -7,6 +7,7 @@ import 'lesson_library_screen.dart';
 import 'assessment_creation_screen.dart';
 import 'assessment_management_screen.dart';
 import 'monitor_progress_screen.dart';
+import 'student_management_screen.dart';
 
 class TeacherPanel extends StatefulWidget {
   const TeacherPanel({super.key});
@@ -825,9 +826,14 @@ class _TeacherPanelState extends State<TeacherPanel> {
   }
 
   void _navigateToStudentManagement() {
-    // TODO: Navigate to student management screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Student management coming soon!')),
-    );
+    if (_userProfile != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => StudentManagementScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
   }
 }

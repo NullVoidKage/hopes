@@ -35,31 +35,35 @@ class StudentProgress {
     this.metadata = const {},
   });
 
-  factory StudentProgress.fromRealtimeDatabase(Map<String, dynamic> data, String id) {
+  factory StudentProgress.fromRealtimeDatabase(Map<dynamic, dynamic> data, String id) {
     return StudentProgress(
       id: id,
-      studentId: data['studentId'] ?? '',
-      studentName: data['studentName'] ?? '',
-      studentEmail: data['studentEmail'] ?? '',
-      subject: data['subject'] ?? '',
-      lessonsCompleted: data['lessonsCompleted'] ?? 0,
-      totalLessons: data['totalLessons'] ?? 0,
-      assessmentsTaken: data['assessmentsTaken'] ?? 0,
-      totalAssessments: data['totalAssessments'] ?? 0,
-      averageScore: (data['averageScore'] ?? 0.0).toDouble(),
-      completionRate: (data['completionRate'] ?? 0.0).toDouble(),
+      studentId: data['studentId']?.toString() ?? '',
+      studentName: data['studentName']?.toString() ?? '',
+      studentEmail: data['studentEmail']?.toString() ?? '',
+      subject: data['subject']?.toString() ?? '',
+      lessonsCompleted: data['lessonsCompleted'] as int? ?? 0,
+      totalLessons: data['totalLessons'] as int? ?? 0,
+      assessmentsTaken: data['assessmentsTaken'] as int? ?? 0,
+      totalAssessments: data['totalAssessments'] as int? ?? 0,
+      averageScore: (data['averageScore'] as num? ?? 0.0).toDouble(),
+      completionRate: (data['completionRate'] as num? ?? 0.0).toDouble(),
       lastActivity: data['lastActivity'] != null 
-          ? DateTime.fromMillisecondsSinceEpoch(data['lastActivity']) 
+          ? DateTime.fromMillisecondsSinceEpoch(data['lastActivity'] as int) 
           : DateTime.now(),
-      lessonProgress: (data['lessonProgress'] as Map<String, dynamic>? ?? {})
-          .entries
-          .map((e) => LessonProgress.fromMap(e.value, e.key))
-          .toList(),
-      assessmentProgress: (data['assessmentProgress'] as Map<String, dynamic>? ?? {})
-          .entries
-          .map((e) => AssessmentProgress.fromMap(e.value, e.key))
-          .toList(),
-      metadata: data['metadata'] ?? {},
+      lessonProgress: data['lessonProgress'] != null && data['lessonProgress'] is Map
+          ? (data['lessonProgress'] as Map<dynamic, dynamic>)
+              .entries
+              .map((e) => LessonProgress.fromMap(Map<String, dynamic>.from(e.value), e.key.toString()))
+              .toList()
+          : <LessonProgress>[],
+      assessmentProgress: data['assessmentProgress'] != null && data['assessmentProgress'] is Map
+          ? (data['assessmentProgress'] as Map<dynamic, dynamic>)
+              .entries
+              .map((e) => AssessmentProgress.fromMap(Map<String, dynamic>.from(e.value), e.key.toString()))
+              .toList()
+          : <AssessmentProgress>[],
+      metadata: data['metadata'] as Map<String, dynamic>? ?? {},
     );
   }
 
@@ -144,17 +148,17 @@ class LessonProgress {
     required this.status,
   });
 
-  factory LessonProgress.fromMap(Map<String, dynamic> data, String id) {
+  factory LessonProgress.fromMap(Map<dynamic, dynamic> data, String id) {
     return LessonProgress(
       lessonId: id,
-      lessonTitle: data['lessonTitle'] ?? '',
-      isCompleted: data['isCompleted'] ?? false,
+      lessonTitle: data['lessonTitle']?.toString() ?? '',
+      isCompleted: data['isCompleted'] as bool? ?? false,
       completedAt: data['completedAt'] != null 
-          ? DateTime.fromMillisecondsSinceEpoch(data['completedAt']) 
+          ? DateTime.fromMillisecondsSinceEpoch(data['completedAt'] as int) 
           : null,
-      timeSpent: data['timeSpent'] ?? 0,
-      score: data['score']?.toDouble(),
-      status: data['status'] ?? 'not_started',
+      timeSpent: data['timeSpent'] as int? ?? 0,
+      score: data['score'] != null ? (data['score'] as num).toDouble() : null,
+      status: data['status']?.toString() ?? 'not_started',
     );
   }
 
@@ -193,19 +197,19 @@ class AssessmentProgress {
     required this.status,
   });
 
-  factory AssessmentProgress.fromMap(Map<String, dynamic> data, String id) {
+  factory AssessmentProgress.fromMap(Map<dynamic, dynamic> data, String id) {
     return AssessmentProgress(
       assessmentId: id,
-      assessmentTitle: data['assessmentTitle'] ?? '',
-      isCompleted: data['isCompleted'] ?? false,
+      assessmentTitle: data['assessmentTitle']?.toString() ?? '',
+      isCompleted: data['isCompleted'] as bool? ?? false,
       completedAt: data['completedAt'] != null 
-          ? DateTime.fromMillisecondsSinceEpoch(data['completedAt']) 
+          ? DateTime.fromMillisecondsSinceEpoch(data['completedAt'] as int) 
           : null,
-      timeSpent: data['timeSpent'] ?? 0,
-      score: (data['score'] ?? 0.0).toDouble(),
-      totalQuestions: data['totalQuestions'] ?? 0,
-      correctAnswers: data['correctAnswers'] ?? 0,
-      status: data['status'] ?? 'not_started',
+      timeSpent: data['timeSpent'] as int? ?? 0,
+      score: (data['score'] as num? ?? 0.0).toDouble(),
+      totalQuestions: data['totalQuestions'] as int? ?? 0,
+      correctAnswers: data['correctAnswers'] as int? ?? 0,
+      status: data['status']?.toString() ?? 'not_started',
     );
   }
 

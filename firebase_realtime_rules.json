@@ -41,6 +41,16 @@
         ".write": "auth != null",
         ".validate": "newData.hasChildren(['studentId', 'studentName', 'studentEmail', 'subject', 'teacherId'])"
       }
+    },
+    "students": {
+      ".indexOn": ["teacherId", "grade", "joinedAt"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$studentId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['name', 'email', 'grade', 'section', 'subjects', 'teacherId', 'teacherName'])"
+      }
     }
   }
 }
