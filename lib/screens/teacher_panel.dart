@@ -84,103 +84,259 @@ class _TeacherPanelState extends State<TeacherPanel> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F7),
         body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
+                strokeWidth: 3,
+              ),
+              SizedBox(height: 24),
+              Text(
+                'Loading your classroom...',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Color(0xFF86868B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7), // Apple's light gray background
-      appBar: AppBar(
-        title: const Text(
-          'Teacher Dashboard',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.3,
-            color: Color(0xFF1D1D1F),
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: CustomScrollView(
+        slivers: [
+          // Custom App Bar with Apple-style design
+          SliverAppBar(
+            expandedHeight: 120, // Reduced height since we don't need bottom row
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            shadowColor: Colors.black.withOpacity(0.1),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                    child: Row(
+                      children: [
+                        // Profile Avatar
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF007AFF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFF007AFF).withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: _userProfile?.photoURL != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: SafeNetworkImage(
+                                    imageUrl: _userProfile!.photoURL!,
+                                    fit: BoxFit.cover,
+                                    fallback: const Icon(
+                                      Icons.school_rounded,
+                                      size: 28,
+                                      color: Color(0xFF007AFF),
+                                    ),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.school_rounded,
+                                  size: 28,
+                                  color: Color(0xFF007AFF),
+                                ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Welcome Text
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Welcome back,',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: const Color(0xFF86868B),
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _userProfile?.displayName ?? 'Teacher',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1D1D1F),
+                                  letterSpacing: -0.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Hamburger Menu Icon
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F7),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.menu_rounded,
+                              color: Color(0xFF007AFF),
+                              size: 24,
+                            ),
+                            onPressed: _showHamburgerMenu,
+                            tooltip: 'Menu',
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
+          
+          // Main Content
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  
+                  // Subjects Badge
+                  if (_userProfile?.subjects?.isNotEmpty == true)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007AFF).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFF007AFF).withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'Teaching: ${_userProfile!.subjects!.join(' • ')}',
+                        style: const TextStyle(
+                          fontSize: 13, // Reduced from 14
+                          color: Color(0xFF007AFF),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                        maxLines: 2, // Allow up to 2 lines
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Quick Actions Section
+                  _buildSectionHeader('Quick Actions', Icons.flash_on_rounded),
+                  const SizedBox(height: 20),
+                  _buildQuickActionsGrid(),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Student Progress Section
+                  _buildSectionHeader('Student Progress', Icons.analytics_rounded),
+                  const SizedBox(height: 20),
+                  _buildStudentProgressCards(),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Recent Activities Section
+                  _buildSectionHeader('Recent Activities', Icons.history_rounded),
+                  const SizedBox(height: 20),
+                  _buildRecentActivitiesList(),
+                  
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHamburgerMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1D1D1F),
-        elevation: 0,
-        shadowColor: const Color(0xFF000000).withValues(alpha: 0.04),
-        centerTitle: false,
-        titleSpacing: 0,
-        actions: [
-          // Simplified offline indicator - just one clear button
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: ConnectivityService().isConnected 
-                ? const Color(0xFFF5F5F7) 
-                : const Color(0xFFFF9500).withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
-              border: !ConnectivityService().isConnected 
-                ? Border.all(color: const Color(0xFFFF9500), width: 1)
-                : null,
-            ),
-            child: IconButton(
-              icon: Icon(
-                ConnectivityService().isConnected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-                color: ConnectivityService().isConnected ? Colors.green : const Color(0xFFFF9500),
-                size: 22,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E5E7),
+                borderRadius: BorderRadius.circular(2),
               ),
-              onPressed: () => _toggleOfflineMode(),
-              tooltip: ConnectivityService().isConnected ? 'Go Offline' : 'Go Online',
             ),
-          ),
-          // Fix Students button
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F7),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.build_rounded,
-                color: Color(0xFF34C759),
-                size: 22,
+            const SizedBox(height: 20),
+            const Text(
+              'Menu',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1D1D1F),
               ),
-              onPressed: () => _fixExistingStudents(),
-              tooltip: 'Fix Existing Students',
             ),
-          ),
-          // Settings button
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F7),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
+            const SizedBox(height: 20),
+            _buildModalOption(
+              'Settings',
+              Icons.settings_rounded,
+              'App preferences and configuration',
+              _navigateToOfflineSettings,
             ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.settings_rounded,
-                color: Color(0xFF007AFF),
-                size: 22,
-              ),
-              onPressed: () => _navigateToOfflineSettings(),
-              tooltip: 'Settings',
+            _buildModalOption(
+              'Connectivity',
+              Icons.wifi_rounded,
+              '${ConnectivityService().isConnected ? 'Online' : 'Offline'} - Tap to toggle',
+              _toggleOfflineMode,
             ),
-          ),
-          // Logout button
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F7),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.logout_rounded,
-                color: Color(0xFF007AFF),
-                size: 22,
-              ),
-              onPressed: () {
+            _buildModalOption(
+              'Logout',
+              Icons.logout_rounded,
+              'Sign out of your account',
+              () {
+                Navigator.pop(context);
                 final navigator = Navigator.of(context);
                 _authService.signOut().then((_) {
                   if (mounted) {
@@ -188,354 +344,537 @@ class _TeacherPanelState extends State<TeacherPanel> {
                   }
                 });
               },
-              tooltip: 'Logout',
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
-      body: SafeArea(
-        child: Column(
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF007AFF).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: const Color(0xFF007AFF),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded( // Added Expanded to prevent text overflow
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 21, // Reduced from 22 to prevent overflow
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1D1D1F),
+              letterSpacing: -0.5,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionsGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive sizing for web vs mobile
+        final isWeb = constraints.maxWidth > 600;
+        final crossAxisCount = isWeb ? 3 : 2; // 3 columns on web, 2 on mobile
+        final childAspectRatio = isWeb ? 1.4 : 1.3; // Wider cards on web
+        
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: childAspectRatio,
           children: [
-            // Offline indicator
-            const OfflineIndicator(),
+            _buildActionCard(
+              'Lessons & Assessments',
+              Icons.library_books_rounded,
+              'Create and manage content',
+              const Color(0xFF007AFF),
+              () => _navigateToLessonUpload(),
+            ),
+            _buildActionCard(
+              'Students & Progress',
+              Icons.people_rounded,
+              'Manage students & track performance',
+              const Color(0xFF34C759),
+              () => _navigateToStudentManagement(),
+            ),
+            _buildActionCard(
+              'Learning Paths',
+              Icons.layers_rounded,
+              'Design learning sequences',
+              const Color(0xFFFF9500),
+              () => _navigateToLearningPathManagement(),
+            ),
+            _buildActionCard(
+              'Feedback & Rankings',
+              Icons.feedback_rounded,
+              'Engage & motivate students',
+              const Color(0xFFAF52DE),
+              () => _navigateToFeedbackManagement(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildActionCard(String title, IconData icon, String description, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16), // Further reduced padding
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Ensure minimum size
+          children: [
+            // Icon container
+            Container(
+              padding: const EdgeInsets.all(8), // Further reduced padding
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 20, // Further reduced icon size
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 10), // Reduced spacing
+            // Title with strict overflow control
+            Flexible(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14, // Further reduced font size
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1D1D1F),
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Description with strict overflow control
+            Flexible(
+              child: Text(
+                description,
+                style: TextStyle(
+                  fontSize: 10, // Further reduced font size
+                  color: const Color(0xFF86868B),
+                  height: 1.1, // Reduced line height
+                  letterSpacing: 0.1,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStudentProgressCards() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWeb = constraints.maxWidth > 600;
+        final cardCount = isWeb ? 4 : 3; // Show 4 stats on web, 3 on mobile
+        
+        return Column(
+          children: [
+            // Progress Stats Row
+            Row(
+              children: [
+                Expanded(
+                  child: _buildProgressCard(
+                    'Total Students',
+                    '${_dashboardData?.totalStudents ?? 0}',
+                    Icons.people_rounded,
+                    const Color(0xFF007AFF),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildProgressCard(
+                    'Active Students',
+                    '${_dashboardData?.activeStudents ?? 0}',
+                    Icons.person_rounded,
+                    const Color(0xFF34C759),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildProgressCard(
+                    'Avg. Progress',
+                    '${(_dashboardData?.averageProgress ?? 0.0).round()}%',
+                    Icons.trending_up_rounded,
+                    const Color(0xFFFF9500),
+                  ),
+                ),
+                if (isWeb) ...[
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildProgressCard(
+                      'Lessons Created',
+                      '${_dashboardData?.recentActivities.length ?? 0}',
+                      Icons.library_books_rounded,
+                      const Color(0xFFAF52DE),
+                    ),
+                  ),
+                ],
+              ],
+            ),
             
-            // Main content
-            Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Welcome Header
-                      _buildWelcomeHeader(),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Quick Actions Grid
-                      _buildQuickActions(),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Student Progress Overview
-                      _buildStudentProgressOverview(),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Recent Activities
-                      _buildRecentActivities(),
-                    ],
+            const SizedBox(height: 24),
+            
+            // Subject Progress
+            if (_dashboardData?.studentProgress.isNotEmpty == true)
+              ..._buildSubjectProgressCards()
+            else
+              _buildEmptyState(
+                'No student progress yet',
+                'Student progress will appear here once they start learning',
+                Icons.analytics_outlined,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressCard(String label, String value, IconData icon, Color color) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWeb = constraints.maxWidth > 600;
+        
+        return Container(
+          padding: EdgeInsets.all(isWeb ? 16 : 18), // Smaller padding on web
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isWeb ? 8 : 10), // Smaller padding on web
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: isWeb ? 20 : 22, // Smaller icon on web
+                ),
+              ),
+              SizedBox(height: isWeb ? 12 : 14), // Smaller spacing on web
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: isWeb ? 24 : 26, // Smaller font on web
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1D1D1F),
+                  letterSpacing: -0.5,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isWeb ? 11 : 12, // Smaller font on web
+                  color: const Color(0xFF86868B),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildSubjectProgressCards() {
+    final userSubjects = _userProfile?.subjects ?? [];
+    final progressData = _dashboardData?.studentProgress ?? [];
+    
+    if (userSubjects.isEmpty) {
+      return [
+        _buildEmptyState(
+          'No subjects assigned',
+          'Add subjects to your profile to track progress',
+          Icons.subject_outlined,
+        ),
+      ];
+    }
+
+    return userSubjects.map((subject) {
+      final subjectProgress = progressData
+          .where((p) => p.subject == subject)
+          .toList();
+      
+      double averageProgress = 0.0;
+      if (subjectProgress.isNotEmpty) {
+        averageProgress = subjectProgress
+            .map((p) => p.completionRate)
+            .reduce((a, b) => a + b) / subjectProgress.length;
+      }
+      
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF007AFF).withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  subject,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1D1D1F),
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  '${averageProgress.round()}%',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF007AFF),
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              height: 8,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F7),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: averageProgress / 100,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF007AFF),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
+    }).toList();
   }
 
-  Widget _buildWelcomeHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.all(Radius.circular(20)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                  borderRadius: const BorderRadius.all(Radius.circular(18)),
-                ),
-                child: _userProfile?.photoURL != null
-                    ? ClipRRect(
-                        borderRadius: const BorderRadius.all(Radius.circular(18)),
-                        child: SafeNetworkImage(
-                          imageUrl: _userProfile!.photoURL!,
-                          fit: BoxFit.cover,
-                          fallback: const Icon(
-                            Icons.school_rounded,
-                            size: 36,
-                            color: Color(0xFF007AFF),
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.school_rounded,
-                        size: 36,
-                        color: Color(0xFF007AFF),
-                      ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome back, ${_userProfile?.displayName ?? 'Teacher'}!',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1D1D1F),
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Ready to inspire your students today?',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: const Color(0xFF86868B),
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                        borderRadius: const BorderRadius.all(Radius.circular(16)),
-                        border: Border.all(
-                          color: const Color(0xFF007AFF).withValues(alpha: 0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        'Subjects: ${_userProfile?.subjects?.join(', ') ?? 'Not specified'}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: const Color(0xFF007AFF),
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
+  Widget _buildRecentActivitiesList() {
+    final activities = _dashboardData?.recentActivities ?? [];
+    
+    if (activities.isEmpty) {
+      return _buildEmptyState(
+        'No recent activities',
+        'Your activities will appear here once you start using the platform',
+        Icons.history_outlined,
+      );
+    }
 
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Actions',
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1D1D1F),
-            letterSpacing: -0.3,
-          ),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
-        const SizedBox(height: 20),
-        // Action cards in 2 columns for better UX
-        Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionCard('Lessons & Assessments', Icons.library_books_rounded, 'Upload, manage & create tests', () => _navigateToLessonUpload()),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildActionCard('Students & Progress', Icons.people_rounded, 'Manage students & track performance', () => _navigateToStudentManagement()),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionCard('Learning Paths', Icons.layers_rounded, 'Create, assign & track', () => _navigateToLearningPathManagement()),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildActionCard('Feedback & Leaderboard', Icons.feedback_rounded, 'Manage feedback & view rankings', () => _navigateToFeedbackManagement()),
-                ),
-              ],
-            ),
-            // const SizedBox(height: 20),
-            // Row(
-            //   children: [
-            //     Expanded(
-            //       child: _buildActionCard('Adaptive Difficulty', Icons.tune_rounded, 'Adjust difficulty based on performance', () => _navigateToAdaptiveDifficulty()),
-            //     ),
-            //   ],
-            // ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionCard(String title, IconData icon, String description, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
+      children: activities.map((activity) => Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: const BorderRadius.all(Radius.circular(16)),
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF000000).withValues(alpha: 0.04),
-              blurRadius: 12,
+              color: const Color(0xFF000000).withOpacity(0.04),
+              blurRadius: 16,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                color: Color(activity.colorValue).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
-                icon,
+                _getIconFromString(activity.iconName),
+                color: Color(activity.colorValue),
                 size: 24,
-                color: const Color(0xFF007AFF),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1D1D1F),
-                letterSpacing: -0.2,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1D1D1F),
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    activity.subject,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF86868B),
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF86868B),
-                height: 1.2,
-                letterSpacing: -0.1,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F7),
+                borderRadius: BorderRadius.circular(16),
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              child: Text(
+                activity.displayTime,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF86868B),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
             ),
           ],
         ),
-      ),
+      )).toList(),
     );
   }
 
-  Widget _buildCategorySection(String title, List<Widget> actions) {
+  Widget _buildEmptyState(String title, String subtitle, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E5E7)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFE5E5E7),
+          width: 1,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  _getCategoryIcon(title),
-                  size: 20,
-                  color: const Color(0xFF007AFF),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1D1D1F),
-                ),
-              ),
-            ],
+          Icon(
+            icon,
+            size: 48,
+            color: const Color(0xFF86868B),
           ),
-          const SizedBox(height: 20),
-          // Responsive grid layout for actions
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth > 600) {
-                // Wide screen - 3 columns
-                return Row(
-                  children: actions.map((action) => Expanded(child: action)).toList(),
-                );
-              } else {
-                // Narrow screen - single column with spacing
-                return Column(
-                  children: actions.map((action) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: action,
-                  )).toList(),
-                );
-              }
-            },
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1D1D1F),
+              letterSpacing: -0.3,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF86868B),
+              letterSpacing: 0.1,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Content Management':
-        return Icons.library_books_rounded;
-      case 'Student & Progress':
+  IconData _getIconFromString(String iconName) {
+    switch (iconName) {
+      case 'upload_file_rounded':
+        return Icons.upload_file_rounded;
+      case 'assignment_rounded':
+        return Icons.assignment_rounded;
+      case 'grade_rounded':
+        return Icons.grade_rounded;
+      case 'analytics_rounded':
+        return Icons.analytics_rounded;
+      case 'people_rounded':
         return Icons.people_rounded;
-      case 'Learning Paths':
-        return Icons.layers_rounded;
-      case 'Engagement & Feedback':
-        return Icons.feedback_rounded;
       default:
-        return Icons.category_rounded;
+        return Icons.info_rounded;
     }
   }
 
@@ -544,7 +883,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+          color: const Color(0xFF007AFF).withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: const Color(0xFF007AFF), size: 20),
@@ -565,459 +904,6 @@ class _TeacherPanelState extends State<TeacherPanel> {
         ),
       ),
       onTap: onTap,
-    );
-  }
-
-  Widget _buildStudentProgressOverview() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.all(Radius.circular(20)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                ),
-                child: const Icon(
-                  Icons.analytics_rounded,
-                  color: Color(0xFF007AFF),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  'Student Progress Overview',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1D1D1F),
-                    letterSpacing: -0.3,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildProgressStat(
-                  'Total Students', 
-                  '${_dashboardData?.totalStudents ?? 0}', 
-                  Icons.people_rounded
-                ),
-              ),
-              Expanded(
-                child: _buildProgressStat(
-                  'Active Students', 
-                  '${_dashboardData?.activeStudents ?? 0}', 
-                  Icons.person_rounded
-                ),
-              ),
-              Expanded(
-                child: _buildProgressStat(
-                  'Avg. Progress', 
-                  '${(_dashboardData?.averageProgress ?? 0.0).round()}%', 
-                  Icons.trending_up_rounded
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (_dashboardData?.studentProgress.isNotEmpty == true)
-            ..._buildSubjectProgressList()
-          else
-            _buildEmptyState('No student progress data yet', 'Students will appear here once they start learning'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressStat(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-            borderRadius: const BorderRadius.all(Radius.circular(12)),
-          ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF007AFF),
-            size: 24,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1D1D1F),
-            letterSpacing: -0.4,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF86868B),
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.1,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  List<Widget> _buildSubjectProgressList() {
-    final userSubjects = _userProfile?.subjects ?? [];
-    final progressData = _dashboardData?.studentProgress ?? [];
-    
-    if (userSubjects.isEmpty) {
-      return [
-        const Center(
-          child: Text(
-            'No subjects assigned',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF86868B),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ];
-    }
-
-    final List<Widget> widgets = [];
-    
-    for (int i = 0; i < userSubjects.length; i++) {
-      final subject = userSubjects[i];
-      final subjectProgress = progressData
-          .where((p) => p.subject == subject)
-          .toList();
-      
-      double averageProgress = 0.0;
-      if (subjectProgress.isNotEmpty) {
-        averageProgress = subjectProgress
-            .map((p) => p.completionRate)
-            .reduce((a, b) => a + b) / subjectProgress.length;
-      }
-      
-      widgets.add(_buildSubjectProgress(
-        subject, 
-        averageProgress / 100, 
-        '${averageProgress.round()}%'
-      ));
-      
-      if (i < userSubjects.length - 1) {
-        widgets.add(const SizedBox(height: 16));
-      }
-    }
-    
-    return widgets;
-  }
-
-  List<Widget> _buildRecentActivitiesList() {
-    final activities = _dashboardData?.recentActivities ?? [];
-    
-    if (activities.isEmpty) {
-      return [
-        const Center(
-          child: Text(
-            'No recent activities',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF86868B),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ];
-    }
-
-    final List<Widget> widgets = [];
-    
-    for (int i = 0; i < activities.length; i++) {
-      final activity = activities[i];
-      
-      widgets.add(_buildActivityItem(
-        activity.title,
-        activity.subject,
-        activity.displayTime,
-        _getIconFromString(activity.iconName),
-        Color(activity.colorValue),
-      ));
-      
-      if (i < activities.length - 1) {
-        widgets.add(const SizedBox(height: 16));
-      }
-    }
-    
-    return widgets;
-  }
-
-  IconData _getIconFromString(String iconName) {
-    switch (iconName) {
-      case 'upload_file_rounded':
-        return Icons.upload_file_rounded;
-      case 'assignment_rounded':
-        return Icons.assignment_rounded;
-      case 'grade_rounded':
-        return Icons.grade_rounded;
-      case 'analytics_rounded':
-        return Icons.analytics_rounded;
-      case 'people_rounded':
-        return Icons.people_rounded;
-      default:
-        return Icons.info_rounded;
-    }
-  }
-
-  Widget _buildSubjectProgress(String subject, double progress, String percentage) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              subject,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1D1D1F),
-                letterSpacing: -0.2,
-              ),
-            ),
-            Text(
-              percentage,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF007AFF),
-                letterSpacing: -0.2,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Container(
-          height: 6,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F7),
-            borderRadius: const BorderRadius.all(Radius.circular(3)),
-          ),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: progress,
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF007AFF),
-                borderRadius: const BorderRadius.all(Radius.circular(3)),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState(String title, String subtitle) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
-        borderRadius: const BorderRadius.all(Radius.circular(16)),
-        border: Border.all(
-          color: const Color(0xFFE5E5E7),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.inbox_outlined,
-            size: 40,
-            color: const Color(0xFF86868B),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1D1D1F),
-              letterSpacing: -0.2,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF86868B),
-              letterSpacing: -0.1,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentActivities() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.all(Radius.circular(20)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                ),
-                child: const Icon(
-                  Icons.history_rounded,
-                  color: Color(0xFF007AFF),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  'Recent Activities',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1D1D1F),
-                    letterSpacing: -0.3,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (_dashboardData?.recentActivities.isNotEmpty == true)
-            ..._buildRecentActivitiesList()
-          else
-            _buildEmptyState('No recent activities', 'Your activities will appear here once you start using the platform'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(String title, String category, String time, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
-        borderRadius: const BorderRadius.all(Radius.circular(16)),
-        border: Border.all(
-          color: const Color(0xFFE5E5E7),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1D1D1F),
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  category,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF86868B),
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.all(Radius.circular(16)),
-              border: Border.all(
-                color: const Color(0xFFE5E5E7),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              time,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF86868B),
-                fontWeight: FontWeight.w500,
-                letterSpacing: -0.1,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

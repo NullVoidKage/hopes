@@ -99,6 +99,15 @@ class AuthService {
   // Get user display name
   String? get userDisplayName => _auth.currentUser?.displayName;
 
+  // Reset password
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw Exception('Password reset failed: ${e.toString()}');
+    }
+  }
+
   // Get user email
   String? get userEmail => _auth.currentUser?.email;
 
