@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/teacher_dashboard_service.dart';
 
 class TeacherPanel extends StatefulWidget {
   const TeacherPanel({super.key});
@@ -11,7 +12,9 @@ class TeacherPanel extends StatefulWidget {
 
 class _TeacherPanelState extends State<TeacherPanel> {
   final AuthService _authService = AuthService();
+  final TeacherDashboardService _dashboardService = TeacherDashboardService();
   UserModel? _userProfile;
+  TeacherDashboardData? _dashboardData;
   bool _isLoading = true;
 
   @override
@@ -25,10 +28,21 @@ class _TeacherPanelState extends State<TeacherPanel> {
       final user = _authService.currentUser;
       if (user != null) {
         final profile = await _authService.getUserProfile(user.uid);
-        setState(() {
-          _userProfile = profile;
-          _isLoading = false;
-        });
+        if (profile != null) {
+          final dashboardData = await _dashboardService.getDashboardData(
+            user.uid,
+            profile.subjects ?? [],
+          );
+          setState(() {
+            _userProfile = profile;
+            _dashboardData = dashboardData;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       setState(() {
@@ -50,50 +64,60 @@ class _TeacherPanelState extends State<TeacherPanel> {
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F7), // Apple's light gray background
       appBar: AppBar(
-        title: const Text('Teacher Panel'),
-        backgroundColor: const Color(0xFF667eea),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Teacher Dashboard',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.3,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1D1D1F),
+        elevation: 0,
+        shadowColor: const Color(0xFF000000).withValues(alpha: 0.04),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              final navigator = Navigator.of(context);
-              _authService.signOut().then((_) {
-                if (mounted) {
-                  navigator.pushReplacementNamed('/');
-                }
-              });
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F7),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.logout_rounded,
+                color: Color(0xFF007AFF),
+              ),
+              onPressed: () {
+                final navigator = Navigator.of(context);
+                _authService.signOut().then((_) {
+                  if (mounted) {
+                    navigator.pushReplacementNamed('/');
+                  }
+                });
+              },
+            ),
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Welcome Header
                 _buildWelcomeHeader(),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 32),
                 
                 // Quick Actions Grid
                 _buildQuickActions(),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 32),
                 
                 // Student Progress Overview
                 _buildStudentProgressOverview(),
@@ -112,50 +136,82 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
   Widget _buildWelcomeHeader() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1,
-        ),
+        color: Colors.white,
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.white,
-            backgroundImage: _userProfile?.photoURL != null
-                ? NetworkImage(_userProfile!.photoURL!)
-                : null,
-            child: _userProfile?.photoURL == null
-                ? const Icon(
-                    Icons.school,
-                    size: 30,
-                    color: Color(0xFF667eea),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.all(Radius.circular(20)),
+            ),
+            child: _userProfile?.photoURL != null
+                ? ClipRRect(
+                    borderRadius: const BorderRadius.all(Radius.circular(20)),
+                    child: Image.network(
+                      _userProfile!.photoURL!,
+                      fit: BoxFit.cover,
+                    ),
                   )
-                : null,
+                : const Icon(
+                    Icons.school_rounded,
+                    size: 40,
+                    color: Color(0xFF007AFF),
+                  ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 24),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome, ${_userProfile?.displayName ?? 'Teacher'}!',
+                  'Welcome back, ${_userProfile?.displayName ?? 'Teacher'}!',
                   style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1D1D1F),
+                    letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Subjects: ${_userProfile?.subjects?.join(', ') ?? 'Not specified'}',
+                  'Ready to inspire your students today?',
                   style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
+                    fontSize: 17,
+                    color: Color(0xFF86868B),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                    borderRadius: const BorderRadius.all(Radius.circular(20)),
+                    border: Border.all(
+                      color: const Color(0xFF007AFF).withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    'Subjects: ${_userProfile?.subjects?.join(', ') ?? 'Not specified'}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF007AFF),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -173,41 +229,42 @@ class _TeacherPanelState extends State<TeacherPanel> {
         const Text(
           'Quick Actions',
           style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1D1D1F),
+            letterSpacing: -0.3,
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 1.2,
+          childAspectRatio: 1.1,
           children: [
             _buildActionCard(
               'Upload Lessons',
-              Icons.upload_file,
+              Icons.upload_file_rounded,
               'Add new learning content',
               () => _navigateToLessonUpload(),
             ),
             _buildActionCard(
               'Monitor Progress',
-              Icons.analytics,
+              Icons.analytics_rounded,
               'Track student performance',
               () => _navigateToProgressMonitoring(),
             ),
             _buildActionCard(
               'Create Assessments',
-              Icons.quiz,
+              Icons.quiz_rounded,
               'Design tests and quizzes',
               () => _navigateToAssessmentCreation(),
             ),
             _buildActionCard(
               'Student Management',
-              Icons.people,
+              Icons.people_rounded,
               'Manage your students',
               () => _navigateToStudentManagement(),
             ),
@@ -221,33 +278,40 @@ class _TeacherPanelState extends State<TeacherPanel> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: const BorderRadius.all(Radius.circular(16)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              color: const Color(0xFF000000).withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 40,
-              color: const Color(0xFF667eea),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                borderRadius: const BorderRadius.all(Radius.circular(16)),
+              ),
+              child: Icon(
+                icon,
+                size: 32,
+                color: const Color(0xFF007AFF),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               title,
               style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1D1D1F),
               ),
               textAlign: TextAlign.center,
             ),
@@ -255,8 +319,9 @@ class _TeacherPanelState extends State<TeacherPanel> {
             Text(
               description,
               style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
+                fontSize: 13,
+                color: Color(0xFF86868B),
+                height: 1.3,
               ),
               textAlign: TextAlign.center,
             ),
@@ -268,46 +333,78 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
   Widget _buildStudentProgressOverview() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1,
-        ),
+        color: Colors.white,
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Student Progress Overview',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(
-                child: _buildProgressStat('Total Students', '24', Icons.people),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                ),
+                child: const Icon(
+                  Icons.analytics_rounded,
+                  color: Color(0xFF007AFF),
+                  size: 24,
+                ),
               ),
-              Expanded(
-                child: _buildProgressStat('Active Students', '18', Icons.person),
-              ),
-              Expanded(
-                child: _buildProgressStat('Avg. Progress', '72%', Icons.trending_up),
+              const SizedBox(width: 16),
+              const Text(
+                'Student Progress Overview',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                  letterSpacing: -0.3,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          _buildSubjectProgress('Mathematics', 0.78, '78%'),
-          const SizedBox(height: 16),
-          _buildSubjectProgress('Science', 0.65, '65%'),
-          const SizedBox(height: 16),
-          _buildSubjectProgress('English', 0.82, '82%'),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _buildProgressStat(
+                  'Total Students', 
+                  '${_dashboardData?.totalStudents ?? 0}', 
+                  Icons.people_rounded
+                ),
+              ),
+              Expanded(
+                child: _buildProgressStat(
+                  'Active Students', 
+                  '${_dashboardData?.activeStudents ?? 0}', 
+                  Icons.person_rounded
+                ),
+              ),
+              Expanded(
+                child: _buildProgressStat(
+                  'Avg. Progress', 
+                  '${(_dashboardData?.averageProgress ?? 0.0).round()}%', 
+                  Icons.trending_up_rounded
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          if (_dashboardData?.studentProgress.isNotEmpty == true)
+            ..._buildSubjectProgressList()
+          else
+            _buildEmptyState('No student progress data yet', 'Students will appear here once they start learning'),
         ],
       ),
     );
@@ -316,30 +413,143 @@ class _TeacherPanelState extends State<TeacherPanel> {
   Widget _buildProgressStat(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: Colors.white,
-          size: 30,
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFF007AFF),
+            size: 24,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1D1D1F),
+            letterSpacing: -0.5,
           ),
         ),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 12,
-            color: Colors.white70,
+            fontSize: 13,
+            color: Color(0xFF86868B),
+            fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,
         ),
       ],
     );
+  }
+
+  List<Widget> _buildSubjectProgressList() {
+    final userSubjects = _userProfile?.subjects ?? [];
+    final progressData = _dashboardData?.studentProgress ?? [];
+    
+    if (userSubjects.isEmpty) {
+      return [
+        const Center(
+          child: Text(
+            'No subjects assigned',
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF86868B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ];
+    }
+
+    final List<Widget> widgets = [];
+    
+    for (int i = 0; i < userSubjects.length; i++) {
+      final subject = userSubjects[i];
+      final subjectProgress = progressData
+          .where((p) => p.subject == subject)
+          .toList();
+      
+      double averageProgress = 0.0;
+      if (subjectProgress.isNotEmpty) {
+        averageProgress = subjectProgress
+            .map((p) => p.progressPercentage)
+            .reduce((a, b) => a + b) / subjectProgress.length;
+      }
+      
+      widgets.add(_buildSubjectProgress(
+        subject, 
+        averageProgress / 100, 
+        '${averageProgress.round()}%'
+      ));
+      
+      if (i < userSubjects.length - 1) {
+        widgets.add(const SizedBox(height: 16));
+      }
+    }
+    
+    return widgets;
+  }
+
+  List<Widget> _buildRecentActivitiesList() {
+    final activities = _dashboardData?.recentActivities ?? [];
+    
+    if (activities.isEmpty) {
+      return [
+        const Center(
+          child: Text(
+            'No recent activities',
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF86868B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ];
+    }
+
+    final List<Widget> widgets = [];
+    
+    for (int i = 0; i < activities.length; i++) {
+      final activity = activities[i];
+      
+      widgets.add(_buildActivityItem(
+        activity.title,
+        activity.subject,
+        activity.displayTime,
+        _getIconFromString(activity.iconName),
+        Color(activity.colorValue),
+      ));
+      
+      if (i < activities.length - 1) {
+        widgets.add(const SizedBox(height: 16));
+      }
+    }
+    
+    return widgets;
+  }
+
+  IconData _getIconFromString(String iconName) {
+    switch (iconName) {
+      case 'upload_file_rounded':
+        return Icons.upload_file_rounded;
+      case 'assignment_rounded':
+        return Icons.assignment_rounded;
+      case 'grade_rounded':
+        return Icons.grade_rounded;
+      case 'analytics_rounded':
+        return Icons.analytics_rounded;
+      case 'people_rounded':
+        return Icons.people_rounded;
+      default:
+        return Icons.info_rounded;
+    }
   }
 
   Widget _buildSubjectProgress(String subject, double progress, String percentage) {
@@ -354,85 +564,131 @@ class _TeacherPanelState extends State<TeacherPanel> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: Color(0xFF1D1D1F),
               ),
             ),
             Text(
               percentage,
               style: const TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF007AFF),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: Colors.white.withValues(alpha: 0.3),
-          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-          minHeight: 8,
-          borderRadius: BorderRadius.circular(4),
+        const SizedBox(height: 12),
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F7),
+            borderRadius: const BorderRadius.all(Radius.circular(4)),
+          ),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: progress,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF),
+                borderRadius: const BorderRadius.all(Radius.circular(4)),
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildRecentActivities() {
+  Widget _buildEmptyState(String title, String subtitle) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFF5F5F7),
+        borderRadius: const BorderRadius.all(Radius.circular(16)),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: const Color(0xFFE5E5E7),
           width: 1,
         ),
       ),
       child: Column(
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 48,
+            color: const Color(0xFF86868B),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1D1D1F),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF86868B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentActivities() {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Recent Activities',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                ),
+                child: const Icon(
+                  Icons.history_rounded,
+                  color: Color(0xFF007AFF),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Text(
+                'Recent Activities',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-          _buildActivityItem(
-            'Uploaded Algebra Lesson',
-            'Mathematics',
-            '2 hours ago',
-            Icons.upload_file,
-            Colors.green,
-          ),
-          const SizedBox(height: 16),
-          _buildActivityItem(
-            'Graded Science Quiz',
-            'Science',
-            '4 hours ago',
-            Icons.grade,
-            Colors.blue,
-          ),
-          const SizedBox(height: 16),
-          _buildActivityItem(
-            'Created English Assignment',
-            'English',
-            '1 day ago',
-            Icons.assignment,
-            Colors.orange,
-          ),
-          const SizedBox(height: 16),
-          _buildActivityItem(
-            'Reviewed Student Progress',
-            'General',
-            '2 days ago',
-            Icons.analytics,
-            Colors.purple,
-          ),
+          const SizedBox(height: 24),
+          if (_dashboardData?.recentActivities.isNotEmpty == true)
+            ..._buildRecentActivitiesList()
+          else
+            _buildEmptyState('No recent activities', 'Your activities will appear here once you start using the platform'),
         ],
       ),
     );
@@ -440,12 +696,12 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
   Widget _buildActivityItem(String title, String category, String time, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF5F5F7),
+        borderRadius: const BorderRadius.all(Radius.circular(16)),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: const Color(0xFFE5E5E7),
           width: 1,
         ),
       ),
@@ -454,8 +710,8 @@ class _TeacherPanelState extends State<TeacherPanel> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
+              color: color.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
             ),
             child: Icon(
               icon,
@@ -471,27 +727,40 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: Color(0xFF1D1D1F),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   category,
                   style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
+                    fontSize: 15,
+                    color: Color(0xFF86868B),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          Text(
-            time,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.white60,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.all(Radius.circular(20)),
+              border: Border.all(
+                color: const Color(0xFFE5E5E7),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              time,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF86868B),
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
