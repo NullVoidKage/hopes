@@ -52,6 +52,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Student Dashboard'),
         backgroundColor: const Color(0xFF667eea),
@@ -70,18 +71,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-            ],
-          ),
-        ),
-        child: SafeArea(
+      body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -108,18 +98,26 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ),
         ),
-      ),
+      
     );
   }
 
   Widget _buildWelcomeHeader() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: const Color(0xFFE5E5E7),
           width: 1,
         ),
       ),
@@ -127,12 +125,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
         children: [
           SafeCircleAvatar(
             radius: 30,
-            backgroundColor: Colors.white,
+            backgroundColor: const Color(0xFF007AFF),
             imageUrl: _userProfile?.photoURL,
             fallbackChild: const Icon(
               Icons.person,
               size: 30,
-              color: Color(0xFF667eea),
+              color: Colors.white,
             ),
           ),
           const SizedBox(width: 20),
@@ -145,7 +143,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Color(0xFF1D1D1F),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -153,7 +151,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   'Grade ${_userProfile?.grade ?? '7'} • Ready to learn!',
                   style: const TextStyle(
                     fontSize: 16,
-                    color: Colors.white70,
+                    color: Color(0xFF86868B),
                   ),
                 ),
               ],
@@ -173,7 +171,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Color(0xFF1D1D1F),
           ),
         ),
         const SizedBox(height: 20),
@@ -266,12 +264,20 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   Widget _buildRecentProgress() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: const Color(0xFFE5E5E7),
           width: 1,
         ),
       ),
@@ -283,7 +289,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Color(0xFF1D1D1F),
             ),
           ),
           const SizedBox(height: 20),
@@ -301,23 +307,23 @@ class _StudentDashboardState extends State<StudentDashboard> {
           Icon(
             Icons.analytics_outlined,
             size: 48,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: const Color(0xFF86868B),
           ),
           const SizedBox(height: 16),
           Text(
             'No progress data yet',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.8),
+              color: Color(0xFF1D1D1F),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Your learning progress will appear here once you start taking lessons and assessments.',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Color(0xFF86868B),
             ),
             textAlign: TextAlign.center,
           ),
@@ -328,12 +334,20 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   Widget _buildUpcomingLessons() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: const Color(0xFFE5E5E7),
           width: 1,
         ),
       ),
@@ -345,7 +359,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Color(0xFF1D1D1F),
             ),
           ),
           const SizedBox(height: 20),
@@ -363,23 +377,23 @@ class _StudentDashboardState extends State<StudentDashboard> {
           Icon(
             Icons.schedule_outlined,
             size: 48,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: const Color(0xFF86868B),
           ),
           const SizedBox(height: 16),
           Text(
             'No upcoming lessons',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.8),
+              color: Color(0xFF1D1D1F),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Check the lesson library to start learning or wait for your teacher to assign lessons.',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Color(0xFF86868B),
             ),
             textAlign: TextAlign.center,
           ),
