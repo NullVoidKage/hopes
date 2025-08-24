@@ -44,8 +44,14 @@ dependencies:
   # File handling
   file_picker: ^8.0.0+1
 
+  # URL handling for mobile
+  url_launcher: ^6.2.5
+
   # Local storage
   shared_preferences: ^2.2.2
+
+  # Utilities
+  uuid: ^4.3.3
 
   # UI
   cupertino_icons: ^1.0.2

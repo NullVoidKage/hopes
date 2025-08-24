@@ -664,12 +664,12 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
   }
 
   void _previewFile(String fileUrl) {
-    final fileName = _getFileNameFromUrl(fileUrl);
+    // Navigate to file preview screen
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => FilePreviewScreen(
           fileUrl: fileUrl,
-          fileName: fileName,
+          fileName: _getFileNameFromUrl(fileUrl),
         ),
       ),
     );
