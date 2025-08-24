@@ -101,6 +101,67 @@ class OfflineService {
     }
   }
 
+  // Cache assessment questions
+  static Future<void> cacheAssessmentQuestions(String assessmentId, List<dynamic> questions) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final questionsJson = jsonEncode(questions);
+      final key = 'assessment_questions_$assessmentId';
+      await prefs.setString(key, questionsJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching assessment questions: $e');
+      }
+    }
+  }
+
+  // Get cached assessment questions
+  static Future<List<dynamic>> getCachedAssessmentQuestions(String assessmentId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'assessment_questions_$assessmentId';
+      final questionsJson = prefs.getString(key);
+      if (questionsJson != null) {
+        final List<dynamic> questionsList = jsonDecode(questionsJson);
+        return questionsList;
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached assessment questions: $e');
+      }
+      return [];
+    }
+  }
+
+  // Queue assessment submission for offline
+  static Future<void> queueAssessmentSubmission({
+    required String assessmentId,
+    required Map<int, String> answers,
+    required int timeSpent,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final submissionKey = 'assessment_submission_$assessmentId';
+      
+      final submissionData = {
+        'assessmentId': assessmentId,
+        'answers': answers,
+        'timeSpent': timeSpent,
+        'queuedAt': DateTime.now().millisecondsSinceEpoch,
+      };
+      
+      final submissionJson = jsonEncode(submissionData);
+      await prefs.setString(submissionKey, submissionJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing assessment submission: $e');
+      }
+    }
+  }
+
   // Cache teacher activities data
   static Future<void> cacheTeacherActivities(List<Map<String, dynamic>> activities) async {
     try {

@@ -1317,7 +1317,6 @@ class _AssessmentEditScreenState extends State<AssessmentEditScreen> {
           break;
         case QuestionType.shortAnswer:
         case QuestionType.essay:
-        case QuestionType.matching:
         case QuestionType.fillInTheBlank:
           newOptions = [];
           newCorrectAnswer = null;
@@ -1416,8 +1415,6 @@ class _AssessmentEditScreenState extends State<AssessmentEditScreen> {
         return 'Short Answer';
       case QuestionType.essay:
         return 'Essay';
-      case QuestionType.matching:
-        return 'Matching';
       case QuestionType.fillInTheBlank:
         return 'Fill in the Blank';
     }
