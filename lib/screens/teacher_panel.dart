@@ -21,6 +21,7 @@ import 'feedback_management_screen.dart';
 import 'feedback_creation_screen.dart';
 import 'leaderboard_screen.dart';
 import 'adaptive_difficulty_screen.dart';
+import 'teacher_submission_viewer_screen.dart';
 import '../services/connectivity_service.dart';
 
 class TeacherPanel extends StatefulWidget {
@@ -428,6 +429,13 @@ class _TeacherPanelState extends State<TeacherPanel> {
               'Engage & motivate students',
               const Color(0xFFAF52DE),
               () => _navigateToFeedbackManagement(),
+            ),
+            _buildActionCard(
+              'Student Submissions',
+              Icons.assignment_turned_in,
+              'Review & grade assessments',
+              const Color(0xFF5856D6),
+              () => _navigateToSubmissions(),
             ),
           ],
         );
@@ -1286,6 +1294,18 @@ class _TeacherPanelState extends State<TeacherPanel> {
       context,
       MaterialPageRoute(
         builder: (context) => const FeedbackCreationScreen(),
+      ),
+    );
+  }
+
+  void _navigateToSubmissions() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TeacherSubmissionViewerScreen(
+          teacherId: _userProfile?.uid ?? 'teacher_${DateTime.now().millisecondsSinceEpoch}',
+          teacherName: _userProfile?.displayName ?? 'Teacher',
+        ),
       ),
     );
   }

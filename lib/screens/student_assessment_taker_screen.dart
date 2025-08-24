@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/assessment.dart';
+import '../models/assessment_submission.dart';
 import '../services/assessment_service.dart';
 import '../services/connectivity_service.dart';
 import '../services/offline_service.dart';
+import '../services/submission_service.dart';
+import '../services/auth_service.dart';
 
 class StudentAssessmentTakerScreen extends StatefulWidget {
   final Assessment assessment;
@@ -20,6 +23,26 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   final AssessmentService _assessmentService = AssessmentService();
   final ConnectivityService _connectivityService = ConnectivityService();
   final OfflineService _offlineService = OfflineService();
+  final AuthService _authService = AuthService();
+  
+  // Get current student ID from Firebase Auth
+  String _getCurrentStudentId() {
+    try {
+      // Get the current Firebase Auth user
+      final currentUser = _authService.currentUser;
+      if (currentUser != null && currentUser.uid.isNotEmpty) {
+        print('🔐 Using Firebase Auth UID: ${currentUser.uid}');
+        return currentUser.uid; // This is the UNIQUE Firebase UID
+      }
+      
+      // Last resort - this should never happen if user is authenticated
+      print('⚠️ No valid user ID found, using fallback');
+      return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
+    } catch (e) {
+      print('❌ Error getting student ID: $e');
+      return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
   
   List<AssessmentQuestion> _questions = [];
   Map<int, String> _answers = {};
@@ -47,6 +70,34 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       setState(() {
         _isLoading = true;
       });
+
+      // Check if student has already submitted this assessment
+      final submissionService = SubmissionService();
+      final currentStudentId = _getCurrentStudentId();
+      
+      try {
+        final submissions = await submissionService.getStudentSubmissions(currentStudentId);
+        final hasSubmitted = submissions.any((submission) => 
+          submission.assessmentId == widget.assessment.id
+        );
+        
+        if (hasSubmitted) {
+          if (!mounted) return;
+          // Show error and go back
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ You have already completed this assessment!'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          Navigator.of(context).pop(); // Go back to previous screen
+          return;
+        }
+      } catch (e) {
+        print('⚠️ Could not check submission status: $e');
+        // Continue loading if we can't check status
+      }
 
       // Check connectivity and load questions
       final isOnline = _connectivityService.isConnected;
@@ -254,21 +305,168 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       if (isOnline) {
         // Submit online
         print('🌐 Submitting assessment online...');
+        // Calculate score and create detailed answers
+        int totalScore = 0;
+        int correctAnswers = 0;
+        int incorrectAnswers = 0;
+        Map<int, DetailedAnswer> detailedAnswers = {};
+
+        for (int i = 0; i < _questions.length; i++) {
+          final question = _questions[i];
+          final answer = _answers[i];
+          
+          if (answer != null && answer.isNotEmpty) {
+            // Enhanced scoring logic with detailed analysis
+            bool isCorrect = false;
+            int points = 0;
+            String correctAnswer = '';
+            
+            switch (question.type) {
+              case QuestionType.trueFalse:
+                correctAnswer = question.correctAnswer ?? 'True';
+                isCorrect = answer.toLowerCase() == correctAnswer.toLowerCase();
+                points = isCorrect ? 10 : 0;
+                break;
+              case QuestionType.multipleChoice:
+                correctAnswer = question.correctAnswer ?? 'A';
+                isCorrect = answer == correctAnswer;
+                points = isCorrect ? 10 : 0;
+                break;
+              case QuestionType.shortAnswer:
+              case QuestionType.essay:
+              case QuestionType.fillInTheBlank:
+                // For subjective questions, give partial credit
+                points = 5; // Base points for attempting
+                isCorrect = true; // Will be reviewed by teacher
+                correctAnswer = 'Teacher Review Required';
+                break;
+            }
+            
+            totalScore += points;
+            if (isCorrect) correctAnswers++;
+            else incorrectAnswers++;
+
+            // Create detailed answer
+            detailedAnswers[i] = DetailedAnswer(
+              answer: answer,
+              correctAnswer: correctAnswer,
+              isCorrect: isCorrect,
+              points: points,
+              questionType: _getQuestionTypeDisplayName(question.type),
+              timeSpent: DateTime.now().difference(_startTime).inSeconds ~/ _questions.length, // Approximate time per question
+              explanation: question.explanation,
+            );
+          }
+        }
+
+        // Calculate accuracy
+        double accuracy = _questions.length > 0 ? (correctAnswers / _questions.length) * 100 : 0.0;
+        double averageTimePerQuestion = _questions.length > 0 ? DateTime.now().difference(_startTime).inSeconds / _questions.length : 0.0;
+
         await _assessmentService.submitAssessment(
           assessmentId: widget.assessment.id,
           answers: _answers,
           timeSpent: DateTime.now().difference(_startTime).inSeconds,
+          // Enhanced submission data
+          detailedAnswers: detailedAnswers,
+          assessmentTitle: widget.assessment.title,
+          assessmentSubject: widget.assessment.subject,
+          assessmentType: 'Quiz', // TODO: Get from assessment
+          assessmentGradeLevel: 'Grade 7', // TODO: Get from assessment
+          totalQuestions: _questions.length,
+          maxPossibleScore: _questions.length * 10, // Assuming 10 points per question
+          accuracy: accuracy,
+          correctAnswers: correctAnswers,
+          incorrectAnswers: incorrectAnswers,
+          unansweredQuestions: _questions.length - _answers.length,
+          startedAt: _startTime,
+          averageTimePerQuestion: averageTimePerQuestion,
+          isAutoGraded: true,
         );
         print('✅ Assessment submitted successfully online');
       } else {
-        // Queue for offline submission
+        // Queue for offline submission with enhanced data
         print('🔌 Queuing assessment for offline submission...');
+        
+        // Calculate score and create detailed answers for offline submission
+        int totalScore = 0;
+        int correctAnswers = 0;
+        int incorrectAnswers = 0;
+        Map<int, DetailedAnswer> detailedAnswers = {};
+
+        for (int i = 0; i < _questions.length; i++) {
+          final question = _questions[i];
+          final answer = _answers[i];
+          
+          if (answer != null && answer.isNotEmpty) {
+            // Enhanced scoring logic with detailed analysis
+            bool isCorrect = false;
+            int points = 0;
+            String correctAnswer = '';
+            
+            switch (question.type) {
+              case QuestionType.trueFalse:
+                correctAnswer = question.correctAnswer ?? 'True';
+                isCorrect = answer.toLowerCase() == correctAnswer.toLowerCase();
+                points = isCorrect ? 10 : 0;
+                break;
+              case QuestionType.multipleChoice:
+                correctAnswer = question.correctAnswer ?? 'A';
+                isCorrect = answer == correctAnswer;
+                points = isCorrect ? 10 : 0;
+                break;
+              case QuestionType.shortAnswer:
+              case QuestionType.essay:
+              case QuestionType.fillInTheBlank:
+                // For subjective questions, give partial credit
+                points = 5; // Base points for attempting
+                isCorrect = true; // Will be reviewed by teacher
+                correctAnswer = 'Teacher Review Required';
+                break;
+            }
+            
+            totalScore += points;
+            if (isCorrect) correctAnswers++;
+            else incorrectAnswers++;
+
+            // Create detailed answer
+            detailedAnswers[i] = DetailedAnswer(
+              answer: answer,
+              correctAnswer: correctAnswer,
+              isCorrect: isCorrect,
+              points: points,
+              questionType: _getQuestionTypeDisplayName(question.type),
+              timeSpent: DateTime.now().difference(_startTime).inSeconds ~/ _questions.length,
+              explanation: question.explanation,
+            );
+          }
+        }
+
+        // Calculate accuracy
+        double accuracy = _questions.length > 0 ? (correctAnswers / _questions.length) * 100 : 0.0;
+        double averageTimePerQuestion = _questions.length > 0 ? DateTime.now().difference(_startTime).inSeconds / _questions.length : 0.0;
+
         await OfflineService.queueAssessmentSubmission(
           assessmentId: widget.assessment.id,
           answers: _answers,
           timeSpent: DateTime.now().difference(_startTime).inSeconds,
+          // Enhanced submission data
+          detailedAnswers: detailedAnswers,
+          assessmentTitle: widget.assessment.title,
+          assessmentSubject: widget.assessment.subject,
+          assessmentType: 'Quiz', // TODO: Get from assessment
+          assessmentGradeLevel: 'Grade 7', // TODO: Get from assessment
+          totalQuestions: _questions.length,
+          maxPossibleScore: _questions.length * 10,
+          accuracy: accuracy,
+          correctAnswers: correctAnswers,
+          incorrectAnswers: incorrectAnswers,
+          unansweredQuestions: _questions.length - _answers.length,
+          startedAt: _startTime,
+          averageTimePerQuestion: averageTimePerQuestion,
+          isAutoGraded: true,
         );
-        print('✅ Assessment queued for offline submission');
+        print('✅ Assessment queued for offline submission with enhanced data');
       }
 
       if (mounted) {

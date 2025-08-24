@@ -53,14 +53,13 @@
       }
     },
     "assessment_submissions": {
-      ".indexOn": ["assessmentId", "studentId", "submittedAt"],
+      ".indexOn": ["assessmentId", "studentId", "teacherId", "submittedAt"],
       ".read": "auth != null",
       ".write": "auth != null",
       "$submissionId": {
         ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
         ".write": "auth != null && data.child('studentId').val() == auth.uid",
         ".validate": "newData.hasChildren(['assessmentId', 'studentId', 'answers', 'timeSpent', 'submittedAt'])"
-      }
     }
   }
 }

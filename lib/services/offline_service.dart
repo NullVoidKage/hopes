@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import '../models/assessment_submission.dart';
 
 class OfflineService {
   static const String _lessonsKey = 'cached_lessons';
@@ -18,6 +19,10 @@ class OfflineService {
   static const String _leaderboardKey = 'cached_leaderboard';
   static const String _adaptiveDifficultiesKey = 'cached_adaptive_difficulties';
   static const String _difficultyAdjustmentsKey = 'cached_difficulty_adjustments';
+  static const String _assessmentQuestionsKey = 'cached_assessment_questions';
+  static const String _assessmentSubmissionsKey = 'cached_assessment_submissions';
+  static const String _studentSubmissionsKey = 'cached_student_submissions';
+  static const String _teacherSubmissionsKey = 'cached_teacher_submissions';
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _isOnlineKey = 'is_online_status';
 
@@ -135,29 +140,84 @@ class OfflineService {
     }
   }
 
-  // Queue assessment submission for offline
+  // Queue assessment submission for offline with enhanced data
   static Future<void> queueAssessmentSubmission({
     required String assessmentId,
     required Map<int, String> answers,
     required int timeSpent,
+    // Enhanced submission data
+    Map<int, DetailedAnswer>? detailedAnswers,
+    String? assessmentTitle,
+    String? assessmentSubject,
+    String? assessmentType,
+    String? assessmentGradeLevel,
+    int? totalQuestions,
+    int? maxPossibleScore,
+    double? accuracy,
+    int? correctAnswers,
+    int? incorrectAnswers,
+    int? unansweredQuestions,
+    DateTime? startedAt,
+    double? averageTimePerQuestion,
+    bool? isAutoGraded,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final submissionKey = 'assessment_submission_$assessmentId';
+      
+      // Convert detailed answers to map for JSON serialization
+      Map<String, dynamic>? serializedDetailedAnswers;
+      if (detailedAnswers != null) {
+        serializedDetailedAnswers = detailedAnswers.map((key, value) => 
+          MapEntry(key.toString(), value?.toMap() ?? {})
+        );
+      }
       
       final submissionData = {
         'assessmentId': assessmentId,
         'answers': answers,
         'timeSpent': timeSpent,
         'queuedAt': DateTime.now().millisecondsSinceEpoch,
+        
+        // Student information will be fetched from Firestore when submitting
+        'studentName': 'Unknown Student', // Will be updated from Firestore
+        'studentEmail': '', // Will be updated from Firestore
+        'studentGrade': 'Grade 7', // Will be updated from Firestore
+        'studentSection': 'Section A', // Will be updated from Firestore
+        
+        // Enhanced Assessment Context
+        'assessmentTitle': assessmentTitle ?? 'Assessment',
+        'assessmentSubject': assessmentSubject ?? 'General',
+        'assessmentType': assessmentType ?? 'Quiz',
+        'assessmentGradeLevel': assessmentGradeLevel ?? 'Grade 7',
+        'totalQuestions': totalQuestions ?? answers.length,
+        'maxPossibleScore': maxPossibleScore ?? 100,
+        
+        // Enhanced Answer Analysis
+        'detailedAnswers': serializedDetailedAnswers,
+        
+        // Scoring and Performance
+        'accuracy': accuracy ?? 0.0,
+        'correctAnswers': correctAnswers ?? 0,
+        'incorrectAnswers': incorrectAnswers ?? 0,
+        'unansweredQuestions': unansweredQuestions ?? 0,
+        
+        // Timing and Context
+        'startedAt': startedAt?.millisecondsSinceEpoch,
+        'averageTimePerQuestion': averageTimePerQuestion ?? 0.0,
+        
+        // Grading Information
+        'isAutoGraded': isAutoGraded ?? true,
       };
       
       final submissionJson = jsonEncode(submissionData);
       await prefs.setString(submissionKey, submissionJson);
       await _updateLastSync();
+      
+      print('✅ Enhanced assessment submission queued for offline: $submissionKey');
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing assessment submission: $e');
+        print('Error queuing enhanced assessment submission: $e');
       }
     }
   }
@@ -1694,4 +1754,205 @@ class OfflineService {
       }
     }
   }
+
+  // ===== ASSESSMENT SUBMISSION CACHING =====
+
+
+
+  // Cache student submissions
+  static Future<void> cacheStudentSubmissions(String studentId, List<dynamic> submissions) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_studentSubmissionsKey}_$studentId';
+      final submissionsJson = jsonEncode(submissions);
+      await prefs.setString(key, submissionsJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching student submissions: $e');
+      }
+    }
+  }
+
+  // Get cached student submissions
+  static Future<List<dynamic>> getCachedStudentSubmissions(String studentId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_studentSubmissionsKey}_$studentId';
+      final submissionsJson = prefs.getString(key);
+      if (submissionsJson != null) {
+        final List<dynamic> submissionsList = jsonDecode(submissionsJson);
+        return submissionsList;
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached student submissions: $e');
+      }
+      return [];
+    }
+  }
+
+  // Cache assessment submissions
+  static Future<void> cacheAssessmentSubmissions(String assessmentId, List<dynamic> submissions) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_assessmentSubmissionsKey}_$assessmentId';
+      final submissionsJson = jsonEncode(submissions);
+      await prefs.setString(key, submissionsJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching assessment submissions: $e');
+      }
+    }
+  }
+
+  // Get cached assessment submissions
+  static Future<List<dynamic>> getCachedAssessmentSubmissions(String assessmentId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_assessmentSubmissionsKey}_$assessmentId';
+      final submissionsJson = prefs.getString(key);
+      if (submissionsJson != null) {
+        final List<dynamic> submissionsList = jsonDecode(submissionsJson);
+        return submissionsList;
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached assessment submissions: $e');
+      }
+      return [];
+    }
+  }
+
+  // Cache teacher submissions
+  static Future<void> cacheTeacherSubmissions(String teacherId, List<dynamic> submissions) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_teacherSubmissionsKey}_$teacherId';
+      final submissionsJson = jsonEncode(submissions);
+      await prefs.setString(key, submissionsJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching teacher submissions: $e');
+      }
+    }
+  }
+
+  // Get cached teacher submissions
+  static Future<List<dynamic>> getCachedTeacherSubmissions(String teacherId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_teacherSubmissionsKey}_$teacherId';
+      final submissionsJson = prefs.getString(key);
+      if (submissionsJson != null) {
+        final List<dynamic> submissionsList = jsonDecode(submissionsJson);
+        return submissionsList;
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached teacher submissions: $e');
+      }
+      return [];
+    }
+  }
+
+  // Cache individual submission
+  static Future<void> cacheSubmission(String submissionId, dynamic submission) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_assessmentSubmissionsKey}_single_$submissionId';
+      final submissionJson = jsonEncode(submission);
+      await prefs.setString(key, submissionJson);
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching submission: $e');
+      }
+    }
+  }
+
+  // Get cached individual submission
+  static Future<Map<String, dynamic>?> getCachedSubmission(String submissionId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_assessmentSubmissionsKey}_single_$submissionId';
+      final submissionJson = prefs.getString(key);
+      if (submissionJson != null) {
+        final Map<String, dynamic> submission = jsonDecode(submissionJson);
+        return submission;
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached submission: $e');
+      }
+      return null;
+    }
+  }
+
+  // Remove cached submission
+  static Future<void> removeCachedSubmission(String submissionId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_assessmentSubmissionsKey}_single_$submissionId';
+      await prefs.remove(key);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error removing cached submission: $e');
+      }
+    }
+  }
+
+  // Queue submission update for sync
+  static Future<void> queueSubmissionUpdate(dynamic submission) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_submission_updates';
+      final existingQueue = prefs.getString(syncKey);
+      List<Map<String, dynamic>> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<Map<String, dynamic>>();
+      }
+      
+      queue.add(submission.toMap());
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing submission update for sync: $e');
+      }
+    }
+  }
+
+  // Queue submission deletion for sync
+  static Future<void> queueSubmissionDeletion(String submissionId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final syncKey = 'sync_submission_deletions';
+      final existingQueue = prefs.getString(syncKey);
+      List<String> queue = [];
+      
+      if (existingQueue != null) {
+        final List<dynamic> queueList = jsonDecode(existingQueue);
+        queue = queueList.cast<String>();
+      }
+      
+      queue.add(submissionId);
+      final queueJson = jsonEncode(queue);
+      await prefs.setString(syncKey, queueJson);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error queuing submission deletion for sync: $e');
+      }
+    }
+  }
+
+
 }

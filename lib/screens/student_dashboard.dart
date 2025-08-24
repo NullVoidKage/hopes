@@ -5,9 +5,25 @@ import '../services/auth_service.dart';
 import '../services/assessment_service.dart';
 import '../services/connectivity_service.dart';
 import '../services/offline_service.dart';
+import '../services/submission_service.dart';
+import '../models/assessment_submission.dart';
 import '../widgets/safe_network_image.dart';
 import 'student_lesson_viewer_screen.dart';
 import 'student_assessment_taker_screen.dart';
+import 'student_submission_history_screen.dart';
+
+// Helper class to track assessment submission status
+class AssessmentWithSubmissionStatus {
+  final Assessment assessment;
+  final bool hasSubmitted;
+  final AssessmentSubmission? existingSubmission;
+
+  AssessmentWithSubmissionStatus({
+    required this.assessment,
+    required this.hasSubmitted,
+    this.existingSubmission,
+  });
+}
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -20,6 +36,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
   final AuthService _authService = AuthService();
   UserModel? _userProfile;
   bool _isLoading = true;
+
+
 
   @override
   void initState() {
@@ -94,6 +112,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 
                 // Recent Progress
                 _buildRecentProgress(),
+                
+                const SizedBox(height: 30),
+                
+                // Recent Submissions
+                _buildRecentSubmissions(),
                 
                 const SizedBox(height: 30),
                 
@@ -191,7 +214,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             _buildActionCard(
               'Take Assessment',
               Icons.quiz,
-              'Coming soon',
+              'Complete quizzes and tests',
               () => _navigateToAssessment(),
             ),
             _buildActionCard(
@@ -426,6 +449,31 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
+  // Get current student ID from Firebase Auth
+  String _getCurrentStudentId() {
+    try {
+      // Get the current Firebase Auth user
+      final currentUser = _authService.currentUser;
+      if (currentUser != null && currentUser.uid.isNotEmpty) {
+        print('🔐 Using Firebase Auth UID: ${currentUser.uid}');
+        return currentUser.uid; // This is the UNIQUE Firebase UID
+      }
+      
+      // Fallback to user profile if available
+      if (_userProfile != null && _userProfile!.uid.isNotEmpty) {
+        print('👤 Using User Profile UID: ${_userProfile!.uid}');
+        return _userProfile!.uid;
+      }
+      
+      // Last resort - this should never happen if user is authenticated
+      print('⚠️ No valid user ID found, using fallback');
+      return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
+    } catch (e) {
+      print('❌ Error getting student ID: $e');
+      return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
   // Navigation methods
   void _navigateToAssessment() {
     // Show available assessments from Firebase
@@ -441,6 +489,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
       final assessmentService = AssessmentService();
       final connectivityService = ConnectivityService();
+      final submissionService = SubmissionService();
       
       List<Assessment> assessments = [];
       
@@ -450,14 +499,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
         // Load from Firebase
         assessments = await assessmentService.getAllPublishedAssessments();
         print('📊 Found ${assessments.length} assessments from Firebase');
-        
-        // Debug each assessment
-        for (var assessment in assessments) {
-          print('🔍 Assessment: ${assessment.title} - ${assessment.questions.length} questions');
-          if (assessment.questions.isNotEmpty) {
-            print('🔍 First question: ${assessment.questions.first.question} (Type: ${assessment.questions.first.type})');
-          }
-        }
         
         // Cache assessments offline
         if (assessments.isNotEmpty) {
@@ -477,19 +518,53 @@ class _StudentDashboardState extends State<StudentDashboard> {
             .map((data) => Assessment.fromRealtimeDatabase(data['id'] ?? '', data))
             .toList();
         print('📊 Found ${assessments.length} assessments from cache');
-        
-        // Debug each assessment from cache
-        for (var assessment in assessments) {
-          print('🔍 Cached Assessment: ${assessment.title} - ${assessment.questions.length} questions');
-          if (assessment.questions.isNotEmpty) {
-            print('🔍 First question: ${assessment.questions.first.question} (Type: ${assessment.questions.first.type})');
+      }
+
+      // Get current student ID (this should come from auth service in production)
+      final currentStudentId = _getCurrentStudentId();
+      print('🔍 Using Student ID: $currentStudentId');
+      
+      // Check submission status for each assessment
+      List<AssessmentWithSubmissionStatus> assessmentsWithStatus = [];
+      for (var assessment in assessments) {
+        try {
+          // Check if student has already submitted this assessment
+          print('🔍 Checking submissions for assessment: ${assessment.id}');
+          final submissions = await submissionService.getStudentSubmissions(currentStudentId);
+          print('📊 Found ${submissions.length} submissions for student: $currentStudentId');
+          
+          final hasSubmitted = submissions.any((submission) => 
+            submission.assessmentId == assessment.id
+          );
+          print('✅ Assessment ${assessment.id} - Has submitted: $hasSubmitted');
+          
+          AssessmentSubmission? existingSubmission;
+          if (hasSubmitted) {
+            existingSubmission = submissions.firstWhere((submission) => 
+              submission.assessmentId == assessment.id
+            );
+            print('📝 Found existing submission: ${existingSubmission.id}');
           }
+          
+          assessmentsWithStatus.add(AssessmentWithSubmissionStatus(
+            assessment: assessment,
+            hasSubmitted: hasSubmitted,
+            existingSubmission: existingSubmission,
+          ));
+        } catch (e) {
+          print('⚠️ Error checking submission status for ${assessment.id}: $e');
+          // If we can't check status, assume not submitted
+          assessmentsWithStatus.add(AssessmentWithSubmissionStatus(
+            assessment: assessment,
+            hasSubmitted: false,
+            existingSubmission: null,
+          ));
         }
       }
 
-      print('🎯 Total assessments to show: ${assessments.length}');
+      print('🎯 Total assessments with status: ${assessmentsWithStatus.length}');
       if (mounted) {
-        _showAssessmentOptions(assessments);
+        _showAssessmentOptions(assessmentsWithStatus);
       }
     } catch (e) {
       print('❌ Error loading assessments: $e');
@@ -510,8 +585,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
     }
   }
 
-  void _showAssessmentOptions(List<Assessment> assessments) {
-    if (assessments.isEmpty) {
+  void _showAssessmentOptions(List<AssessmentWithSubmissionStatus> assessmentsWithStatus) {
+    if (assessmentsWithStatus.isEmpty) {
       showModalBottomSheet(
         context: context,
         backgroundColor: Colors.transparent,
@@ -631,7 +706,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             
             // Title
             Text(
-              'Available Assessments (${assessments.length})',
+              'Available Assessments (${assessmentsWithStatus.length})',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -645,14 +720,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
             Flexible(
               child: ListView.builder(
                 shrinkWrap: true,
-                itemCount: assessments.length,
+                itemCount: assessmentsWithStatus.length,
                 itemBuilder: (context, index) {
-                  final assessment = assessments[index];
+                  final assessmentWithStatus = assessmentsWithStatus[index];
+                  final assessment = assessmentWithStatus.assessment;
                   return _buildAssessmentOption(
                     assessment.title,
                     assessment.description,
                     assessment.subject,
-                    () => _startAssessment(assessment),
+                    assessmentWithStatus.hasSubmitted,
+                    assessmentWithStatus.existingSubmission,
+                    () => _startAssessment(assessmentWithStatus),
                   );
                 },
               ),
@@ -690,7 +768,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  Widget _buildAssessmentOption(String title, String description, String subject, VoidCallback onTap) {
+  Widget _buildAssessmentOption(String title, String description, String subject, bool hasSubmitted, AssessmentSubmission? existingSubmission, VoidCallback onTap) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: ListTile(
@@ -712,13 +790,28 @@ class _StudentDashboardState extends State<StudentDashboard> {
             size: 20,
           ),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1D1D1F),
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+            ),
+            if (hasSubmitted && existingSubmission != null)
+              Text(
+                '${existingSubmission!.accuracy.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _getScoreColor(existingSubmission!.accuracy),
+                ),
+              ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,25 +842,98 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ],
         ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios_rounded,
-          color: Color(0xFF86868B),
-          size: 16,
+        trailing: hasSubmitted 
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF34C759).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF34C759)),
+              ),
+              child: const Text(
+                'Completed',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF34C759),
+                ),
+              ),
+            )
+          : const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Color(0xFF86868B),
+              size: 16,
+            ),
+      ),
+    );
+  }
+
+  void _startAssessment(AssessmentWithSubmissionStatus assessmentWithStatus) {
+    Navigator.of(context).pop(); // Close the modal
+    
+    if (assessmentWithStatus.hasSubmitted) {
+      // Show submission details instead of allowing retake
+      _showSubmissionDetails(assessmentWithStatus.existingSubmission!);
+      return;
+    }
+    
+    // Navigate to assessment taker screen if not submitted
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentAssessmentTakerScreen(
+          assessment: assessmentWithStatus.assessment,
         ),
       ),
     );
   }
 
-  void _startAssessment(Assessment assessment) {
-    Navigator.of(context).pop(); // Close the modal
-    
-    // Navigate directly to the assessment taker screen with the real assessment
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StudentAssessmentTakerScreen(
-          assessment: assessment,
+  Color _getScoreColor(double percentage) {
+    if (percentage >= 80) return const Color(0xFF34C759); // Green
+    if (percentage >= 60) return const Color(0xFFFF9500); // Orange
+    return const Color(0xFFFF3B30); // Red
+  }
+
+  void _showSubmissionDetails(AssessmentSubmission submission) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Assessment Already Completed'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('You have already completed this assessment.'),
+            const SizedBox(height: 16),
+            Text('Score: ${submission.accuracy.toStringAsFixed(1)}%'),
+            Text('Submitted: ${submission.formattedDate}'),
+            Text('Time Spent: ${submission.formattedTimeSpent}'),
+            if (submission.feedback != null && submission.feedback!.isNotEmpty)
+              Text('Feedback: ${submission.feedback}'),
+          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Navigate to submission history
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StudentSubmissionHistoryScreen(
+                    studentId: _getCurrentStudentId(),
+                    studentName: 'Student', // TODO: Get from user profile
+                  ),
+                ),
+              );
+            },
+            child: const Text('View All Submissions'),
+          ),
+        ],
       ),
     );
   }
@@ -799,6 +965,98 @@ class _StudentDashboardState extends State<StudentDashboard> {
       const SnackBar(
         content: Text('Detailed progress tracking will be available soon!'),
         backgroundColor: Color(0xFF667eea),
+      ),
+    );
+  }
+
+  void _navigateToSubmissions() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentSubmissionHistoryScreen(
+          studentId: _userProfile?.uid ?? 'student_${DateTime.now().millisecondsSinceEpoch}',
+          studentName: _userProfile?.displayName ?? 'Student',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentSubmissions() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFFE5E5E7),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Recent Submissions',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _navigateToSubmissions(),
+                child: const Text(
+                  'View All',
+                  style: TextStyle(
+                    color: Color(0xFF007AFF),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Empty state for recent submissions
+          Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.assignment_turned_in,
+                  size: 48,
+                  color: const Color(0xFF86868B),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No submissions yet',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: const Color(0xFF86868B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Complete assessments to see your progress here',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: const Color(0xFF86868B),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

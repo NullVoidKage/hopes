@@ -10,7 +10,7 @@ void main() async {
   
   try {
     if (kIsWeb) {
-      // Web configuration
+      // Web configurationm m       mm
       await Firebase.initializeApp(
         options: const FirebaseOptions(
           apiKey: "AIzaSyDtu3oY49sezZNu_oIgNVh8uOLRyFaS-3I",
