@@ -44,7 +44,9 @@ class _StudentSubmissionHistoryScreenState extends State<StudentSubmissionHistor
     });
 
     try {
-      final submissions = await _submissionService.getStudentSubmissions(widget.studentId);
+      // Add timeout to prevent infinite loading
+      final submissions = await _submissionService.getStudentSubmissions(widget.studentId)
+          .timeout(const Duration(seconds: 30));
       
       if (!mounted) return;
       
@@ -59,10 +61,22 @@ class _StudentSubmissionHistoryScreenState extends State<StudentSubmissionHistor
         _isLoading = false;
       });
       
+      String errorMessage = 'Error loading submissions';
+      if (e.toString().contains('TimeoutException')) {
+        errorMessage = 'Loading took too long. Please try again.';
+      } else {
+        errorMessage = 'Error: $e';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error loading submissions: $e'),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _loadSubmissions,
+          ),
         ),
       );
     }
@@ -351,8 +365,29 @@ class _StudentSubmissionHistoryScreenState extends State<StudentSubmissionHistor
   Widget _buildSubmissionsList() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF007AFF),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: Color(0xFF007AFF),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading your submissions...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF86868B),
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'This may take a few moments',
+              style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFF86868B),
+              ),
+            ),
+          ],
         ),
       );
     }

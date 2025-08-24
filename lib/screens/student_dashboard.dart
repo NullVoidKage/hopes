@@ -7,10 +7,15 @@ import '../services/connectivity_service.dart';
 import '../services/offline_service.dart';
 import '../services/submission_service.dart';
 import '../models/assessment_submission.dart';
+import '../services/lesson_service_realtime.dart';
+import '../models/lesson.dart';
 import '../widgets/safe_network_image.dart';
 import 'student_lesson_viewer_screen.dart';
 import 'student_assessment_taker_screen.dart';
 import 'student_submission_history_screen.dart';
+import 'student_progress_detail_screen.dart';
+import 'student_learning_path_navigator_screen.dart';
+import 'lesson_detail_screen.dart';
 
 // Helper class to track assessment submission status
 class AssessmentWithSubmissionStatus {
@@ -34,8 +39,12 @@ class StudentDashboard extends StatefulWidget {
 
 class _StudentDashboardState extends State<StudentDashboard> {
   final AuthService _authService = AuthService();
+  final SubmissionService _submissionService = SubmissionService();
+  final LessonServiceRealtime _lessonService = LessonServiceRealtime();
   UserModel? _userProfile;
   bool _isLoading = true;
+  List<AssessmentSubmission> _recentSubmissions = [];
+  List<Lesson> _upcomingLessons = [];
 
 
 
@@ -50,8 +59,33 @@ class _StudentDashboardState extends State<StudentDashboard> {
       final user = _authService.currentUser;
       if (user != null) {
         final profile = await _authService.getUserProfile(user.uid);
+        
+        // Load recent submissions
+        List<AssessmentSubmission> recentSubs = [];
+        try {
+          recentSubs = await _submissionService.getStudentSubmissions(user.uid);
+          // Get only the 3 most recent submissions
+          recentSubs.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+          recentSubs = recentSubs.take(3).toList();
+        } catch (e) {
+          print('⚠️ Error loading recent submissions: $e');
+        }
+        
+        // Load upcoming lessons
+        List<Lesson> upcomingLessons = [];
+        try {
+          upcomingLessons = await _lessonService.getAllPublishedLessons();
+          // Get only the 3 most recent lessons
+          upcomingLessons.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          upcomingLessons = upcomingLessons.take(3).toList();
+        } catch (e) {
+          print('⚠️ Error loading upcoming lessons: $e');
+        }
+        
         setState(() {
           _userProfile = profile;
+          _recentSubmissions = recentSubs;
+          _upcomingLessons = upcomingLessons;
           _isLoading = false;
         });
       }
@@ -220,7 +254,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             _buildActionCard(
               'View Pathways',
               Icons.timeline,
-              'Coming soon',
+              'Learning journeys',
               () => _navigateToPathways(),
             ),
             _buildActionCard(
@@ -391,7 +425,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ),
           const SizedBox(height: 20),
-          _buildEmptyLessonsState(),
+          // Show upcoming lessons or empty state
+          if (_upcomingLessons.isEmpty)
+            _buildEmptyLessonsState()
+          else
+            Column(
+              children: _upcomingLessons.map((lesson) => _buildUpcomingLessonItem(lesson)).toList(),
+            ),
         ],
       ),
     );
@@ -445,6 +485,107 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingLessonItem(Lesson lesson) {
+    return GestureDetector(
+      onTap: () => _navigateToLessonDetail(lesson),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F7),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFE5E5E7),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF667eea).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.school,
+                color: Color(0xFF667eea),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    lesson.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1D1D1F),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${lesson.subject} • ${lesson.teacherName}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color(0xFF86868B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                Text(
+                  _formatLessonDate(lesson.createdAt),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: const Color(0xFF86868B),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 12,
+                  color: const Color(0xFF86868B).withValues(alpha: 0.7),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatLessonDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  void _navigateToLessonDetail(Lesson lesson) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LessonDetailScreen(lesson: lesson),
       ),
     );
   }
@@ -941,11 +1082,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
 
   void _navigateToPathways() {
-    // TODO: Navigate to learning pathways screen when implemented
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Learning pathways will be available soon!'),
-        backgroundColor: Color(0xFF667eea),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentLearningPathNavigatorScreen(
+          studentId: _userProfile?.uid ?? 'student_${DateTime.now().millisecondsSinceEpoch}',
+          studentName: _userProfile?.displayName ?? 'Student',
+        ),
       ),
     );
   }
@@ -960,11 +1103,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   void _navigateToProgress() {
-    // TODO: Navigate to detailed progress screen when implemented
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Detailed progress tracking will be available soon!'),
-        backgroundColor: Color(0xFF667eea),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentProgressDetailScreen(
+          studentId: _userProfile?.uid ?? 'student_${DateTime.now().millisecondsSinceEpoch}',
+          studentName: _userProfile?.displayName ?? 'Student',
+        ),
       ),
     );
   }
@@ -1027,37 +1172,125 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ],
           ),
           const SizedBox(height: 20),
-          // Empty state for recent submissions
-          Center(
+          // Show recent submissions or empty state
+          if (_recentSubmissions.isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.assignment_turned_in,
+                    size: 48,
+                    color: const Color(0xFF86868B),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No submissions yet',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: const Color(0xFF86868B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Complete assessments to see your progress here',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: const Color(0xFF86868B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            Column(
+              children: _recentSubmissions.map((submission) => _buildRecentSubmissionItem(submission)).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentSubmissionItem(AssessmentSubmission submission) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE5E5E7),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _getScoreColor(submission.score.toDouble()).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.assignment_turned_in,
+                             color: _getScoreColor(submission.score.toDouble()),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.assignment_turned_in,
-                  size: 48,
-                  color: const Color(0xFF86868B),
-                ),
-                const SizedBox(height: 16),
                 Text(
-                  'No submissions yet',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: const Color(0xFF86868B),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Complete assessments to see your progress here',
-                  style: TextStyle(
+                  submission.assessmentTitle.isNotEmpty 
+                      ? submission.assessmentTitle 
+                      : 'Assessment ${submission.assessmentId.substring(0, 8)}...',
+                  style: const TextStyle(
                     fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1D1D1F),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${submission.assessmentSubject} • Score: ${submission.score}%',
+                  style: TextStyle(
+                    fontSize: 12,
                     color: const Color(0xFF86868B),
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ],
+            ),
+          ),
+          Text(
+            _formatDate(submission.submittedAt),
+            style: TextStyle(
+              fontSize: 11,
+              color: const Color(0xFF86868B),
             ),
           ),
         ],
       ),
     );
+  }
+
+
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 }

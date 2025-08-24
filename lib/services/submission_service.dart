@@ -21,22 +21,32 @@ class SubmissionService {
         
         if (snapshot.exists) {
           List<AssessmentSubmission> submissions = [];
+          int processedCount = 0;
+          int errorCount = 0;
+          
           for (var child in snapshot.children) {
             try {
+              processedCount++;
+              print('🔍 Processing submission ${child.key} (${processedCount}/${snapshot.children.length})');
+              
               final submission = AssessmentSubmission.fromRealtimeDatabase(
                 child.value as Map<Object?, Object?>,
                 child.key!,
               );
               submissions.add(submission);
             } catch (e) {
+              errorCount++;
               print('⚠️ Error parsing submission ${child.key}: $e');
+              // Continue processing other submissions instead of failing completely
             }
           }
+          
+          print('📊 Processed $processedCount submissions, $errorCount errors');
           
           // Sort by submission date (newest first)
           submissions.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
           
-          print('📊 Loaded ${submissions.length} submissions from Firebase');
+          print('📊 Loaded ${submissions.length} valid submissions from Firebase');
           
           // Cache submissions offline
           await OfflineService.cacheStudentSubmissions(studentId, submissions);
