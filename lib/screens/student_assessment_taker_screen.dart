@@ -26,7 +26,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   bool _isLoading = true;
   bool _isSubmitting = false;
   int _currentQuestionIndex = 0;
-  int _timeRemaining = 0;
   late DateTime _startTime;
 
   @override
@@ -39,10 +38,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Start timer when screen is ready
-    if (_questions.isNotEmpty && _timeRemaining > 0 && widget.assessment.timeLimit > 0) {
-      _startTimer();
-    }
+    // Timer removed - no time limit for assessments
   }
 
   Future<void> _loadAssessment() async {
@@ -67,7 +63,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         if (!mounted) return;
         setState(() {
           _questions = questions;
-          _timeRemaining = widget.assessment.timeLimit * 60; // Convert to seconds
         });
         
         // Cache questions offline
@@ -83,7 +78,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         if (!mounted) return;
         setState(() {
           _questions = cachedQuestions.map((q) => AssessmentQuestion.fromMap(q as Map)).toList();
-          _timeRemaining = widget.assessment.timeLimit * 60;
         });
         
         if (_questions.isNotEmpty) {
@@ -97,7 +91,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       if (!mounted) return;
       setState(() {
         _questions = cachedQuestions.map((q) => AssessmentQuestion.fromMap(q as Map)).toList();
-        _timeRemaining = widget.assessment.timeLimit * 60;
       });
     } finally {
       if (mounted) {
@@ -108,28 +101,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
     }
   }
 
-  bool _timerActive = false;
-
-  void _startTimer() {
-    if (!mounted) return;
-    _timerActive = true;
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted && _timerActive && _timeRemaining > 0) {
-        setState(() {
-          _timeRemaining--;
-        });
-        _startTimer();
-      } else if (mounted && _timerActive && _timeRemaining <= 0) {
-        _submitAssessment();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timerActive = false;
-    super.dispose();
-  }
+  // Timer functionality removed - no time limit for assessments
 
   void _selectAnswer(int questionIndex, String answer) {
     if (mounted) {
@@ -348,11 +320,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
     }
   }
 
-  String _formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
+  // Time formatting removed - no timer functionality
 
   @override
   Widget build(BuildContext context) {
@@ -436,23 +404,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           ),
         ) : null,
         actions: [
-          if (_questions.isNotEmpty && widget.assessment.timeLimit > 0)
-            Container(
-              margin: const EdgeInsets.only(right: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: _timeRemaining < 300 ? const Color(0xFFFF3B30) : const Color(0xFF007AFF),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                _formatTime(_timeRemaining),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ),
+          // Timer removed - no time limit for assessments
         ],
       ),
       body: Column(

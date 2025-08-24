@@ -116,8 +116,17 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
   Widget _buildFilters() {
     final List<String> subjects = [
       'All',
-      if (widget.teacherProfile.subjects != null)
-                        ...(widget.teacherProfile.subjects ?? []).cast<String>()
+      'Mathematics',
+      'GMRC',
+      'Values Education',
+      'Araling Panlipunan',
+      'English',
+      'Filipino',
+      'Music & Arts',
+      'Science',
+      'Physical Education & Health',
+      'EPP',
+      'TLE'
     ];
     final statuses = ['All', 'Published', 'Draft'];
 

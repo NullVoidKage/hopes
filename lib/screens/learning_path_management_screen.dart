@@ -236,10 +236,23 @@ class _LearningPathManagementScreenState extends State<LearningPathManagementScr
                       ),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('All Subjects')),
-                        ...widget.teacherProfile.subjects?.map((subject) => DropdownMenuItem(
+                        // Use the full list of 11 subjects
+                        ...[
+                          'Mathematics',
+                          'GMRC',
+                          'Values Education',
+                          'Araling Panlipunan',
+                          'English',
+                          'Filipino',
+                          'Music & Arts',
+                          'Science',
+                          'Physical Education & Health',
+                          'EPP',
+                          'TLE'
+                        ].map((subject) => DropdownMenuItem(
                           value: subject,
                           child: Text(subject),
-                        )) ?? [],
+                        )),
                       ],
                       onChanged: (value) {
                         setState(() => _selectedSubject = value);

@@ -69,10 +69,8 @@ class _LearningPathCreationScreenState extends State<LearningPathCreationScreen>
       _isPublished = widget.learningPath!.isPublished;
       _steps = List.from(widget.learningPath!.steps);
     } else {
-      // Creating new learning path
-      if (widget.teacherProfile.subjects != null && widget.teacherProfile.subjects!.isNotEmpty) {
-        _selectedSubject = widget.teacherProfile.subjects!.first;
-      }
+      // Creating new learning path - set default subject to Mathematics
+      _selectedSubject = 'Mathematics';
       _addStep(); // Add initial step
     }
   }

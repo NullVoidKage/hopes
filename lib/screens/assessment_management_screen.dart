@@ -180,7 +180,21 @@ class _AssessmentManagementScreenState extends State<AssessmentManagementScreen>
   }
 
   Widget _buildFilters() {
-    final subjects = ['All', ...(widget.teacherProfile.subjects ?? [])];
+    // Use the full list of 11 subjects plus 'All' option
+    final subjects = [
+      'All',
+      'Mathematics',
+      'GMRC',
+      'Values Education',
+      'Araling Panlipunan',
+      'English',
+      'Filipino',
+      'Music & Arts',
+      'Science',
+      'Physical Education & Health',
+      'EPP',
+      'TLE'
+    ];
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
