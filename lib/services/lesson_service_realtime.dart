@@ -139,6 +139,50 @@ class LessonServiceRealtime {
     }
   }
 
+  // Get all published lessons for students with offline support
+  Future<List<Lesson>> getAllPublishedLessons() async {
+    try {
+      // If offline, return cached data
+      if (_connectivityService.shouldUseCachedData) {
+        return await _getCachedAllLessons();
+      }
+
+      // If online, fetch from Firebase and cache
+      final snapshot = await _database.child('lessons').get();
+      
+      if (snapshot.exists) {
+        final lessons = <Lesson>[];
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        
+        data.forEach((key, value) {
+          if (value is Map) {
+            final lesson = Lesson.fromRealtimeDatabase(key, value);
+            // Only return published lessons for students
+            if (lesson.isPublished) {
+              lessons.add(lesson);
+            }
+          }
+        });
+
+        // Sort by creation date (newest first)
+        lessons.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        
+        // Cache lessons locally
+        await _cacheLessonsLocally(lessons);
+        
+        return lessons;
+      }
+      
+      return [];
+    } catch (e) {
+      // If Firebase fails, try to return cached data
+      if (kDebugMode) {
+        print('Firebase error, trying cached data: $e');
+      }
+      return await _getCachedAllLessons();
+    }
+  }
+
   // Get a specific lesson by ID
   Future<Lesson?> getLessonById(String lessonId) async {
     try {
@@ -309,6 +353,34 @@ class LessonServiceRealtime {
     } catch (e) {
       if (kDebugMode) {
         print('Error getting cached lessons by subject: $e');
+      }
+      return [];
+    }
+  }
+
+  // Get all published lessons for students
+  Future<List<Lesson>> _getCachedAllLessons() async {
+    try {
+      final cachedData = await OfflineService.getCachedLessons();
+      final lessons = <Lesson>[];
+      
+      for (final lessonData in cachedData) {
+        if (lessonData['isPublished'] == true) {
+          final lesson = Lesson.fromRealtimeDatabase(
+            lessonData['id'] ?? '', 
+            lessonData
+          );
+          lessons.add(lesson);
+        }
+      }
+      
+      // Sort by creation date (newest first)
+      lessons.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return lessons;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached all published lessons: $e');
       }
       return [];
     }

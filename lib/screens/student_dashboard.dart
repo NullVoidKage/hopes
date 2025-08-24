@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../widgets/safe_network_image.dart';
+import 'student_lesson_viewer_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -187,25 +188,25 @@ class _StudentDashboardState extends State<StudentDashboard> {
             _buildActionCard(
               'Take Assessment',
               Icons.quiz,
-              'Evaluate your current knowledge',
+              'Coming soon',
               () => _navigateToAssessment(),
             ),
             _buildActionCard(
               'View Pathways',
               Icons.timeline,
-              'See your learning journey',
+              'Coming soon',
               () => _navigateToPathways(),
             ),
             _buildActionCard(
-              'Lessons & Quizzes',
+              'View Lessons',
               Icons.school,
-              'Continue learning',
+              'Browse and study lessons',
               () => _navigateToLessons(),
             ),
             _buildActionCard(
               'Progress',
               Icons.trending_up,
-              'Track your achievements',
+              'Coming soon',
               () => _navigateToProgress(),
             ),
           ],
@@ -286,50 +287,42 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ),
           const SizedBox(height: 20),
-          _buildProgressItem('Mathematics', 0.75, '75%'),
-          const SizedBox(height: 16),
-          _buildProgressItem('Science', 0.60, '60%'),
-          const SizedBox(height: 16),
-          _buildProgressItem('English', 0.85, '85%'),
+          _buildEmptyProgressState(),
         ],
       ),
     );
   }
 
-  Widget _buildProgressItem(String subject, double progress, String percentage) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              subject,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+  Widget _buildEmptyProgressState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        children: [
+          Icon(
+            Icons.analytics_outlined,
+            size: 48,
+            color: Colors.white.withValues(alpha: 0.6),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No progress data yet',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.8),
             ),
-            Text(
-              percentage,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your learning progress will appear here once you start taking lessons and assessments.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.7),
             ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: Colors.white.withValues(alpha: 0.3),
-          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-          minHeight: 8,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ],
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -356,85 +349,57 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ),
           const SizedBox(height: 20),
-          _buildLessonItem(
-            'Algebra Basics',
-            'Mathematics',
-            'Tomorrow, 9:00 AM',
-            Icons.functions,
-          ),
-          const SizedBox(height: 16),
-          _buildLessonItem(
-            'Chemical Reactions',
-            'Science',
-            'Wednesday, 10:30 AM',
-            Icons.science,
-          ),
-          const SizedBox(height: 16),
-          _buildLessonItem(
-            'Essay Writing',
-            'English',
-            'Thursday, 2:00 PM',
-            Icons.edit,
-          ),
+          _buildEmptyLessonsState(),
         ],
       ),
     );
   }
 
-  Widget _buildLessonItem(String title, String subject, String time, IconData icon) {
+  Widget _buildEmptyLessonsState() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
+      padding: const EdgeInsets.all(32),
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
-            ),
+          Icon(
+            Icons.schedule_outlined,
+            size: 48,
+            color: Colors.white.withValues(alpha: 0.6),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subject,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 16),
           Text(
-            time,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.white60,
+            'No upcoming lessons',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Check the lesson library to start learning or wait for your teacher to assign lessons.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _navigateToLessons,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF667eea),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Browse Lessons',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -444,30 +409,41 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   // Navigation methods
   void _navigateToAssessment() {
-    // TODO: Navigate to assessment screen
+    // TODO: Navigate to assessment screen when implemented
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Assessment feature coming soon!')),
+      const SnackBar(
+        content: Text('Assessment feature will be available soon!'),
+        backgroundColor: Color(0xFF667eea),
+      ),
     );
   }
 
   void _navigateToPathways() {
-    // TODO: Navigate to pathways screen
+    // TODO: Navigate to learning pathways screen when implemented
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Learning pathways coming soon!')),
+      const SnackBar(
+        content: Text('Learning pathways will be available soon!'),
+        backgroundColor: Color(0xFF667eea),
+      ),
     );
   }
 
   void _navigateToLessons() {
-    // TODO: Navigate to lessons screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lessons & quizzes coming soon!')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const StudentLessonViewerScreen(),
+      ),
     );
   }
 
   void _navigateToProgress() {
-    // TODO: Navigate to progress screen
+    // TODO: Navigate to detailed progress screen when implemented
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Detailed progress coming soon!')),
+      const SnackBar(
+        content: Text('Detailed progress tracking will be available soon!'),
+        backgroundColor: Color(0xFF667eea),
+      ),
     );
   }
 }
