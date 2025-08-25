@@ -50,10 +50,8 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   @override
   void initState() {
     super.initState();
-    // Set default subject if teacher has subjects
-    if (widget.teacherProfile.subjects != null && widget.teacherProfile.subjects!.isNotEmpty) {
-      _selectedSubject = widget.teacherProfile.subjects!.first;
-    }
+    // Set default subject to Mathematics (first in the list)
+    _selectedSubject = 'Mathematics';
   }
 
   @override
@@ -852,38 +850,20 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   }
 
   Widget _buildSubjectDropdown() {
-    final subjects = widget.teacherProfile.subjects ?? [];
-    
-    if (subjects.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F7),
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          border: Border.all(
-            color: const Color(0xFFE5E5E7),
-            width: 1,
-          ),
-        ),
-        child: const Row(
-          children: [
-            Icon(
-              Icons.warning_rounded,
-              color: Color(0xFFFF9500),
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'No subjects assigned. Please contact admin.',
-              style: TextStyle(
-                color: Color(0xFF86868B),
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    // Use the full list of 11 subjects instead of teacher profile subjects
+    final List<String> subjects = [
+      'Mathematics',
+      'GMRC',
+      'Values Education',
+      'Araling Panlipunan',
+      'English',
+      'Filipino',
+      'Music & Arts',
+      'Science',
+      'Physical Education & Health',
+      'EPP',
+      'TLE'
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

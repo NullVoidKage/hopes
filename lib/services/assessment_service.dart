@@ -1,11 +1,15 @@
 import 'package:firebase_database/firebase_database.dart';
 import '../models/assessment.dart';
+import '../models/assessment_submission.dart';
+import '../models/user_model.dart';
+import '../services/auth_service.dart';
 import 'connectivity_service.dart';
 import 'offline_service.dart';
 
 class AssessmentService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final ConnectivityService _connectivityService = ConnectivityService();
+  final AuthService _authService = AuthService();
 
   // Create a new assessment
   Future<String> createAssessment(Assessment assessment) async {
@@ -99,6 +103,42 @@ class AssessmentService {
       await OfflineService.cacheAssessments(assessmentData);
     } catch (e) {
       print('Error caching assessments: $e');
+    }
+  }
+
+  // Get all published assessments (for students)
+  Future<List<Assessment>> getAllPublishedAssessments() async {
+    try {
+      final snapshot = await _database
+          .ref('assessments')
+          .get();
+
+      if (snapshot.exists) {
+        final assessments = <Assessment>[];
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        
+        data.forEach((key, value) {
+          if (value is Map) {
+            try {
+              final assessment = Assessment.fromRealtimeDatabase(key, value);
+              // Only return published assessments
+              if (assessment.isPublished) {
+                assessments.add(assessment);
+              }
+            } catch (e) {
+              print('Error parsing assessment: $e');
+            }
+          }
+        });
+
+        // Sort by creation date (newest first)
+        assessments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return assessments;
+      }
+      
+      return [];
+    } catch (e) {
+      throw Exception('Failed to get all assessments: ${e.toString()}');
     }
   }
 
@@ -220,6 +260,258 @@ class AssessmentService {
       };
     } catch (e) {
       throw Exception('Failed to get assessment stats: ${e.toString()}');
+    }
+  }
+
+  // Get assessment questions for students
+  Future<List<AssessmentQuestion>> getAssessmentQuestions(String assessmentId) async {
+    try {
+      // Check if we should use cached data
+      if (!_connectivityService.isConnected) {
+        print('🔌 Offline mode, using cached questions');
+        return await _getCachedAssessmentQuestions(assessmentId);
+      }
+
+      print('🌐 Online mode, fetching from Firebase');
+      // If online, fetch from Firebase and cache
+      final snapshot = await _database
+          .ref('assessments')
+          .child(assessmentId)
+          .child('questions')
+          .get();
+
+      if (snapshot.exists) {
+        final questions = <AssessmentQuestion>[];
+        final data = snapshot.value;
+        
+        print('📊 Raw question data from Firebase: $data');
+        print('📊 Data type: ${data.runtimeType}');
+        
+        if (data is List) {
+          // Questions are stored as an array
+          print('📊 Found ${data.length} questions in Firebase array');
+          
+          for (int i = 0; i < data.length; i++) {
+            final questionData = data[i];
+            if (questionData is Map) {
+              try {
+                print('🔍 Parsing question $i: $questionData');
+                final question = AssessmentQuestion.fromMap(questionData);
+                questions.add(question);
+                print('✅ Successfully parsed question: ${question.question}');
+              } catch (e) {
+                print('❌ Error parsing question $i: $e');
+                print('❌ Question data: $questionData');
+              }
+            }
+          }
+        } else if (data is Map) {
+          // Questions are stored as a map (fallback)
+          print('📊 Found ${data.length} questions in Firebase map');
+          
+          data.forEach((key, questionData) {
+            if (questionData is Map) {
+              try {
+                print('🔍 Parsing question $key: $questionData');
+                final question = AssessmentQuestion.fromMap(questionData);
+                questions.add(question);
+                print('✅ Successfully parsed question: ${question.question}');
+              } catch (e) {
+                print('❌ Error parsing question $key: $e');
+                print('❌ Question data: $questionData');
+              }
+            }
+          });
+        } else {
+          print('⚠️ Unexpected data type for questions: ${data.runtimeType}');
+        }
+
+        print('📝 Total questions parsed: ${questions.length}');
+        
+        // Cache the questions for offline use
+        if (questions.isNotEmpty) {
+          await _cacheAssessmentQuestionsLocally(assessmentId, questions);
+        }
+        
+        return questions;
+      }
+      
+      print('⚠️ No questions found in Firebase');
+      return [];
+    } catch (e) {
+      print('❌ Error getting assessment questions: $e');
+      // If Firebase fails, try to return cached data
+      return await _getCachedAssessmentQuestions(assessmentId);
+    }
+  }
+
+  // Get cached assessment questions
+  Future<List<AssessmentQuestion>> _getCachedAssessmentQuestions(String assessmentId) async {
+    try {
+      final cachedQuestions = await OfflineService.getCachedAssessmentQuestions(assessmentId);
+      return cachedQuestions.map((q) => AssessmentQuestion.fromMap(q as Map)).toList();
+    } catch (e) {
+      print('Error getting cached questions: $e');
+      return [];
+    }
+  }
+
+  // Cache assessment questions locally
+  Future<void> _cacheAssessmentQuestionsLocally(String assessmentId, List<AssessmentQuestion> questions) async {
+    try {
+      await OfflineService.cacheAssessmentQuestions(assessmentId, questions);
+    } catch (e) {
+      print('Error caching assessment questions: $e');
+    }
+  }
+
+  // Submit assessment answers with enhanced data
+  Future<void> submitAssessment({
+    required String assessmentId,
+    required Map<int, String> answers,
+    required int timeSpent,
+    // Enhanced submission data
+    Map<int, DetailedAnswer>? detailedAnswers,
+    String? assessmentTitle,
+    String? assessmentSubject,
+    String? assessmentType,
+    String? assessmentGradeLevel,
+    int? totalQuestions,
+    int? maxPossibleScore,
+    double? accuracy,
+    int? correctAnswers,
+    int? incorrectAnswers,
+    int? unansweredQuestions,
+    DateTime? startedAt,
+    double? averageTimePerQuestion,
+    bool? isAutoGraded,
+  }) async {
+    try {
+      // Only allow submission when online
+      if (!_connectivityService.isConnected) {
+        throw Exception('Cannot submit assessment while offline. Please connect to the internet.');
+      }
+
+      // Check if student has already submitted this assessment
+      final currentStudentId = _getCurrentStudentId();
+      print('🔍 Checking for duplicate submissions - Student ID: $currentStudentId, Assessment ID: $assessmentId');
+      
+      final existingSubmissionsRef = _database
+          .ref('assessment_submissions')
+          .orderByChild('studentId')
+          .equalTo(currentStudentId);
+      
+      final existingSubmissionsSnapshot = await existingSubmissionsRef.get();
+      print('📊 Found ${existingSubmissionsSnapshot.children.length} existing submissions for student');
+      
+      if (existingSubmissionsSnapshot.exists) {
+        // Check if any existing submission is for this assessment
+        for (var child in existingSubmissionsSnapshot.children) {
+          final submissionData = child.value as Map<dynamic, dynamic>?;
+          if (submissionData != null && submissionData['assessmentId'] == assessmentId) {
+            print('❌ DUPLICATE SUBMISSION DETECTED! Student $currentStudentId already submitted assessment $assessmentId');
+            throw Exception('You have already submitted this assessment. Duplicate submissions are not allowed.');
+          }
+        }
+      }
+      
+      print('✅ No duplicate submissions found, proceeding with submission');
+
+      // Get the assessment to include teacherId and other details
+      final assessmentSnapshot = await _database
+          .ref('assessments')
+          .child(assessmentId)
+          .get();
+      
+      if (!assessmentSnapshot.exists) {
+        throw Exception('Assessment not found');
+      }
+      
+      final assessmentData = assessmentSnapshot.value as Map<dynamic, dynamic>;
+      final teacherId = assessmentData['teacherId']?.toString() ?? '';
+      
+      // Calculate score if not provided
+      int finalScore = 0;
+      if (detailedAnswers != null) {
+        finalScore = detailedAnswers.values.fold(0, (sum, answer) => sum + (answer?.points ?? 0));
+      }
+      
+      // Get current student profile from Firestore
+      UserModel? studentProfile;
+      try {
+        studentProfile = await _authService.getUserProfile(currentStudentId);
+        print('👤 Fetched student profile: ${studentProfile?.displayName ?? 'Unknown'}');
+      } catch (e) {
+        print('⚠️ Could not fetch student profile: $e');
+      }
+
+      final submissionData = {
+        'assessmentId': assessmentId,
+        'studentId': currentStudentId,
+        'teacherId': teacherId, // Include teacherId for security rules
+        
+        // Enhanced Student Information from Firestore
+        'studentName': studentProfile?.displayName ?? 'Unknown Student',
+        'studentEmail': studentProfile?.email ?? '',
+        'studentGrade': studentProfile?.grade ?? 'Grade 7',
+        'studentSection': 'Section A', // Default section since UserModel doesn't have this field
+        
+        // Enhanced Assessment Context
+        'assessmentTitle': assessmentTitle ?? assessmentData['title'] ?? 'Assessment',
+        'assessmentSubject': assessmentSubject ?? assessmentData['subject'] ?? 'General',
+        'assessmentType': assessmentType ?? 'Quiz',
+        'assessmentGradeLevel': assessmentGradeLevel ?? 'Grade 7',
+        'totalQuestions': totalQuestions ?? answers.length,
+        'maxPossibleScore': maxPossibleScore ?? 100,
+        
+        // Enhanced Answer Analysis
+        'detailedAnswers': detailedAnswers?.map((key, value) => MapEntry(key.toString(), value?.toMap() ?? {})),
+        'answers': answers, // Keep for backward compatibility
+        
+        // Scoring and Performance
+        'score': finalScore,
+        'accuracy': accuracy ?? 0.0,
+        'correctAnswers': correctAnswers ?? 0,
+        'incorrectAnswers': incorrectAnswers ?? 0,
+        'unansweredQuestions': unansweredQuestions ?? 0,
+        
+        // Timing and Context
+        'submittedAt': ServerValue.timestamp,
+        'startedAt': startedAt?.millisecondsSinceEpoch,
+        'timeSpent': timeSpent,
+        'averageTimePerQuestion': averageTimePerQuestion ?? 0.0,
+        
+        // Grading Information
+        'isGraded': false,
+        'isAutoGraded': isAutoGraded ?? true,
+      };
+
+      final ref = _database.ref('assessment_submissions').push();
+      await ref.set(submissionData);
+      
+      print('✅ Enhanced assessment submission created successfully');
+      print('📊 Submission data: $submissionData');
+    } catch (e) {
+      throw Exception('Failed to submit assessment: ${e.toString()}');
+    }
+  }
+
+  // Get current student ID from Firebase Auth
+  String _getCurrentStudentId() {
+    try {
+      // Get the current Firebase Auth user
+      final currentUser = _authService.currentUser;
+      if (currentUser != null && currentUser.uid.isNotEmpty) {
+        print('🔐 Using Firebase Auth UID: ${currentUser.uid}');
+        return currentUser.uid; // This is the UNIQUE Firebase UID
+      }
+      
+      // Last resort - this should never happen if user is authenticated
+      print('⚠️ No valid user ID found, using fallback');
+      return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
+    } catch (e) {
+      print('❌ Error getting student ID: $e');
+      return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
 }

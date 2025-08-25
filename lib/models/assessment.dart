@@ -35,7 +35,13 @@ class Assessment {
 
   // Create from Realtime Database
   factory Assessment.fromRealtimeDatabase(String id, Map<dynamic, dynamic> data) {
-    return Assessment(
+    print('🔍 Creating Assessment from Firebase data:');
+    print('🔍 ID: $id');
+    print('🔍 Title: ${data['title']}');
+    print('🔍 Questions data: ${data['questions']}');
+    print('🔍 Questions type: ${data['questions']?.runtimeType}');
+    
+    final assessment = Assessment(
       id: id,
       title: data['title']?.toString() ?? '',
       description: data['description']?.toString() ?? '',
@@ -55,13 +61,52 @@ class Assessment {
       timeLimit: data['timeLimit'] as int? ?? 0,
       totalPoints: data['totalPoints'] as int? ?? 100,
       questions: data['questions'] != null 
-          ? (data['questions'] as List).map((q) => AssessmentQuestion.fromMap(q as Map)).toList()
+          ? _parseQuestionsFromData(data['questions'])
           : [],
       dueDate: data['dueDate'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(data['dueDate'] as int)
           : null,
       instructions: data['instructions']?.toString(),
     );
+    
+    print('✅ Assessment created with ${assessment.questions.length} questions');
+    return assessment;
+  }
+
+  // Helper method to parse questions from different data structures
+  static List<AssessmentQuestion> _parseQuestionsFromData(dynamic questionsData) {
+    final questions = <AssessmentQuestion>[];
+    
+    if (questionsData is List) {
+      // Questions are stored as an array
+      for (var questionData in questionsData) {
+        if (questionData is Map) {
+          try {
+            final question = AssessmentQuestion.fromMap(questionData);
+            questions.add(question);
+          } catch (e) {
+            print('❌ Error parsing question from list: $e');
+          }
+        }
+      }
+    } else if (questionsData is Map) {
+      // Questions are stored as a map with numeric keys (0, 1, 2...)
+      questionsData.forEach((key, questionData) {
+        if (questionData is Map) {
+          try {
+            final question = AssessmentQuestion.fromMap(questionData);
+            questions.add(question);
+          } catch (e) {
+            print('❌ Error parsing question $key: $e');
+          }
+        }
+      });
+    }
+    
+    // Sort questions by key/index to maintain order
+    questions.sort((a, b) => a.id.compareTo(b.id));
+    
+    return questions;
   }
 
   // Convert to Realtime Database
@@ -147,13 +192,28 @@ class AssessmentQuestion {
 
   // Create from Map
   factory AssessmentQuestion.fromMap(Map<dynamic, dynamic> data) {
-    return AssessmentQuestion(
+    print('🔍 Parsing question data: $data');
+    print('🔍 Question type from Firebase: ${data['type']}');
+    
+    final questionType = data['type']?.toString() ?? '';
+    print('🔍 Question type string: $questionType');
+    
+    QuestionType parsedType;
+    try {
+      parsedType = QuestionType.values.firstWhere(
+        (e) => e.toString().split('.').last == questionType,
+        orElse: () => QuestionType.multipleChoice,
+      );
+      print('✅ Successfully parsed question type: $parsedType');
+    } catch (e) {
+      print('❌ Error parsing question type: $e');
+      parsedType = QuestionType.multipleChoice;
+    }
+    
+    final question = AssessmentQuestion(
       id: data['id']?.toString() ?? '',
       question: data['question']?.toString() ?? '',
-      type: QuestionType.values.firstWhere(
-        (e) => e.toString().split('.').last == data['type'],
-        orElse: () => QuestionType.multipleChoice,
-      ),
+      type: parsedType,
       options: data['options'] != null 
           ? List<String>.from((data['options'] as List).map((e) => e.toString()))
           : [],
@@ -165,6 +225,9 @@ class AssessmentQuestion {
       explanation: data['explanation']?.toString(),
       showCorrectAnswer: data['showCorrectAnswer'] as bool? ?? false,
     );
+    
+    print('✅ Created question: ${question.question} (Type: ${question.type})');
+    return question;
   }
 
   // Convert to Map
@@ -213,6 +276,5 @@ enum QuestionType {
   trueFalse,
   shortAnswer,
   essay,
-  matching,
   fillInTheBlank,
 }

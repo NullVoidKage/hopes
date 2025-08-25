@@ -371,7 +371,20 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
                 value: null,
                 child: Text('Select a subject'),
               ),
-              ...subjects.map((subject) => DropdownMenuItem(
+              // Use the full list of 11 subjects
+              ...[
+                'Mathematics',
+                'GMRC',
+                'Values Education',
+                'Araling Panlipunan',
+                'English',
+                'Filipino',
+                'Music & Arts',
+                'Science',
+                'Physical Education & Health',
+                'EPP',
+                'TLE'
+              ].map((subject) => DropdownMenuItem(
                 value: subject,
                 child: Text(subject),
               )),

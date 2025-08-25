@@ -31,7 +31,6 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
     'Theory', 'Practice', 'Review'
   ];
   
-  int _timeLimit = 0; // 0 = no time limit
   int _totalPoints = 100;
   DateTime? _dueDate;
   
@@ -276,38 +275,20 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   }
 
   Widget _buildSubjectDropdown() {
-    final subjects = widget.teacherProfile.subjects ?? [];
-    
-    if (subjects.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F7),
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          border: Border.all(
-            color: const Color(0xFFE5E5E7),
-            width: 1,
-          ),
-        ),
-        child: const Row(
-          children: [
-            Icon(
-              Icons.warning_rounded,
-              color: Color(0xFFFF9500),
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'No subjects assigned. Please contact admin.',
-              style: TextStyle(
-                color: Color(0xFF86868B),
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    // Use the full list of 11 subjects instead of teacher profile subjects
+    final List<String> subjects = [
+      'Mathematics',
+      'GMRC',
+      'Values Education',
+      'Araling Panlipunan',
+      'English',
+      'Filipino',
+      'Music & Arts',
+      'Science',
+      'Physical Education & Health',
+      'EPP',
+      'TLE'
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,87 +441,41 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           const SizedBox(height: 24),
           
           // Time Limit
-          Row(
+          // Total Points
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Time Limit (minutes)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1D1D1F),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: const BorderRadius.all(Radius.circular(12)),
-                        border: Border.all(
-                          color: const Color(0xFFE5E5E7),
-                          width: 1,
-                        ),
-                      ),
-                      child: TextFormField(
-                        initialValue: _timeLimit.toString(),
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          border: InputBorder.none,
-                          hintText: '0 = no limit',
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _timeLimit = int.tryParse(value) ?? 0;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
+              const Text(
+                'Total Points',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Total Points',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1D1D1F),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: const BorderRadius.all(Radius.circular(12)),
-                        border: Border.all(
-                          color: const Color(0xFFE5E5E7),
-                          width: 1,
-                        ),
-                      ),
-                      child: TextFormField(
-                        initialValue: _totalPoints.toString(),
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          border: InputBorder.none,
-                          hintText: '100',
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _totalPoints = int.tryParse(value) ?? 100;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  border: Border.all(
+                    color: const Color(0xFFE5E5E7),
+                    width: 1,
+                  ),
+                ),
+                child: TextFormField(
+                  initialValue: _totalPoints.toString(),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: InputBorder.none,
+                    hintText: '100',
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _totalPoints = int.tryParse(value) ?? 100;
+                    });
+                  },
                 ),
               ),
             ],
@@ -1279,7 +1214,6 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           break;
         case QuestionType.shortAnswer:
         case QuestionType.essay:
-        case QuestionType.matching:
         case QuestionType.fillInTheBlank:
           newOptions = [];
           newCorrectAnswer = null;
@@ -1370,8 +1304,6 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         return 'Short Answer';
       case QuestionType.essay:
         return 'Essay';
-      case QuestionType.matching:
-        return 'Matching';
       case QuestionType.fillInTheBlank:
         return 'Fill in the Blank';
     }
@@ -1418,7 +1350,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         updatedAt: DateTime.now(),
         isPublished: _isPublished,
         tags: _selectedTags,
-        timeLimit: _timeLimit,
+        timeLimit: 0, // No time limit
         totalPoints: _totalPoints,
         questions: _questions,
         dueDate: _dueDate,
