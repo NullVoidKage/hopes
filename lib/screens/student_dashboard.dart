@@ -266,7 +266,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             _buildActionCard(
               'Progress',
               Icons.trending_up,
-              'Coming soon',
+              'View your learning progress',
               () => _navigateToProgress(),
             ),
           ],
@@ -346,16 +346,35 @@ class _StudentDashboardState extends State<StudentDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Recent Progress',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1D1D1F),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Recent Progress',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _navigateToProgress(),
+                child: const Text(
+                  'View All',
+                  style: TextStyle(
+                    color: Color(0xFF007AFF),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
-          _buildEmptyProgressState(),
+          // Show recent progress or empty state
+          if (_recentSubmissions.isEmpty)
+            _buildEmptyProgressState()
+          else
+            _buildProgressItems(),
         ],
       ),
     );
@@ -388,6 +407,94 @@ class _StudentDashboardState extends State<StudentDashboard> {
               color: Color(0xFF86868B),
             ),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressItems() {
+    return Column(
+      children: _recentSubmissions.take(3).map((submission) => _buildProgressItem(submission)).toList(),
+    );
+  }
+
+  Widget _buildProgressItem(AssessmentSubmission submission) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE5E5E7),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _getScoreColor(submission.score.toDouble()).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.trending_up,
+              color: _getScoreColor(submission.score.toDouble()),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  submission.assessmentTitle.isNotEmpty 
+                      ? submission.assessmentTitle 
+                      : 'Assessment ${submission.assessmentId.substring(0, 8)}...',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1D1D1F),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${submission.assessmentSubject} • Score: ${submission.score}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(0xFF86868B),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Completed ${_formatDate(submission.submittedAt)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: const Color(0xFF86868B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _getScoreColor(submission.score.toDouble()).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '${submission.score}%',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: _getScoreColor(submission.score.toDouble()),
+              ),
+            ),
           ),
         ],
       ),
