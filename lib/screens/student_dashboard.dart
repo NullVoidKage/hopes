@@ -16,6 +16,8 @@ import 'student_submission_history_screen.dart';
 import 'student_progress_detail_screen.dart';
 import 'student_learning_path_navigator_screen.dart';
 import 'lesson_detail_screen.dart';
+import 'student_profile_edit_screen.dart';
+import 'student_settings_screen.dart';
 
 // Helper class to track assessment submission status
 class AssessmentWithSubmissionStatus {
@@ -141,6 +143,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 
                 // Quick Actions Grid
                 _buildQuickActions(),
+                
+                const SizedBox(height: 30),
+                
+                // Profile & Settings Section
+                _buildProfileSettingsSection(),
                 
                 const SizedBox(height: 30),
                 
@@ -320,6 +327,115 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileSettingsSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFFE5E5E7),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Profile & Settings',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _navigateToSettings(),
+                child: const Text(
+                  'Manage',
+                  style: TextStyle(
+                    color: Color(0xFF007AFF),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: const Color(0xFF667eea).withValues(alpha: 0.1),
+                backgroundImage: _userProfile?.photoURL != null
+                    ? NetworkImage(_userProfile!.photoURL!)
+                    : null,
+                child: _userProfile?.photoURL == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 30,
+                        color: Color(0xFF667eea),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _userProfile?.displayName ?? 'Student',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1D1D1F),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _userProfile?.email ?? 'student@example.com',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF86868B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_userProfile?.grade ?? 'Grade 7'} • ${_userProfile?.subjects?.length ?? 0} subjects',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF007AFF),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => _navigateToProfileEdit(),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: Color(0xFF007AFF),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1228,6 +1344,28 @@ class _StudentDashboardState extends State<StudentDashboard> {
         builder: (context) => StudentSubmissionHistoryScreen(
           studentId: _userProfile?.uid ?? 'student_${DateTime.now().millisecondsSinceEpoch}',
           studentName: _userProfile?.displayName ?? 'Student',
+        ),
+      ),
+    );
+  }
+
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentSettingsScreen(
+          userProfile: _userProfile!,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToProfileEdit() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentProfileEditScreen(
+          userProfile: _userProfile!,
         ),
       ),
     );
