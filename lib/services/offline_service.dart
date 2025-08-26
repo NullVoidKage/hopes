@@ -23,6 +23,7 @@ class OfflineService {
   static const String _assessmentSubmissionsKey = 'cached_assessment_submissions';
   static const String _studentSubmissionsKey = 'cached_student_submissions';
   static const String _teacherSubmissionsKey = 'cached_teacher_submissions';
+  static const String _assessmentStatsKey = 'cached_assessment_stats';
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _isOnlineKey = 'is_online_status';
 
@@ -103,6 +104,37 @@ class OfflineService {
         print('Error getting cached assessments: $e');
       }
       return [];
+    }
+  }
+
+  // Cache assessment stats for a teacher
+  static Future<void> cacheAssessmentStats(String teacherId, Map<String, dynamic> stats) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_assessmentStatsKey}_$teacherId';
+      await prefs.setString(key, jsonEncode(stats));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching assessment stats: $e');
+      }
+    }
+  }
+
+  // Get cached assessment stats for a teacher
+  static Future<Map<String, dynamic>> getCachedAssessmentStats(String teacherId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_assessmentStatsKey}_$teacherId';
+      final data = prefs.getString(key);
+      if (data != null) {
+        return Map<String, dynamic>.from(jsonDecode(data));
+      }
+      return {};
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached assessment stats: $e');
+      }
+      return {};
     }
   }
 

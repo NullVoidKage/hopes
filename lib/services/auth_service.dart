@@ -3,6 +3,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import '../models/user_model.dart';
+import 'connectivity_service.dart';
+import 'offline_service.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -17,6 +19,8 @@ class AuthService {
       'profile',
     ],
   );
+  final ConnectivityService _connectivityService = ConnectivityService();
+  final OfflineService _offlineService = OfflineService();
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -178,17 +182,32 @@ class AuthService {
   // Get user profile from Firestore
   Future<UserModel?> getUserProfile(String uid) async {
     try {
+      // Check if we should use cached data
+      if (_connectivityService.shouldUseCachedData) {
+        print('🔌 Offline mode, using cached user profile');
+        return await _getCachedUserProfile(uid);
+      }
+
+      print('🌐 Online mode, fetching from Firestore');
+      // If online, fetch from Firestore and cache
       final doc = await firestore.FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .get();
 
       if (doc.exists) {
-        return UserModel.fromFirestore(doc.data()!, uid);
+        final userProfile = UserModel.fromFirestore(doc.data()!, uid);
+        
+        // Cache the user profile for offline use
+        await _cacheUserProfileLocally(userProfile);
+        
+        return userProfile;
       }
       return null;
     } catch (e) {
-      throw Exception('Failed to get user profile: ${e.toString()}');
+      print('Firestore error, trying cached data: $e');
+      // If Firestore fails, try to return cached data
+      return await _getCachedUserProfile(uid);
     }
   }
 
@@ -208,21 +227,54 @@ class AuthService {
   // Check if user profile exists
   Future<bool> userProfileExists(String uid) async {
     try {
+      // Check if we should use cached data
+      if (_connectivityService.shouldUseCachedData) {
+        print('🔌 Offline mode, checking cached user profile');
+        final cachedProfile = await _getCachedUserProfile(uid);
+        return cachedProfile != null;
+      }
+
+      print('🌐 Online mode, checking Firestore');
+      // If online, check Firestore
       final doc = await firestore.FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .get();
       return doc.exists;
     } catch (e) {
-      return false;
+      print('Firestore error, checking cached data: $e');
+      // If Firestore fails, check cached data
+      final cachedProfile = await _getCachedUserProfile(uid);
+      return cachedProfile != null;
     }
   }
 
+  // Cache user profile locally
+  Future<void> _cacheUserProfileLocally(UserModel user) async {
+    try {
+      final userData = user.toFirestore();
+      userData['uid'] = user.uid; // Add uid to the data
+      await OfflineService.cacheUserProfile(userData);
+      print('✅ Cached user profile for ${user.uid}');
+    } catch (e) {
+      print('❌ Failed to cache user profile: $e');
+    }
+  }
 
-
-
-
-
+  // Get cached user profile
+  Future<UserModel?> _getCachedUserProfile(String uid) async {
+    try {
+      final cachedUserData = await OfflineService.getCachedUserProfile();
+      if (cachedUserData != null && cachedUserData['uid'] == uid) {
+        print('🔌 Offline mode, returning cached user profile for $uid');
+        return UserModel.fromFirestore(cachedUserData, uid);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Failed to get cached user profile: $e');
+      return null;
+    }
+  }
 
   // Fix existing students who don't have subjects (for existing data)
   Future<void> fixExistingStudents() async {
