@@ -46,26 +46,47 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
   Future<void> _loadUserProfile() async {
     try {
+      print('🔍 TeacherPanel: Loading user profile and dashboard data');
       final user = _authService.currentUser;
       if (user != null) {
+        print('🔍 TeacherPanel: Current user ID: ${user.uid}');
         final profile = await _authService.getUserProfile(user.uid);
         if (profile != null) {
+          print('🔍 TeacherPanel: User profile loaded: ${profile.displayName}');
+          print('🔍 TeacherPanel: User subjects: ${profile.subjects}');
+          
+          print('🔍 TeacherPanel: Fetching dashboard data...');
           final dashboardData = await _dashboardService.getDashboardData(
             user.uid,
             profile.subjects ?? [],
           );
+          
+          print('🔍 TeacherPanel: Dashboard data loaded:');
+          print('🔍 TeacherPanel: - Student progress: ${dashboardData.studentProgress.length} records');
+          print('🔍 TeacherPanel: - Recent activities: ${dashboardData.recentActivities.length} records');
+          print('🔍 TeacherPanel: - Total students: ${dashboardData.totalStudents}');
+          print('🔍 TeacherPanel: - Active students: ${dashboardData.activeStudents}');
+          print('🔍 TeacherPanel: - Average progress: ${dashboardData.averageProgress}%');
+          
           setState(() {
             _userProfile = profile;
             _dashboardData = dashboardData;
             _isLoading = false;
           });
         } else {
+          print('🔍 TeacherPanel: No user profile found');
           setState(() {
             _isLoading = false;
           });
         }
+      } else {
+        print('🔍 TeacherPanel: No current user found');
+        setState(() {
+          _isLoading = false;
+        });
       }
     } catch (e) {
+      print('🔍 TeacherPanel: Error loading data: $e');
       setState(() {
         _isLoading = false;
       });
@@ -111,180 +132,185 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
-      body: CustomScrollView(
-        slivers: [
-          // Custom App Bar with Apple-style design
-          SliverAppBar(
-            expandedHeight: 120, // Reduced height since we don't need bottom row
-            floating: false,
-            pinned: true,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            shadowColor: Colors.black.withOpacity(0.1),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(24),
-                    bottomRight: Radius.circular(24),
+      body: RefreshIndicator(
+        onRefresh: _loadUserProfile,
+        color: const Color(0xFF007AFF),
+        backgroundColor: Colors.white,
+        child: CustomScrollView(
+          slivers: [
+            // Custom App Bar with Apple-style design
+            SliverAppBar(
+              expandedHeight: 120, // Reduced height since we don't need bottom row
+              floating: false,
+              pinned: true,
+              backgroundColor: Colors.white,
+              elevation: 0,
+              shadowColor: Colors.black.withOpacity(0.1),
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(24),
+                      bottomRight: Radius.circular(24),
+                    ),
                   ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                    child: Row(
-                      children: [
-                        // Profile Avatar
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF007AFF).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: const Color(0xFF007AFF).withOpacity(0.2),
-                              width: 1,
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                      child: Row(
+                        children: [
+                          // Profile Avatar
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF007AFF).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFF007AFF).withOpacity(0.2),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                          child: _userProfile?.photoURL != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: SafeNetworkImage(
-                                    imageUrl: _userProfile!.photoURL!,
-                                    fit: BoxFit.cover,
-                                    fallback: const Icon(
-                                      Icons.school_rounded,
-                                      size: 28,
-                                      color: Color(0xFF007AFF),
+                            child: _userProfile?.photoURL != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: SafeNetworkImage(
+                                      imageUrl: _userProfile!.photoURL!,
+                                      fit: BoxFit.cover,
+                                      fallback: const Icon(
+                                        Icons.school_rounded,
+                                        size: 28,
+                                        color: Color(0xFF007AFF),
+                                      ),
                                     ),
+                                  )
+                                : const Icon(
+                                    Icons.school_rounded,
+                                    size: 28,
+                                    color: Color(0xFF007AFF),
                                   ),
-                                )
-                              : const Icon(
-                                  Icons.school_rounded,
-                                  size: 28,
-                                  color: Color(0xFF007AFF),
-                                ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Welcome Text
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Welcome back,',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: const Color(0xFF86868B),
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _userProfile?.displayName ?? 'Teacher',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1D1D1F),
-                                  letterSpacing: -0.5,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
                           ),
-                        ),
-                        // Hamburger Menu Icon
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.menu_rounded,
-                              color: Color(0xFF007AFF),
-                              size: 24,
+                          const SizedBox(width: 16),
+                          // Welcome Text
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Welcome back,',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: const Color(0xFF86868B),
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _userProfile?.displayName ?? 'Teacher',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1D1D1F),
+                                    letterSpacing: -0.5,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            onPressed: _showHamburgerMenu,
-                            tooltip: 'Menu',
-                            padding: const EdgeInsets.all(8),
-                            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                           ),
-                        ),
-                      ],
+                          // Hamburger Menu Icon
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F5F7),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.menu_rounded,
+                                color: Color(0xFF007AFF),
+                                size: 24,
+                              ),
+                              onPressed: _showHamburgerMenu,
+                              tooltip: 'Menu',
+                              padding: const EdgeInsets.all(8),
+                              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          
-          // Main Content
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  
-                  // Subjects Badge
-                  if (_userProfile?.subjects?.isNotEmpty == true)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF007AFF).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFF007AFF).withOpacity(0.3),
-                          width: 1,
+            
+            // Main Content
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    
+                    // Subjects Badge
+                    if (_userProfile?.subjects?.isNotEmpty == true)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF007AFF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(0xFF007AFF).withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          'Teaching: ${_userProfile!.subjects!.join(' • ')}',
+                          style: const TextStyle(
+                            fontSize: 13, // Reduced from 14
+                            color: Color(0xFF007AFF),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
+                          maxLines: 2, // Allow up to 2 lines
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                      child: Text(
-                        'Teaching: ${_userProfile!.subjects!.join(' • ')}',
-                        style: const TextStyle(
-                          fontSize: 13, // Reduced from 14
-                          color: Color(0xFF007AFF),
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
-                        ),
-                        maxLines: 2, // Allow up to 2 lines
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Quick Actions Section
-                  _buildSectionHeader('Quick Actions', Icons.flash_on_rounded),
-                  const SizedBox(height: 20),
-                  _buildQuickActionsGrid(),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // Student Progress Section
-                  _buildSectionHeader('Student Progress', Icons.analytics_rounded),
-                  const SizedBox(height: 20),
-                  _buildStudentProgressCards(),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // Recent Activities Section
-                  _buildSectionHeader('Recent Activities', Icons.history_rounded),
-                  const SizedBox(height: 20),
-                  _buildRecentActivitiesList(),
-                  
-                  const SizedBox(height: 40),
-                ],
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Quick Actions Section
+                    _buildSectionHeader('Quick Actions', Icons.flash_on_rounded),
+                    const SizedBox(height: 20),
+                    _buildQuickActionsGrid(),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // Student Progress Section
+                    _buildSectionHeader('Student Progress', Icons.analytics_rounded),
+                    const SizedBox(height: 20),
+                    _buildStudentProgressCards(),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // Recent Activities Section
+                    _buildSectionHeader('Recent Activities', Icons.history_rounded),
+                    const SizedBox(height: 20),
+                    _buildRecentActivitiesList(),
+                    
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
