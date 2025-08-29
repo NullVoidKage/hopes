@@ -1,7 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
-  "outputDirectory": "build/web",
+  "builds": [
+    {
+      "src": "deploy/**",
+      "use": "@vercel/static"
+    }
+  ],
   "routes": [
     {
       "src": "/assets/(.*)",

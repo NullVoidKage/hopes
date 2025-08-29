@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="HOPES">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>HOPES</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Google Sign-In for Web -->
+  <meta name="google-signin-client_id" content="105306415530-2909b849ca4890693b8bd3.apps.googleusercontent.com">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    const serviceWorkerVersion = '"2224469229"';
+  </script>
+  
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+  
+  <!-- This script contains the Flutter build configuration -->
+  <script src="flutter_bootstrap.js"></script>
+</head>
+<body>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Flutter will be loaded automatically by flutter_bootstrap.js
+      console.log('Page loaded, Flutter should initialize automatically');
+    });
+  </script>
+</body>
+</html>

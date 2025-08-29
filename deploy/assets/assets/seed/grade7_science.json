@@ -1,0 +1,187 @@
+{
+  "subject": {
+    "id": "science_7",
+    "name": "Science 7",
+    "gradeLevel": 7
+  },
+  "module": {
+    "id": "biology_basics",
+    "subjectId": "science_7",
+    "title": "Biology Basics",
+    "version": "1.0.0",
+    "isPublished": true
+  },
+  "lessons": [
+    {
+      "id": "cells_lesson",
+      "moduleId": "biology_basics",
+      "title": "Cells: The Building Blocks of Life",
+      "bodyMarkdown": "# Cells: The Building Blocks of Life\n\n## Introduction\n\nAll living things are made up of cells. Cells are the smallest unit of life that can carry out all the functions necessary for survival.\n\n## What is a Cell?\n\nA cell is the basic structural and functional unit of all known living organisms. It is the smallest unit of life that can replicate independently.\n\n## Types of Cells\n\n### Prokaryotic Cells\n- Simple structure\n- No nucleus\n- Example: Bacteria\n\n### Eukaryotic Cells\n- Complex structure\n- Has a nucleus\n- Examples: Plant and animal cells\n\n## Cell Parts\n\n1. **Cell Membrane**: Controls what enters and leaves the cell\n2. **Nucleus**: Contains genetic material (DNA)\n3. **Cytoplasm**: Gel-like substance where organelles float\n4. **Mitochondria**: Produces energy for the cell\n5. **Ribosomes**: Makes proteins\n\n## Key Concepts\n\n- All living things are made of cells\n- Cells come from other cells\n- Cells are the basic unit of structure and function\n- Cells contain hereditary information",
+      "estMins": 15
+    },
+    {
+      "id": "classification_lesson",
+      "moduleId": "biology_basics",
+      "title": "Classification of Living Things",
+      "bodyMarkdown": "# Classification of Living Things\n\n## Introduction\n\nScientists classify living things to organize and understand the diversity of life on Earth.\n\n## The Classification System\n\nLiving things are organized into a hierarchy of groups:\n\n### Kingdom\n- The broadest level of classification\n- Examples: Animalia, Plantae, Fungi, Protista, Monera\n\n### Phylum\n- Groups organisms with similar body plans\n- Example: Chordata (animals with backbones)\n\n### Class\n- Groups organisms with similar characteristics\n- Example: Mammalia (mammals)\n\n### Order\n- Groups organisms with similar features\n- Example: Primates\n\n### Family\n- Groups closely related organisms\n- Example: Hominidae (great apes)\n\n### Genus\n- Groups very similar organisms\n- Example: Homo\n\n### Species\n- The most specific level\n- Example: Homo sapiens (humans)\n\n## Binomial Nomenclature\n\n- Two-part naming system\n- Genus + Species\n- Example: Canis lupus (wolf)\n\n## Key Concepts\n\n- Classification helps organize living things\n- The system has seven levels\n- Binomial nomenclature is the scientific naming system\n- Related organisms share similar characteristics",
+      "estMins": 12
+    },
+    {
+      "id": "ecosystems_lesson",
+      "moduleId": "biology_basics",
+      "title": "Ecosystems and Interactions",
+      "bodyMarkdown": "# Ecosystems and Interactions\n\n## Introduction\n\nAn ecosystem is a community of living organisms and their physical environment, interacting as a system.\n\n## What is an Ecosystem?\n\nAn ecosystem includes:\n- **Biotic factors**: Living things (plants, animals, fungi, bacteria)\n- **Abiotic factors**: Non-living things (water, air, soil, sunlight)\n\n## Types of Ecosystems\n\n### Terrestrial Ecosystems\n- Forests\n- Deserts\n- Grasslands\n- Tundra\n\n### Aquatic Ecosystems\n- Oceans\n- Lakes\n- Rivers\n- Ponds\n\n## Ecosystem Components\n\n### Producers\n- Plants and algae\n- Make their own food through photosynthesis\n- Base of the food chain\n\n### Consumers\n- **Herbivores**: Eat plants\n- **Carnivores**: Eat other animals\n- **Omnivores**: Eat both plants and animals\n\n### Decomposers\n- Break down dead organisms\n- Return nutrients to the soil\n- Examples: Bacteria, fungi\n\n## Food Chains and Food Webs\n\n- **Food Chain**: Shows how energy flows from one organism to another\n- **Food Web**: Shows multiple food chains connected together\n\n## Key Concepts\n\n- Ecosystems include living and non-living components\n- Energy flows through food chains and webs\n- All organisms have a role in the ecosystem\n- Ecosystems can change over time",
+      "estMins": 18
+    }
+  ],
+  "assessments": [
+    {
+      "id": "pretest",
+      "lessonId": null,
+      "type": "pre",
+      "items": [
+        {
+          "id": "pre_1",
+          "text": "What is the smallest unit of life?",
+          "choices": ["Atom", "Cell", "Tissue", "Organ"],
+          "correctIndex": 1
+        },
+        {
+          "id": "pre_2",
+          "text": "Which of the following is NOT a characteristic of living things?",
+          "choices": ["Growth", "Reproduction", "Movement", "Made of metal"],
+          "correctIndex": 3
+        },
+        {
+          "id": "pre_3",
+          "text": "What process do plants use to make their own food?",
+          "choices": ["Respiration", "Photosynthesis", "Digestion", "Circulation"],
+          "correctIndex": 1
+        },
+        {
+          "id": "pre_4",
+          "text": "Which kingdom includes humans?",
+          "choices": ["Plantae", "Animalia", "Fungi", "Protista"],
+          "correctIndex": 1
+        },
+        {
+          "id": "pre_5",
+          "text": "What is the study of living things called?",
+          "choices": ["Chemistry", "Physics", "Biology", "Geology"],
+          "correctIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "cells_quiz",
+      "lessonId": "cells_lesson",
+      "type": "quiz",
+      "items": [
+        {
+          "id": "cells_1",
+          "text": "What is the control center of the cell?",
+          "choices": ["Cell membrane", "Nucleus", "Cytoplasm", "Mitochondria"],
+          "correctIndex": 1
+        },
+        {
+          "id": "cells_2",
+          "text": "Which type of cell has no nucleus?",
+          "choices": ["Eukaryotic", "Prokaryotic", "Animal cell", "Plant cell"],
+          "correctIndex": 1
+        },
+        {
+          "id": "cells_3",
+          "text": "What organelle produces energy for the cell?",
+          "choices": ["Ribosomes", "Mitochondria", "Nucleus", "Cell membrane"],
+          "correctIndex": 1
+        },
+        {
+          "id": "cells_4",
+          "text": "What controls what enters and leaves the cell?",
+          "choices": ["Nucleus", "Cytoplasm", "Cell membrane", "Ribosomes"],
+          "correctIndex": 2
+        },
+        {
+          "id": "cells_5",
+          "text": "Where are ribosomes found in the cell?",
+          "choices": ["Only in the nucleus", "Only in the cytoplasm", "In the cytoplasm and on the endoplasmic reticulum", "Only on the cell membrane"],
+          "correctIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "classification_quiz",
+      "lessonId": "classification_lesson",
+      "type": "quiz",
+      "items": [
+        {
+          "id": "class_1",
+          "text": "What is the broadest level of classification?",
+          "choices": ["Species", "Genus", "Kingdom", "Phylum"],
+          "correctIndex": 2
+        },
+        {
+          "id": "class_2",
+          "text": "What is the scientific name for humans?",
+          "choices": ["Homo sapiens", "Canis lupus", "Felis catus", "Equus caballus"],
+          "correctIndex": 0
+        },
+        {
+          "id": "class_3",
+          "text": "Which kingdom includes mushrooms?",
+          "choices": ["Plantae", "Animalia", "Fungi", "Protista"],
+          "correctIndex": 2
+        },
+        {
+          "id": "class_4",
+          "text": "What is the two-part naming system called?",
+          "choices": ["Binomial nomenclature", "Taxonomy", "Classification", "Hierarchy"],
+          "correctIndex": 0
+        },
+        {
+          "id": "class_5",
+          "text": "Which level is more specific than genus?",
+          "choices": ["Family", "Order", "Species", "Phylum"],
+          "correctIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "ecosystems_quiz",
+      "lessonId": "ecosystems_lesson",
+      "type": "quiz",
+      "items": [
+        {
+          "id": "eco_1",
+          "text": "What are the living parts of an ecosystem called?",
+          "choices": ["Abiotic factors", "Biotic factors", "Habitat", "Community"],
+          "correctIndex": 1
+        },
+        {
+          "id": "eco_2",
+          "text": "What type of organism makes its own food?",
+          "choices": ["Consumer", "Producer", "Decomposer", "Herbivore"],
+          "correctIndex": 1
+        },
+        {
+          "id": "eco_3",
+          "text": "What do we call animals that eat only plants?",
+          "choices": ["Carnivores", "Omnivores", "Herbivores", "Decomposers"],
+          "correctIndex": 2
+        },
+        {
+          "id": "eco_4",
+          "text": "What breaks down dead organisms?",
+          "choices": ["Producers", "Consumers", "Decomposers", "Herbivores"],
+          "correctIndex": 2
+        },
+        {
+          "id": "eco_5",
+          "text": "What shows how energy flows from one organism to another?",
+          "choices": ["Food web", "Food chain", "Ecosystem", "Community"],
+          "correctIndex": 1
+        }
+      ]
+    }
+  ]
+} 
