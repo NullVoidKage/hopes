@@ -1417,4 +1417,605 @@ class _TeacherPanelState extends State<TeacherPanel> {
       ),
     );
   }
+
+  // Web-specific section header
+  Widget _buildWebSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF007AFF).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFF007AFF),
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1D1D1F),
+            letterSpacing: -0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Web-specific quick actions grid (4x2 layout)
+  Widget _buildWebQuickActionsGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 4,
+      crossAxisSpacing: 20,
+      mainAxisSpacing: 20,
+      childAspectRatio: 1.2,
+      children: [
+        _buildWebActionCard(
+          'Upload Lessons',
+          Icons.upload_file_rounded,
+          'Add new learning content',
+          () => _navigateToLessonUpload(),
+        ),
+        _buildWebActionCard(
+          'My Lessons',
+          Icons.library_books_rounded,
+          'View and manage lessons',
+          () => _navigateToLessonLibrary(),
+        ),
+        _buildWebActionCard(
+          'Monitor Progress',
+          Icons.analytics_rounded,
+          'Track student performance',
+          () => _navigateToProgressMonitoring(),
+        ),
+        _buildWebActionCard(
+          'Create Assessments',
+          Icons.quiz_rounded,
+          'Design tests and quizzes',
+          () => _navigateToAssessmentCreation(),
+        ),
+        _buildWebActionCard(
+          'Student Management',
+          Icons.people_rounded,
+          'Manage your students',
+          () => _navigateToStudentManagement(),
+        ),
+        _buildWebActionCard(
+          'Offline Settings',
+          Icons.settings_rounded,
+          'Configure offline mode',
+          () => _navigateToOfflineSettings(),
+        ),
+        _buildWebActionCard(
+          'Analytics',
+          Icons.bar_chart_rounded,
+          'View detailed reports',
+          () => _navigateToProgressMonitoring(),
+        ),
+        _buildWebActionCard(
+          'Help & Support',
+          Icons.help_outline_rounded,
+          'Get assistance',
+          () => _showHamburgerMenu(),
+        ),
+      ],
+    );
+  }
+
+  // Web-specific action card
+  Widget _buildWebActionCard(String title, IconData icon, String description, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF000000).withOpacity(0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icon,
+                size: 32,
+                color: const Color(0xFF007AFF),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1D1D1F),
+                letterSpacing: -0.2,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF86868B),
+                height: 1.3,
+                letterSpacing: -0.1,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Web-specific student progress cards
+  Widget _buildWebStudentProgressCards() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Column(
+          children: [
+            // Progress Stats Row
+            Row(
+              children: [
+                Expanded(
+                  child: _buildWebProgressCard(
+                    'Total Students',
+                    '${_dashboardData?.totalStudents ?? 0}',
+                    Icons.people_rounded,
+                    const Color(0xFF007AFF),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildWebProgressCard(
+                    'Active Students',
+                    '${_dashboardData?.activeStudents ?? 0}',
+                    Icons.person_rounded,
+                    const Color(0xFF34C759),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildWebProgressCard(
+                    'Avg. Progress',
+                    '${(_dashboardData?.averageProgress ?? 0.0).round()}%',
+                    Icons.trending_up_rounded,
+                    const Color(0xFFFF9500),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildWebProgressCard(
+                    'Lessons Created',
+                    '${_dashboardData?.recentActivities.length ?? 0}',
+                    Icons.library_books_rounded,
+                    const Color(0xFFAF52DE),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Subject Progress
+            if (_dashboardData?.studentProgress.isNotEmpty == true)
+              ..._buildWebSubjectProgressCards()
+            else
+              _buildWebEmptyState(
+                'No student progress yet',
+                'Student progress will appear here once they start learning',
+                Icons.analytics_outlined,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Web-specific progress card
+  Widget _buildWebProgressCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icon,
+              size: 28,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF86868B),
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.1,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Web-specific subject progress cards
+  List<Widget> _buildWebSubjectProgressCards() {
+    final subjects = _dashboardData?.studentProgress.map((p) => p.subject).toSet().toList() ?? [];
+    
+    return subjects.map((subject) {
+      final subjectProgress = _dashboardData?.studentProgress
+          .where((p) => p.subject == subject)
+          .toList() ?? [];
+      
+      final averageProgress = subjectProgress.isNotEmpty
+          ? subjectProgress.map((p) => p.completionRate).reduce((a, b) => a + b) / subjectProgress.length
+          : 0.0;
+      
+      return Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF000000).withOpacity(0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    subject,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1D1D1F),
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${subjectProgress.length} students enrolled',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF86868B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${averageProgress.round()}%',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF007AFF),
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F7),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: averageProgress / 100,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF007AFF),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  // Web-specific dashboard stats
+  Widget _buildWebDashboardStats() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.dashboard_rounded,
+                color: const Color(0xFF007AFF),
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Quick Stats',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildWebStatItem('Subjects', '${_userProfile?.subjects?.length ?? 0}'),
+              ),
+              Expanded(
+                child: _buildWebStatItem('Students', '${_dashboardData?.totalStudents ?? 0}'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildWebStatItem('Active', '${_dashboardData?.activeStudents ?? 0}'),
+              ),
+              Expanded(
+                child: _buildWebStatItem('Progress', '${(_dashboardData?.averageProgress ?? 0.0).round()}%'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Web-specific stat item
+  Widget _buildWebStatItem(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1D1D1F),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF86868B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Web-specific recent activities list
+  Widget _buildWebRecentActivitiesList() {
+    final activities = _dashboardData?.recentActivities ?? [];
+    
+    if (activities.isEmpty) {
+      return _buildWebEmptyState(
+        'No recent activities',
+        'Your activities will appear here once you start using the platform',
+        Icons.history_outlined,
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: activities.take(5).map((activity) => Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: const Color(0xFFF5F5F7),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(activity.colorValue).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  _getIconFromString(activity.iconName),
+                  color: Color(activity.colorValue),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      activity.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1D1D1F),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      activity.subject,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF86868B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                activity.displayTime,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF86868B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        )).toList(),
+      ),
+    );
+  }
+
+  // Web-specific empty state
+  Widget _buildWebEmptyState(String title, String subtitle, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: 48,
+            color: const Color(0xFF86868B),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1D1D1F),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF86868B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 }
