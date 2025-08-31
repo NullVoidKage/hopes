@@ -8,6 +8,21 @@ import 'services/offline_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Suppress debug service errors in web mode
+  if (kIsWeb) {
+    // Disable debug services that cause "Cannot send Null" errors
+    debugPrint = (String? message, {int? wrapWidth}) {
+      // Suppress debug service errors
+      if (message != null && message.contains('DebugService: Error serving requestsError')) {
+        return;
+      }
+      // Allow other debug prints
+      if (kDebugMode) {
+        print(message);
+      }
+    };
+  }
+  
   try {
     if (kIsWeb) {
       // Web configurationm m       mm

@@ -22,10 +22,33 @@
   <!-- Google Sign-In for Web -->
   <meta name="google-signin-client_id" content="105306415530-2909b849ca4890693b8bd3.apps.googleusercontent.com">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+O
+  <!-- Load Google Fonts reliably -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 
   <script>
     // The value below is injected by flutter build, do not touch.
     const serviceWorkerVersion = '{{flutter_service_worker_version}}';
+    
+    // Fix for debug service errors
+    window.addEventListener('error', function(e) {
+      if (e.message && e.message.includes('Cannot send Null')) {
+        e.preventDefault();
+        console.warn('Debug service error suppressed:', e.message);
+        return false;
+      }
+    });
+    
+    // Suppress debug service console errors
+    const originalConsoleError = console.error;
+    console.error = function(...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('DebugService: Error serving requestsError')) {
+        return; // Suppress debug service errors
+      }
+      originalConsoleError.apply(console, args);
+    };
   </script>
   
   <!-- This script adds the flutter initialization JS code -->
