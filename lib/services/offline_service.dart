@@ -693,6 +693,7 @@ class OfflineService {
       final leaderboard = prefs.getString(_leaderboardKey)?.length ?? 0;
       final adaptiveDifficulties = prefs.getString(_adaptiveDifficultiesKey)?.length ?? 0;
       final difficultyAdjustments = prefs.getString(_difficultyAdjustmentsKey)?.length ?? 0;
+      final flashCards = prefs.getString(_flashCardsKey)?.length ?? 0;
       
       return {
         'lessons': lessons,
@@ -706,11 +707,12 @@ class OfflineService {
         'feedback': feedback,
         'recommendations': recommendations,
         'achievements': achievements,
+        'flashCards': flashCards,
         'studentAchievements': studentAchievements,
         'leaderboard': leaderboard,
         'adaptiveDifficulties': adaptiveDifficulties,
         'difficultyAdjustments': difficultyAdjustments,
-        'total': lessons + assessments + progress + students + profile + activities + learningPaths + studentLearningPaths + feedback + recommendations + achievements + studentAchievements + leaderboard + adaptiveDifficulties + difficultyAdjustments,
+        'total': lessons + assessments + progress + students + profile + activities + learningPaths + studentLearningPaths + feedback + recommendations + achievements + flashCards + studentAchievements + leaderboard + adaptiveDifficulties + difficultyAdjustments,
       };
     } catch (e) {
       return {
@@ -725,6 +727,7 @@ class OfflineService {
         'feedback': 0,
         'recommendations': 0,
         'achievements': 0,
+        'flashCards': 0,
         'studentAchievements': 0,
         'leaderboard': 0,
         'adaptiveDifficulties': 0,

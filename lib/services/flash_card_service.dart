@@ -1245,31 +1245,52 @@ class FlashCardService {
   // Get flash cards by student and lesson (more efficient)
   Future<List<FlashCard>> getFlashCardsByStudentAndLesson(String studentId, String lessonId) async {
     try {
-      final snapshot = await _database.child('flash_cards')
-          .orderByChild('studentId')
-          .equalTo(studentId)
-          .get();
+      List<FlashCard> flashCards;
       
-      final List<FlashCard> flashCards = [];
-      if (snapshot.exists) {
-        for (final child in snapshot.children) {
-          if (child.key != null) {
-            final data = child.value as Map<dynamic, dynamic>;
-            // Filter by lesson ID
-            if (data['lessonId'] == lessonId) {
-              final flashCard = FlashCard.fromRealtimeDatabase(
-                child.key!,
-                data,
-              );
-              flashCards.add(flashCard);
+      if (_connectivityService.shouldUseCachedData) {
+        // Use cached data when offline
+        flashCards = await _getCachedFlashCards(studentId);
+        // Filter by lesson ID
+        flashCards = flashCards.where((card) => card.lessonId == lessonId).toList();
+      } else {
+        // Online - fetch from Firebase
+        final snapshot = await _database.child('flash_cards')
+            .orderByChild('studentId')
+            .equalTo(studentId)
+            .get();
+        
+        flashCards = [];
+        if (snapshot.exists) {
+          for (final child in snapshot.children) {
+            if (child.key != null) {
+              final data = child.value as Map<dynamic, dynamic>;
+              // Filter by lesson ID
+              if (data['lessonId'] == lessonId) {
+                final flashCard = FlashCard.fromRealtimeDatabase(
+                  child.key!,
+                  data,
+                );
+                flashCards.add(flashCard);
+              }
             }
           }
         }
+        
+        // Cache the flash cards locally
+        await _cacheFlashCardsLocally(flashCards);
       }
       
+      // Sort by creation date (newest first)
+      flashCards.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return flashCards;
     } catch (e) {
-      throw Exception('Failed to get flash cards by student and lesson: ${e.toString()}');
+      // If Firebase fails, try to return cached data
+      try {
+        final cachedFlashCards = await _getCachedFlashCards(studentId);
+        return cachedFlashCards.where((card) => card.lessonId == lessonId).toList();
+      } catch (cacheError) {
+        throw Exception('Failed to get flash cards by student and lesson: ${e.toString()}');
+      }
     }
   }
 
