@@ -2038,4 +2038,45 @@ class OfflineService {
       }
     }
   }
+
+  // Cache generic data
+  static Future<void> cacheData(String key, Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, jsonEncode(data));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to cache data for key $key: $e');
+      }
+    }
+  }
+
+  // Get cached generic data
+  static Future<Map<String, dynamic>?> getCachedData(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedString = prefs.getString(key);
+      if (cachedString != null) {
+        return jsonDecode(cachedString) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to get cached data for key $key: $e');
+      }
+      return null;
+    }
+  }
+
+  // Remove cached generic data
+  static Future<void> removeCachedData(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to remove cached data for key $key: $e');
+      }
+    }
+  }
 }

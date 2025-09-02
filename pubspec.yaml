@@ -51,6 +51,11 @@ dependencies:
   # Local storage
   shared_preferences: ^2.2.2
 
+  # PDF and document parsing
+  syncfusion_flutter_pdf: ^24.1.41
+  path_provider: ^2.1.1
+  http: ^1.1.0
+
   # Utilities
   uuid: ^4.2.1
 
