@@ -1,14 +1,274 @@
 import 'package:flutter/material.dart';
 import '../models/lesson.dart';
+import '../models/flash_card.dart';
+import '../services/flash_card_service.dart';
+import '../services/auth_service.dart';
 import 'file_preview_screen.dart';
+import 'flash_card_study_screen.dart';
 
-class LessonDetailScreen extends StatelessWidget {
+class LessonDetailScreen extends StatefulWidget {
   final Lesson lesson;
 
   const LessonDetailScreen({
     super.key,
     required this.lesson,
   });
+
+  @override
+  State<LessonDetailScreen> createState() => _LessonDetailScreenState();
+}
+
+class _LessonDetailScreenState extends State<LessonDetailScreen> {
+  final FlashCardService _flashCardService = FlashCardService();
+  final AuthService _authService = AuthService();
+  bool _isConvertingToFlashCards = false;
+  bool _hasFlashCards = false;
+  List<FlashCard> _flashCards = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingFlashCards();
+  }
+
+  Future<void> _checkExistingFlashCards() async {
+    try {
+      final currentUser = _authService.currentUser;
+      if (currentUser != null) {
+        final flashCards = await _flashCardService.getFlashCardsByLesson(widget.lesson.id);
+        setState(() {
+          _flashCards = flashCards;
+          _hasFlashCards = flashCards.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      print('Error checking existing flash cards: $e');
+    }
+  }
+
+  Future<void> _convertToFlashCards() async {
+    try {
+      print('🔄 Starting flash card conversion...');
+      
+      final currentUser = _authService.currentUser;
+      if (currentUser == null) {
+        print('❌ No current user found');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to create flash cards'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      print('👤 User: ${currentUser.uid} (${currentUser.displayName})');
+      print('📚 Lesson: ${widget.lesson.title} (ID: ${widget.lesson.id})');
+
+      setState(() {
+        _isConvertingToFlashCards = true;
+      });
+
+      print('🚀 Creating flash cards...');
+      final flashCardIds = await _flashCardService.createFlashCardsFromLesson(
+        widget.lesson,
+        currentUser.uid,
+        currentUser.displayName ?? 'Student',
+      );
+
+      print('✅ Created ${flashCardIds.length} flash cards');
+
+      // Refresh the flash cards list
+      await _checkExistingFlashCards();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Flash cards created successfully! (${flashCardIds.length} cards)'),
+            backgroundColor: const Color(0xFF34C759),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error creating flash cards: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating flash cards: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isConvertingToFlashCards = false;
+        });
+      }
+    }
+  }
+
+  void _studyFlashCards() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FlashCardStudyScreen(
+          flashCards: _flashCards,
+          lessonTitle: widget.lesson.title,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlashCardActions() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF34C759).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.style_rounded,
+                  size: 20,
+                  color: Color(0xFF34C759),
+                ),
+              ),
+              const SizedBox(width: 12),
+                          const Text(
+              'Study Tools',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1D1D1F),
+              ),
+            ),
+            const Spacer(),
+            if (!_hasFlashCards && !_isConvertingToFlashCards)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF34C759).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'NEW',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF34C759),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 20),
+          
+          if (_hasFlashCards) ...[
+            // Study existing flash cards
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _studyFlashCards,
+                icon: const Icon(Icons.school_rounded, color: Colors.white),
+                label: const Text(
+                  'Study Flash Cards',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF007AFF),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'You have ${_flashCards.length} flash cards for this lesson',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF86868B),
+              ),
+            ),
+          ] else if (_isConvertingToFlashCards) ...[
+            // Converting state
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Creating flash cards...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF86868B),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Create new flash cards
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _convertToFlashCards,
+                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                label: const Text(
+                  'Create Flash Cards',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF34C759),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Generate study cards automatically from this lesson content',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF86868B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +285,7 @@ class LessonDetailScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          lesson.title,
+          widget.lesson.title,
           style: const TextStyle(
             color: Color(0xFF1D1D1F),
             fontWeight: FontWeight.w600,
@@ -45,6 +305,10 @@ class LessonDetailScreen extends StatelessWidget {
               // Lesson Header Card
               _buildLessonHeader(),
               
+              const SizedBox(height: 24),
+              
+              // Flash Card Action Card
+              _buildFlashCardActions(),
               const SizedBox(height: 24),
               
               // Lesson Content Card
@@ -86,7 +350,7 @@ class LessonDetailScreen extends StatelessWidget {
         children: [
           // Title
           Text(
-            lesson.title,
+            widget.lesson.title,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
@@ -100,10 +364,10 @@ class LessonDetailScreen extends StatelessWidget {
           // Tags Row
           Row(
             children: [
-              _buildTag(lesson.subject, const Color(0xFF007AFF)),
+              _buildTag(widget.lesson.subject, const Color(0xFF007AFF)),
               const SizedBox(width: 12),
               _buildTag('Grade 7', const Color(0xFF34C759)),
-              if (lesson.isPublished) ...[
+              if (widget.lesson.isPublished) ...[
                 const SizedBox(width: 12),
                 _buildTag('Published', const Color(0xFF34C759)),
               ] else ...[
@@ -165,13 +429,13 @@ class LessonDetailScreen extends StatelessWidget {
           const SizedBox(height: 20),
           
           // File Information (if available)
-          if (lesson.fileUrl != null && lesson.fileUrl!.isNotEmpty) ...[
+          if (widget.lesson.fileUrl != null && widget.lesson.fileUrl!.isNotEmpty) ...[
             _buildFileSection(),
             const SizedBox(height: 20),
           ],
           
           // Description or Content
-          if (lesson.description != null && lesson.description!.isNotEmpty) ...[
+          if (widget.lesson.description != null && widget.lesson.description!.isNotEmpty) ...[
             const Text(
               'Description',
               style: TextStyle(
@@ -183,14 +447,14 @@ class LessonDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              lesson.description!,
+              widget.lesson.description!,
               style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF1D1D1F),
                 height: 1.6,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
           ],
           
           const Text(
@@ -204,7 +468,7 @@ class LessonDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            lesson.content,
+            widget.lesson.content,
             style: const TextStyle(
               fontSize: 16,
               color: Color(0xFF1D1D1F),
@@ -217,7 +481,7 @@ class LessonDetailScreen extends StatelessWidget {
   }
 
   Widget _buildFileSection() {
-    final fileName = _getFileNameFromUrl(lesson.fileUrl!);
+    final fileName = _getFileNameFromUrl(widget.lesson.fileUrl!);
     final fileExtension = _getFileExtension(fileName);
     
     return Container(
@@ -295,7 +559,7 @@ class LessonDetailScreen extends StatelessWidget {
               Expanded(
                 child: Builder(
                   builder: (context) => ElevatedButton.icon(
-                    onPressed: () => _openFile(context, lesson.fileUrl!),
+                    onPressed: () => _openFile(context, widget.lesson.fileUrl!),
                     icon: const Icon(Icons.open_in_new_rounded, size: 18),
                     label: const Text('Open File'),
                     style: ElevatedButton.styleFrom(
@@ -314,7 +578,7 @@ class LessonDetailScreen extends StatelessWidget {
               Expanded(
                 child: Builder(
                   builder: (context) => OutlinedButton.icon(
-                    onPressed: () => _downloadFile(context, lesson.fileUrl!, fileName),
+                    onPressed: () => _downloadFile(context, widget.lesson.fileUrl!, fileName),
                     icon: const Icon(Icons.download_rounded, size: 18),
                     label: const Text('Download'),
                     style: OutlinedButton.styleFrom(
@@ -404,7 +668,7 @@ class LessonDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      lesson.teacherName,
+                      widget.lesson.teacherName,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -480,7 +744,7 @@ class LessonDetailScreen extends StatelessWidget {
           // Metadata Items
           _buildMetadataItem(
             'Subject',
-            lesson.subject,
+            widget.lesson.subject,
             Icons.subject_rounded,
             const Color(0xFF007AFF),
           ),
@@ -494,22 +758,22 @@ class LessonDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _buildMetadataItem(
             'Created',
-            _formatDate(lesson.createdAt),
+            _formatDate(widget.lesson.createdAt),
             Icons.calendar_today_rounded,
             const Color(0xFFFF9500),
           ),
           const SizedBox(height: 16),
           _buildMetadataItem(
             'Last Updated',
-            _formatDate(lesson.updatedAt),
+            _formatDate(widget.lesson.updatedAt),
             Icons.update_rounded,
             const Color(0xFFAF52DE),
           ),
-          if (lesson.tags.isNotEmpty) ...[
+          if (widget.lesson.tags.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildMetadataItem(
               'Tags',
-              lesson.tags.join(', '),
+              widget.lesson.tags.join(', '),
               Icons.tag_rounded,
               const Color(0xFF86868B),
             ),

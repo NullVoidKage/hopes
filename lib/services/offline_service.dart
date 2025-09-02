@@ -24,6 +24,7 @@ class OfflineService {
   static const String _studentSubmissionsKey = 'cached_student_submissions';
   static const String _teacherSubmissionsKey = 'cached_teacher_submissions';
   static const String _assessmentStatsKey = 'cached_assessment_stats';
+  static const String _flashCardsKey = 'cached_flash_cards';
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _isOnlineKey = 'is_online_status';
 
@@ -1986,5 +1987,55 @@ class OfflineService {
     }
   }
 
+  // Cache flash card data
+  static Future<void> cacheFlashCard(String flashCardId, Map<String, dynamic> flashCard) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final flashCardsJson = prefs.getString(_flashCardsKey);
+      Map<String, dynamic> flashCards = {};
+      
+      if (flashCardsJson != null) {
+        flashCards = Map<String, dynamic>.from(jsonDecode(flashCardsJson));
+      }
+      
+      flashCards[flashCardId] = flashCard;
+      await prefs.setString(_flashCardsKey, jsonEncode(flashCards));
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching flash card: $e');
+      }
+    }
+  }
 
+  // Get cached flash cards
+  static Future<Map<String, dynamic>> getCachedFlashCards() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final flashCardsJson = prefs.getString(_flashCardsKey);
+      if (flashCardsJson != null) {
+        final Map<String, dynamic> flashCards = Map<String, dynamic>.from(jsonDecode(flashCardsJson));
+        return flashCards;
+      }
+      return {};
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached flash cards: $e');
+      }
+      return {};
+    }
+  }
+
+  // Remove flash card from cache
+  static Future<void> removeCachedFlashCard(String flashCardId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_flashCardsKey}_$flashCardId';
+      await prefs.remove(key);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error removing cached flash card: $e');
+      }
+    }
+  }
 }

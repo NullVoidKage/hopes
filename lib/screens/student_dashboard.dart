@@ -18,6 +18,9 @@ import 'student_learning_path_navigator_screen.dart';
 import 'lesson_detail_screen.dart';
 import 'student_profile_edit_screen.dart';
 import 'student_settings_screen.dart';
+import 'flash_card_study_screen.dart';
+import '../models/flash_card.dart';
+import '../services/flash_card_service.dart';
 
 // Helper class to track assessment submission status
 class AssessmentWithSubmissionStatus {
@@ -153,6 +156,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 
                 // Recent Progress
                 _buildRecentProgress(),
+                
+                const SizedBox(height: 30),
+                
+                // Flash Cards Section
+                _buildFlashCardsSection(),
                 
                 const SizedBox(height: 30),
                 
@@ -1537,5 +1545,258 @@ class _StudentDashboardState extends State<StudentDashboard> {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
+  }
+
+  Widget _buildFlashCardsSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFFE5E5E7),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF34C759).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.style_rounded,
+                  size: 20,
+                  color: Color(0xFF34C759),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'My Flash Cards',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Flash Cards Summary
+          FutureBuilder<List<FlashCard>>(
+            future: _getFlashCards(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF34C759)),
+                    ),
+                  ),
+                );
+              }
+              
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'Error loading flash cards',
+                      style: TextStyle(
+                        color: Color(0xFFFF3B30),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              
+              final flashCards = snapshot.data ?? [];
+              
+              if (flashCards.isEmpty) {
+                return Column(
+                  children: [
+                    const Icon(
+                      Icons.style_rounded,
+                      size: 48,
+                      color: Color(0xFFE5E5E7),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No flash cards yet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF86868B),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Convert lessons to flash cards to start studying',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF86868B),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _navigateToLessons,
+                      icon: const Icon(Icons.add_rounded, color: Colors.white),
+                      label: const Text(
+                        'Browse Lessons',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF34C759),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              
+              // Group flash cards by lesson
+              final Map<String, List<FlashCard>> groupedCards = {};
+              for (final card in flashCards) {
+                final lessonTitle = card.lessonTitle;
+                if (!groupedCards.containsKey(lessonTitle)) {
+                  groupedCards[lessonTitle] = [];
+                }
+                groupedCards[lessonTitle]!.add(card);
+              }
+              
+              return Column(
+                children: [
+                  // Summary
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${flashCards.length} total cards',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF86868B),
+                        ),
+                      ),
+                      Text(
+                        '${groupedCards.length} lessons',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF86868B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Lesson groups
+                  ...groupedCards.entries.map((entry) {
+                    final lessonTitle = entry.key;
+                    final cards = entry.value;
+                    
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F7),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFE5E5E7),
+                          width: 1,
+                        ),
+                      ),
+                      child: ListTile(
+                        title: Text(
+                          lessonTitle,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1D1D1F),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${cards.length} cards',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF86868B),
+                          ),
+                        ),
+                        trailing: ElevatedButton(
+                          onPressed: () => _studyFlashCards(cards, lessonTitle),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF007AFF),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Study',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<List<FlashCard>> _getFlashCards() async {
+    try {
+      final currentUser = _authService.currentUser;
+      if (currentUser == null) return [];
+      
+      final flashCardService = FlashCardService();
+      return await flashCardService.getFlashCardsByStudent(currentUser.uid);
+    } catch (e) {
+      print('Error loading flash cards: $e');
+      return [];
+    }
+  }
+
+  void _studyFlashCards(List<FlashCard> flashCards, String lessonTitle) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FlashCardStudyScreen(
+          flashCards: flashCards,
+          lessonTitle: lessonTitle,
+        ),
+      ),
+    );
   }
 }
