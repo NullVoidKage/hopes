@@ -3,6 +3,7 @@ import '../models/assessment_submission.dart';
 import '../services/submission_service.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/offline_indicator.dart';
+import 'submission_details_screen.dart';
 
 class TeacherSubmissionViewerScreen extends StatefulWidget {
   final String teacherId;
@@ -723,11 +724,13 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
   }
 
   void _viewSubmissionDetails(AssessmentSubmission submission) {
-    // TODO: Navigate to submission detail screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Viewing submission: ${submission.id}'),
-        backgroundColor: const Color(0xFF007AFF),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SubmissionDetailsScreen(
+          submission: submission,
+          isTeacher: true,
+        ),
       ),
     );
   }

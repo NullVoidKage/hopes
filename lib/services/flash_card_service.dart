@@ -1242,6 +1242,37 @@ class FlashCardService {
     }
   }
 
+  // Get flash cards by student and lesson (more efficient)
+  Future<List<FlashCard>> getFlashCardsByStudentAndLesson(String studentId, String lessonId) async {
+    try {
+      final snapshot = await _database.child('flash_cards')
+          .orderByChild('studentId')
+          .equalTo(studentId)
+          .get();
+      
+      final List<FlashCard> flashCards = [];
+      if (snapshot.exists) {
+        for (final child in snapshot.children) {
+          if (child.key != null) {
+            final data = child.value as Map<dynamic, dynamic>;
+            // Filter by lesson ID
+            if (data['lessonId'] == lessonId) {
+              final flashCard = FlashCard.fromRealtimeDatabase(
+                child.key!,
+                data,
+              );
+              flashCards.add(flashCard);
+            }
+          }
+        }
+      }
+      
+      return flashCards;
+    } catch (e) {
+      throw Exception('Failed to get flash cards by student and lesson: ${e.toString()}');
+    }
+  }
+
   // Update flash card
   Future<void> updateFlashCard(String flashCardId, FlashCard flashCard) async {
     try {

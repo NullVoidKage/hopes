@@ -3,6 +3,7 @@ import '../models/assessment_submission.dart';
 import '../services/submission_service.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/offline_indicator.dart';
+import 'submission_details_screen.dart';
 
 class StudentSubmissionHistoryScreen extends StatefulWidget {
   final String studentId;
@@ -582,26 +583,27 @@ class _StudentSubmissionHistoryScreenState extends State<StudentSubmissionHistor
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _retakeAssessment(submission),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF007AFF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'Retake',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
+                // Retake button commented out for now
+                // const SizedBox(width: 12),
+                // Expanded(
+                //   child: ElevatedButton(
+                //     onPressed: () => _retakeAssessment(submission),
+                //     style: ElevatedButton.styleFrom(
+                //       backgroundColor: const Color(0xFF007AFF),
+                //       shape: RoundedRectangleBorder(
+                //         borderRadius: BorderRadius.circular(12),
+                //       ),
+                //       padding: const EdgeInsets.symmetric(vertical: 12),
+                //     ),
+                //     child: const Text(
+                //       'Retake',
+                //       style: TextStyle(
+                //         color: Colors.white,
+                //         fontWeight: FontWeight.w600,
+                //       ),
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ],
@@ -641,22 +643,16 @@ class _StudentSubmissionHistoryScreenState extends State<StudentSubmissionHistor
   }
 
   void _viewSubmissionDetails(AssessmentSubmission submission) {
-    // TODO: Navigate to submission detail screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Viewing submission: ${submission.id}'),
-        backgroundColor: const Color(0xFF007AFF),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SubmissionDetailsScreen(
+          submission: submission,
+          isTeacher: false,
+        ),
       ),
     );
   }
 
-  void _retakeAssessment(AssessmentSubmission submission) {
-    // TODO: Navigate to assessment taker screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Retaking assessment: ${submission.assessmentId}'),
-        backgroundColor: const Color(0xFF007AFF),
-      ),
-    );
-  }
+
 }

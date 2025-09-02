@@ -21,6 +21,7 @@ import 'student_settings_screen.dart';
 import 'flash_card_study_screen.dart';
 import '../models/flash_card.dart';
 import '../services/flash_card_service.dart';
+import 'submission_details_screen.dart';
 
 // Helper class to track assessment submission status
 class AssessmentWithSubmissionStatus {
@@ -311,27 +312,35 @@ class _StudentDashboardState extends State<StudentDashboard> {
           children: [
             Icon(
               icon,
-              size: 40,
+              size: 32,
               color: const Color(0xFF667eea),
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
+            const SizedBox(height: 12),
+            Flexible(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF333333),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -1176,11 +1185,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
             if (hasSubmitted && existingSubmission != null)
               Text(
-                '${existingSubmission!.accuracy.toStringAsFixed(1)}%',
+                '${existingSubmission.accuracy.toStringAsFixed(1)}%',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: _getScoreColor(existingSubmission!.accuracy),
+                  color: _getScoreColor(existingSubmission.accuracy),
                 ),
               ),
           ],
@@ -1267,45 +1276,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   void _showSubmissionDetails(AssessmentSubmission submission) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Assessment Already Completed'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('You have already completed this assessment.'),
-            const SizedBox(height: 16),
-            Text('Score: ${submission.accuracy.toStringAsFixed(1)}%'),
-            Text('Submitted: ${submission.formattedDate}'),
-            Text('Time Spent: ${submission.formattedTimeSpent}'),
-            if (submission.feedback != null && submission.feedback!.isNotEmpty)
-              Text('Feedback: ${submission.feedback}'),
-          ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SubmissionDetailsScreen(
+          submission: submission,
+          isTeacher: false,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Navigate to submission history
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => StudentSubmissionHistoryScreen(
-                    studentId: _getCurrentStudentId(),
-                    studentName: 'Student', // TODO: Get from user profile
-                  ),
-                ),
-              );
-            },
-            child: const Text('View All Submissions'),
-          ),
-        ],
       ),
     );
   }
@@ -1368,8 +1345,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  void _navigateToProfileEdit() {
-    Navigator.push(
+  void _navigateToProfileEdit() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => StudentProfileEditScreen(
@@ -1377,6 +1354,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
         ),
       ),
     );
+    
+    // If profile was updated, refresh the user profile
+    if (result != null && mounted) {
+      print('🔄 Profile updated, refreshing user data...');
+      await _loadUserProfile();
+    }
   }
 
   Widget _buildRecentSubmissions() {

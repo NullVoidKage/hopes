@@ -35,10 +35,14 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     try {
       final currentUser = _authService.currentUser;
       if (currentUser != null) {
-        final flashCards = await _flashCardService.getFlashCardsByLesson(widget.lesson.id);
+        // Get flash cards for this specific student and lesson
+        final lessonFlashCards = await _flashCardService.getFlashCardsByStudentAndLesson(
+          currentUser.uid, 
+          widget.lesson.id
+        );
         setState(() {
-          _flashCards = flashCards;
-          _hasFlashCards = flashCards.isNotEmpty;
+          _flashCards = lessonFlashCards;
+          _hasFlashCards = lessonFlashCards.isNotEmpty;
         });
       }
     } catch (e) {
