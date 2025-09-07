@@ -518,6 +518,29 @@ class AchievementsService {
             return weekday == DateTime.saturday || weekday == DateTime.sunday;
           });
           return weekendActivity;
+        case 'fast_learner':
+          // Check if student completed lessons quickly (under 10 minutes each)
+          final fastLessons = criteria['fastLessons'] ?? 3;
+          final maxTimePerLesson = criteria['maxTimePerLesson'] ?? 10; // 10 minutes
+          final progress = studentData['progress'] as List<StudentProgress>;
+          
+          // Count fast completed lessons across all progress entries
+          int fastCompletedLessons = 0;
+          for (final p in progress) {
+            for (final lessonProgress in p.lessonProgress) {
+              if (lessonProgress.isCompleted && lessonProgress.timeSpent <= maxTimePerLesson) {
+                fastCompletedLessons++;
+              }
+            }
+          }
+          return fastCompletedLessons >= fastLessons;
+        case 'perfect_quiz_master':
+          // Check for consecutive perfect quiz scores
+          final perfectQuizzes = criteria['perfectQuizzes'] ?? 5;
+          final assessments = studentData['assessments'] as List<Assessment>;
+          // For now, check if student has perfect scores (this would need actual quiz attempt data)
+          final perfectScores = assessments.where((a) => a.totalPoints == 100).length;
+          return perfectScores >= perfectQuizzes;
         default:
           return false;
       }

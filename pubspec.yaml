@@ -31,12 +31,12 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase - Downgraded to stable versions for iOS compatibility
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_storage: ^11.5.6
-  firebase_database: ^10.3.8
+  # Firebase - Updated to latest stable versions
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.3
+  firebase_storage: ^12.3.2
+  firebase_database: ^11.0.2
 
   # Google Sign-In
   google_sign_in: ^6.1.6

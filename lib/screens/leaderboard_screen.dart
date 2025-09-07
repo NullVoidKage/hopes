@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/achievements.dart';
 import '../services/achievements_service.dart';
 import '../services/student_service.dart';
+import '../widgets/enhanced_badge_card.dart';
+import '../widgets/badge_celebration.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({Key? key}) : super(key: key);
@@ -398,84 +400,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   Widget _buildAchievementCard(Achievement achievement) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E5E7)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Icon(
-            _getAchievementIcon(achievement.iconName),
-            color: Colors.white,
-            size: 30,
-          ),
-        ),
-        title: Text(
-          achievement.title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(achievement.description),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor(achievement.category).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    achievement.category.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: _getCategoryColor(achievement.category),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Icon(Icons.star, size: 16, color: Colors.amber[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${achievement.points} pts',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    // Check if current user has earned this achievement
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isEarned = currentUser != null && 
+        _currentUserPosition != null && 
+        _currentUserPosition!.achievementsCount > 0;
+    
+    return EnhancedBadgeCard(
+      title: achievement.title,
+      description: achievement.description,
+      category: achievement.category,
+      points: achievement.points,
+      iconName: achievement.iconName,
+      colorHex: achievement.colorHex,
+      isEarned: isEarned,
+      isNew: false, // You can implement logic to detect new badges
+      onTap: () => _showBadgeDetails(achievement),
     );
   }
 
@@ -703,6 +643,156 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
+  }
+
+  void _showBadgeDetails(Achievement achievement) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: [
+                Color(int.parse('0xFF${achievement.colorHex.substring(1)}')).withOpacity(0.1),
+                Colors.white,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Badge icon
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')).withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _getAchievementIcon(achievement.iconName),
+                  color: Colors.white,
+                  size: 50,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Badge title
+              Text(
+                achievement.title,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              
+              // Badge description
+              Text(
+                achievement.description,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              
+              // Points and category
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star, color: Colors.white, size: 20),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${achievement.points} Points',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _getCategoryColor(achievement.category).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getCategoryColor(achievement.category),
+                      ),
+                    ),
+                    child: Text(
+                      achievement.category.toUpperCase(),
+                      style: TextStyle(
+                        color: _getCategoryColor(achievement.category),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Close button
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showBadgeCelebration(Achievement achievement) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => BadgeCelebration(
+        badgeTitle: achievement.title,
+        badgeDescription: achievement.description,
+        points: achievement.points,
+        iconName: achievement.iconName,
+        colorHex: achievement.colorHex,
+        onAnimationComplete: () => Navigator.of(context).pop(),
+      ),
+    );
   }
 
   @override

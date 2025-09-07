@@ -1142,6 +1142,32 @@ class OfflineService {
             'createdAt': DateTime.now().subtract(const Duration(days: 15)).millisecondsSinceEpoch,
             'updatedAt': null,
           },
+          {
+            'id': 'achievement_5',
+            'title': 'Fast Learner',
+            'description': 'Complete 3 lessons in under 10 minutes each',
+            'category': 'special',
+            'points': 30,
+            'iconName': 'lightbulb',
+            'colorHex': '#FF9500',
+            'criteria': {'specialCondition': 'fast_learner', 'fastLessons': 3, 'maxTimePerLesson': 10},
+            'isActive': true,
+            'createdAt': DateTime.now().subtract(const Duration(days: 10)).millisecondsSinceEpoch,
+            'updatedAt': null,
+          },
+          {
+            'id': 'achievement_6',
+            'title': 'Perfect Quiz Master',
+            'description': 'Get perfect scores on 5 consecutive quizzes',
+            'category': 'special',
+            'points': 75,
+            'iconName': 'trophy',
+            'colorHex': '#FFD700',
+            'criteria': {'specialCondition': 'perfect_quiz_master', 'perfectQuizzes': 5, 'consecutive': true},
+            'isActive': true,
+            'createdAt': DateTime.now().subtract(const Duration(days: 5)).millisecondsSinceEpoch,
+            'updatedAt': null,
+          },
         ];
 
         // Sample student achievements data
