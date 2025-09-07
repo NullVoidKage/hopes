@@ -4,6 +4,7 @@ import '../services/submission_service.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/offline_indicator.dart';
 import 'submission_details_screen.dart';
+import 'assessment_grading_screen.dart';
 
 class TeacherSubmissionViewerScreen extends StatefulWidget {
   final String teacherId;
@@ -94,6 +95,8 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
       filtered = filtered.where((submission) {
         return submission.id.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                submission.assessmentId.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+               submission.assessmentTitle.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+               submission.studentName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                submission.studentId.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
     }
@@ -126,9 +129,20 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
     return filtered;
   }
 
-  List<String> get _assessmentOptions {
-    final assessments = _submissions.map((s) => s.assessmentId).toSet().toList();
-    assessments.insert(0, 'All');
+  List<Map<String, String>> get _assessmentOptions {
+    final assessmentMap = <String, Map<String, String>>{};
+    
+    for (final submission in _submissions) {
+      if (!assessmentMap.containsKey(submission.assessmentId)) {
+        assessmentMap[submission.assessmentId] = {
+          'id': submission.assessmentId,
+          'title': submission.assessmentTitle,
+        };
+      }
+    }
+    
+    final assessments = assessmentMap.values.toList();
+    assessments.insert(0, {'id': 'All', 'title': 'All Assessments'});
     return assessments;
   }
 
@@ -336,7 +350,7 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
                 });
               },
               decoration: InputDecoration(
-                hintText: 'Search by student, assessment, or ID...',
+                hintText: 'Search by student name, assessment title, or ID...',
                 prefixIcon: Icon(Icons.search, color: const Color(0xFF86868B)),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -363,13 +377,14 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
                       isExpanded: true,
                       items: _assessmentOptions.map((assessment) {
                         return DropdownMenuItem(
-                          value: assessment,
+                          value: assessment['id'],
                           child: Text(
-                            assessment == 'All' ? 'All Assessments' : 'Assessment ${assessment.substring(0, 8)}...',
+                            assessment['title']!,
                             style: TextStyle(
                               color: const Color(0xFF1D1D1F),
                               fontSize: 14,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         );
                       }).toList(),
@@ -735,23 +750,37 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
     );
   }
 
-  void _gradeSubmission(AssessmentSubmission submission) {
-    // TODO: Navigate to grading screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Grading submission: ${submission.id}'),
-        backgroundColor: const Color(0xFFFF9500),
+  void _gradeSubmission(AssessmentSubmission submission) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssessmentGradingScreen(
+          submission: submission,
+          isEditing: false,
+        ),
       ),
     );
+    
+    // Refresh submissions if grading was successful
+    if (result == true) {
+      _loadSubmissions();
+    }
   }
 
-  void _editGrade(AssessmentSubmission submission) {
-    // TODO: Navigate to edit grade screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Editing grade for: ${submission.id}'),
-        backgroundColor: const Color(0xFF34C759),
+  void _editGrade(AssessmentSubmission submission) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssessmentGradingScreen(
+          submission: submission,
+          isEditing: true,
+        ),
       ),
     );
+    
+    // Refresh submissions if grading was successful
+    if (result == true) {
+      _loadSubmissions();
+    }
   }
 }

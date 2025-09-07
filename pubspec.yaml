@@ -43,7 +43,7 @@ dependencies:
 
 
   # File handling
-  file_picker: ^6.1.1
+  file_picker: ^8.0.0
 
   # URL handling for mobile
   url_launcher: ^6.2.2
