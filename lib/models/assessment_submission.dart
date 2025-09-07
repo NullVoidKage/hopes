@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DetailedAnswer {
   final String answer;
@@ -104,6 +103,9 @@ class AssessmentSubmission {
   
   // Grading Information
   final String? feedback;
+  final String? teacherComments;
+  final String? grade;
+  final Map<String, double>? questionScores;
   final bool isGraded;
   final DateTime? gradedAt;
   final String? gradedBy;
@@ -148,6 +150,9 @@ class AssessmentSubmission {
     
     // Grading Information
     this.feedback,
+    this.teacherComments,
+    this.grade,
+    this.questionScores,
     this.isGraded = false,
     this.gradedAt,
     this.gradedBy,
@@ -207,6 +212,9 @@ class AssessmentSubmission {
       
       // Grading Information
       feedback: _safeString(data['feedback']),
+      teacherComments: _safeString(data['teacherComments']),
+      grade: _safeString(data['grade']),
+      questionScores: _parseQuestionScores(data['questionScores']),
       isGraded: _safeBool(data['isGraded']),
       gradedAt: data['gradedAt'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(_safeInt(data['gradedAt']))
@@ -277,6 +285,23 @@ class AssessmentSubmission {
     return {};
   }
 
+  static Map<String, double> _parseQuestionScores(dynamic questionScoresData) {
+    if (questionScoresData is Map) {
+      Map<String, double> parsedScores = {};
+      questionScoresData.forEach((key, value) {
+        if (key != null && value != null) {
+          String keyStr = key.toString();
+          double? score = double.tryParse(value.toString());
+          if (score != null) {
+            parsedScores[keyStr] = score;
+          }
+        }
+      });
+      return parsedScores;
+    }
+    return {};
+  }
+
   // Convert to Map for Firebase
   Map<String, dynamic> toMap() {
     return {
@@ -317,6 +342,9 @@ class AssessmentSubmission {
       
       // Grading Information
       'feedback': feedback,
+      'teacherComments': teacherComments,
+      'grade': grade,
+      'questionScores': questionScores,
       'isGraded': isGraded,
       'gradedAt': gradedAt?.millisecondsSinceEpoch,
       'gradedBy': gradedBy,
@@ -364,6 +392,9 @@ class AssessmentSubmission {
     
     // Grading Information
     String? feedback,
+    String? teacherComments,
+    String? grade,
+    Map<String, double>? questionScores,
     bool? isGraded,
     DateTime? gradedAt,
     String? gradedBy,
@@ -408,6 +439,9 @@ class AssessmentSubmission {
       
       // Grading Information
       feedback: feedback ?? this.feedback,
+      teacherComments: teacherComments ?? this.teacherComments,
+      grade: grade ?? this.grade,
+      questionScores: questionScores ?? this.questionScores,
       isGraded: isGraded ?? this.isGraded,
       gradedAt: gradedAt ?? this.gradedAt,
       gradedBy: gradedBy ?? this.gradedBy,

@@ -55,6 +55,10 @@ class _TeacherPanelState extends State<TeacherPanel> {
           print('🔍 TeacherPanel: User profile loaded: ${profile.displayName}');
           print('🔍 TeacherPanel: User subjects: ${profile.subjects}');
           
+          // Sync students from Firestore to Realtime Database (one-time sync)
+          print('🔄 TeacherPanel: Syncing students to Realtime Database...');
+          await _authService.syncAllStudentsToRealtimeDatabase();
+          
           print('🔍 TeacherPanel: Fetching dashboard data...');
           final dashboardData = await _dashboardService.getDashboardData(
             user.uid,

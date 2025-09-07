@@ -31,24 +31,30 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase - Downgraded to stable versions for iOS compatibility
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_storage: ^11.5.6
-  firebase_database: ^10.3.8
+  # Firebase (compatible versions)
+  firebase_core: ^3.15.2
+  firebase_auth: ^5.7.0
+  cloud_firestore: ^5.6.12
+  firebase_storage: ^12.4.10
+  firebase_database: ^11.3.10
 
-  # Google Sign-In
-  google_sign_in: ^6.1.6
+  # Google Sign-In (compatible with Firebase)
+  google_sign_in: ^6.2.1
+
 
   # File handling
-  file_picker: ^6.1.1
+  file_picker: ^8.0.0
 
   # URL handling for mobile
   url_launcher: ^6.2.2
 
   # Local storage
   shared_preferences: ^2.2.2
+
+  # PDF and document parsing
+  syncfusion_flutter_pdf: ^24.1.41
+  path_provider: ^2.1.1
+  http: ^1.1.0
 
   # Utilities
   uuid: ^4.2.1

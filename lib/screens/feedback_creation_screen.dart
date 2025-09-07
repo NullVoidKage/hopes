@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/feedback.dart';
 import '../models/student.dart';
-import '../models/assessment.dart';
-import '../models/lesson.dart';
-import '../models/learning_path.dart';
 import '../services/feedback_service.dart';
 import '../services/student_service.dart';
-import '../services/assessment_service.dart';
-import '../services/lesson_service.dart';
 import '../services/learning_path_service.dart';
 
 class FeedbackCreationScreen extends StatefulWidget {
@@ -46,8 +41,6 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
 
   final FeedbackService _feedbackService = FeedbackService();
   final StudentService _studentService = StudentService();
-  final AssessmentService _assessmentService = AssessmentService();
-  final LessonService _lessonService = LessonService();
   final LearningPathService _learningPathService = LearningPathService();
 
   @override
@@ -63,10 +56,14 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
 
     try {
       // Load students
-      final students = await _studentService.getStudents('');
+      print('🔄 Loading students for feedback creation...');
+      final students = await _studentService.getAllStudents();
+      print('📊 Loaded ${students.length} students');
       
       // Load available content
+      print('🔄 Loading available content...');
       final content = await _learningPathService.getAvailableContent();
+      print('📊 Loaded content: ${content.keys}');
       
       setState(() {
         _students = students;
@@ -175,13 +172,16 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
               filled: true,
               fillColor: Color(0xFFF5F5F7),
             ),
-            items: _students.map((student) {
-              return DropdownMenuItem(
-                value: student.id,
-                child: Text(student.name),
-              );
-            }).toList(),
-            onChanged: (value) {
+            items: _students.isEmpty 
+              ? [DropdownMenuItem(value: 'loading', child: Text('Loading students...'))]
+              : _students.map((student) {
+                  print('📝 Student: ${student.name} (ID: ${student.id})');
+                  return DropdownMenuItem(
+                    value: student.id,
+                    child: Text(student.name),
+                  );
+                }).toList(),
+            onChanged: _students.isEmpty ? null : (value) {
               setState(() {
                 _selectedStudentId = value ?? '';
               });

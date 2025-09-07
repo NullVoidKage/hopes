@@ -24,6 +24,7 @@ class OfflineService {
   static const String _studentSubmissionsKey = 'cached_student_submissions';
   static const String _teacherSubmissionsKey = 'cached_teacher_submissions';
   static const String _assessmentStatsKey = 'cached_assessment_stats';
+  static const String _flashCardsKey = 'cached_flash_cards';
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _isOnlineKey = 'is_online_status';
 
@@ -692,6 +693,7 @@ class OfflineService {
       final leaderboard = prefs.getString(_leaderboardKey)?.length ?? 0;
       final adaptiveDifficulties = prefs.getString(_adaptiveDifficultiesKey)?.length ?? 0;
       final difficultyAdjustments = prefs.getString(_difficultyAdjustmentsKey)?.length ?? 0;
+      final flashCards = prefs.getString(_flashCardsKey)?.length ?? 0;
       
       return {
         'lessons': lessons,
@@ -705,11 +707,12 @@ class OfflineService {
         'feedback': feedback,
         'recommendations': recommendations,
         'achievements': achievements,
+        'flashCards': flashCards,
         'studentAchievements': studentAchievements,
         'leaderboard': leaderboard,
         'adaptiveDifficulties': adaptiveDifficulties,
         'difficultyAdjustments': difficultyAdjustments,
-        'total': lessons + assessments + progress + students + profile + activities + learningPaths + studentLearningPaths + feedback + recommendations + achievements + studentAchievements + leaderboard + adaptiveDifficulties + difficultyAdjustments,
+        'total': lessons + assessments + progress + students + profile + activities + learningPaths + studentLearningPaths + feedback + recommendations + achievements + flashCards + studentAchievements + leaderboard + adaptiveDifficulties + difficultyAdjustments,
       };
     } catch (e) {
       return {
@@ -724,6 +727,7 @@ class OfflineService {
         'feedback': 0,
         'recommendations': 0,
         'achievements': 0,
+        'flashCards': 0,
         'studentAchievements': 0,
         'leaderboard': 0,
         'adaptiveDifficulties': 0,
@@ -1986,5 +1990,96 @@ class OfflineService {
     }
   }
 
+  // Cache flash card data
+  static Future<void> cacheFlashCard(String flashCardId, Map<String, dynamic> flashCard) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final flashCardsJson = prefs.getString(_flashCardsKey);
+      Map<String, dynamic> flashCards = {};
+      
+      if (flashCardsJson != null) {
+        flashCards = Map<String, dynamic>.from(jsonDecode(flashCardsJson));
+      }
+      
+      flashCards[flashCardId] = flashCard;
+      await prefs.setString(_flashCardsKey, jsonEncode(flashCards));
+      await _updateLastSync();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error caching flash card: $e');
+      }
+    }
+  }
 
+  // Get cached flash cards
+  static Future<Map<String, dynamic>> getCachedFlashCards() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final flashCardsJson = prefs.getString(_flashCardsKey);
+      if (flashCardsJson != null) {
+        final Map<String, dynamic> flashCards = Map<String, dynamic>.from(jsonDecode(flashCardsJson));
+        return flashCards;
+      }
+      return {};
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting cached flash cards: $e');
+      }
+      return {};
+    }
+  }
+
+  // Remove flash card from cache
+  static Future<void> removeCachedFlashCard(String flashCardId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '${_flashCardsKey}_$flashCardId';
+      await prefs.remove(key);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error removing cached flash card: $e');
+      }
+    }
+  }
+
+  // Cache generic data
+  static Future<void> cacheData(String key, Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, jsonEncode(data));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to cache data for key $key: $e');
+      }
+    }
+  }
+
+  // Get cached generic data
+  static Future<Map<String, dynamic>?> getCachedData(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedString = prefs.getString(key);
+      if (cachedString != null) {
+        return jsonDecode(cachedString) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to get cached data for key $key: $e');
+      }
+      return null;
+    }
+  }
+
+  // Remove cached generic data
+  static Future<void> removeCachedData(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to remove cached data for key $key: $e');
+      }
+    }
+  }
 }
