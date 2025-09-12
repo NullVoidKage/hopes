@@ -5,11 +5,12 @@ import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import 'connectivity_service.dart';
 import 'offline_service.dart';
-
+import 'achievements_service.dart';
 class AssessmentService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final ConnectivityService _connectivityService = ConnectivityService();
   final AuthService _authService = AuthService();
+  final AchievementsService _achievementsService = AchievementsService();
 
   // Create a new assessment
   Future<String> createAssessment(Assessment assessment) async {
@@ -574,6 +575,20 @@ class AssessmentService {
 
       final ref = _database.ref('assessment_submissions').push();
       await ref.set(submissionData);
+      
+      // Update leaderboard with points earned
+      if (finalScore > 0) {
+        try {
+          await _achievementsService.updateLeaderboardWithPoints(
+            currentStudentId,
+            studentProfile?.displayName ?? 'Student',
+            finalScore,
+          );
+          print('✅ Leaderboard updated with $finalScore points');
+        } catch (e) {
+          print('⚠️ Failed to update leaderboard: $e');
+        }
+      }
       
       print('✅ Enhanced assessment submission created successfully');
       print('📊 Submission data: $submissionData');

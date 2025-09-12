@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/achievements.dart';
 import '../services/achievements_service.dart';
 import '../services/student_service.dart';
+import '../services/offline_service.dart';
 import '../widgets/enhanced_badge_card.dart';
-import '../widgets/badge_celebration.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({Key? key}) : super(key: key);
@@ -13,9 +13,7 @@ class LeaderboardScreen extends StatefulWidget {
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
 
-class _LeaderboardScreenState extends State<LeaderboardScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final AchievementsService _achievementsService = AchievementsService();
   final StudentService _studentService = StudentService();
   
@@ -29,7 +27,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    print('🎯 LeaderboardScreen: initState called');
     _loadData();
   }
 
@@ -41,10 +39,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        // Load leaderboard
-        final leaderboard = await _achievementsService.getLeaderboard(limit: 100);
-        
-        // Load achievements
+        // Load achievements first
         final achievements = await _achievementsService.getAllAchievements();
         
         // Get current user position if they're a student
@@ -55,6 +50,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           // User might not be a student or not on leaderboard
         }
 
+        // Load leaderboard from Firebase
+        final leaderboard = await _achievementsService.getLeaderboard(limit: 100);
+        print('🎯 LeaderboardScreen: Loaded ${leaderboard.length} leaderboard entries');
+        
         setState(() {
           _leaderboard = leaderboard;
           _achievements = achievements;
@@ -62,9 +61,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         });
       }
     } catch (e) {
+      print('🎯 LeaderboardScreen: Error loading data: $e');
+      setState(() {
+        _leaderboard = [];
+        _achievements = [];
+        _currentUserPosition = null;
+      });
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading data: $e')),
+          SnackBar(
+            content: Text('Failed to load leaderboard data: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -78,34 +87,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leaderboard & Achievements'),
+        title: const Text('Leaderboard'),
         backgroundColor: const Color(0xFF007AFF),
         foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Leaderboard'),
-            Tab(text: 'Achievements'),
-            Tab(text: 'My Progress'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildLeaderboardTab(),
-          _buildAchievementsTab(),
-          _buildMyProgressTab(),
-        ],
-      ),
+      body: _buildLeaderboardTab(),
     );
   }
 
   Widget _buildLeaderboardTab() {
     final filteredLeaderboard = _getFilteredLeaderboard();
+    print('🎯 LeaderboardScreen: Building leaderboard tab');
+    print('🎯 LeaderboardScreen: Total leaderboard entries: ${_leaderboard.length}');
+    print('🎯 LeaderboardScreen: Filtered leaderboard entries: ${filteredLeaderboard.length}');
+    print('🎯 LeaderboardScreen: Is loading: $_isLoading');
 
     return Column(
       children: [
@@ -565,18 +560,28 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   List<LeaderboardEntry> _getFilteredLeaderboard() {
-    switch (_selectedFilter) {
-      case 'top10':
-        return _leaderboard.take(10).toList();
-      case 'top25':
-        return _leaderboard.take(25).toList();
-      case 'recent':
-        final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-        return _leaderboard
-            .where((entry) => entry.lastActivity.isAfter(weekAgo))
-            .toList();
-      default:
-        return _leaderboard;
+    try {
+      // Safety check to prevent infinite loops
+      if (_leaderboard.isEmpty) {
+        return [];
+      }
+      
+      switch (_selectedFilter) {
+        case 'top10':
+          return _leaderboard.take(10).toList();
+        case 'top25':
+          return _leaderboard.take(25).toList();
+        case 'recent':
+          final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+          return _leaderboard
+              .where((entry) => entry.lastActivity.isAfter(weekAgo))
+              .toList();
+        default:
+          return List.from(_leaderboard); // Create a copy to prevent issues
+      }
+    } catch (e) {
+      print('🎯 LeaderboardScreen: Error filtering leaderboard: $e');
+      return [];
     }
   }
 
@@ -783,21 +788,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   void _showBadgeCelebration(Achievement achievement) {
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => BadgeCelebration(
-        badgeTitle: achievement.title,
-        badgeDescription: achievement.description,
-        points: achievement.points,
-        iconName: achievement.iconName,
-        colorHex: achievement.colorHex,
-        onAnimationComplete: () => Navigator.of(context).pop(),
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Text('🎉 ${achievement.title}'),
+        content: Text(achievement.description),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 }
