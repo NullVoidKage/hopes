@@ -328,12 +328,12 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
               case QuestionType.trueFalse:
                 correctAnswer = question.correctAnswer ?? 'True';
                 isCorrect = answer.toLowerCase() == correctAnswer.toLowerCase();
-                points = isCorrect ? 10 : 0;
+                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
                 break;
               case QuestionType.multipleChoice:
                 correctAnswer = question.correctAnswer ?? 'A';
                 isCorrect = answer == correctAnswer;
-                points = isCorrect ? 10 : 0;
+                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
                 break;
               case QuestionType.shortAnswer:
               case QuestionType.essay:
@@ -411,12 +411,12 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
               case QuestionType.trueFalse:
                 correctAnswer = question.correctAnswer ?? 'True';
                 isCorrect = answer.toLowerCase() == correctAnswer.toLowerCase();
-                points = isCorrect ? 10 : 0;
+                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
                 break;
               case QuestionType.multipleChoice:
                 correctAnswer = question.correctAnswer ?? 'A';
                 isCorrect = answer == correctAnswer;
-                points = isCorrect ? 10 : 0;
+                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
                 break;
               case QuestionType.shortAnswer:
               case QuestionType.essay:

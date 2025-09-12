@@ -209,49 +209,37 @@ class AchievementsService {
   Future<List<LeaderboardEntry>> getLeaderboard({int limit = 50}) async {
     try {
       if (_connectivityService.isConnected) {
-        // Fetch from Firestore
-        final querySnapshot = await _firestore
-            .collection('leaderboard')
-            .orderBy('totalPoints', descending: true)
-            .orderBy('lastActivity', descending: true)
-            .limit(limit)
+        // First try to get from leaderboard collection
+        final leaderboardSnapshot = await _database
+            .ref('leaderboard')
+            .orderByChild('totalPoints')
             .get();
 
-        final leaderboard = querySnapshot.docs
-            .map((doc) => LeaderboardEntry.fromFirestore(doc))
-            .toList();
-
-        // If leaderboard is empty, create some sample data for demonstration
-        if (leaderboard.isEmpty) {
-          print('📊 Leaderboard is empty, creating sample data for demonstration...');
-          await _createSampleLeaderboardData();
+        if (leaderboardSnapshot.exists) {
+          final Map<dynamic, dynamic> data = leaderboardSnapshot.value as Map<dynamic, dynamic>;
+          final List<LeaderboardEntry> leaderboard = [];
           
-          // Fetch again after creating sample data
-          final newQuerySnapshot = await _firestore
-              .collection('leaderboard')
-              .orderBy('totalPoints', descending: true)
-              .orderBy('lastActivity', descending: true)
-              .limit(limit)
-              .get();
-
-          final newLeaderboard = newQuerySnapshot.docs
-              .map((doc) => LeaderboardEntry.fromFirestore(doc))
-              .toList();
-
-          // Cache locally
-          for (final entry in newLeaderboard) {
-            await _cacheLeaderboardEntryLocally(entry);
+          for (final entry in data.values) {
+            if (entry is Map<String, dynamic>) {
+              leaderboard.add(LeaderboardEntry.fromRealtimeDatabase(entry, entry['studentId'] ?? ''));
+            }
+          }
+          
+          // Sort by points descending
+          leaderboard.sort((a, b) => b.totalPoints.compareTo(a.totalPoints));
+          
+          // Assign ranks
+          for (int i = 0; i < leaderboard.length; i++) {
+            leaderboard[i] = leaderboard[i].copyWith(rank: i + 1);
           }
 
-          return newLeaderboard;
+          print('📊 Retrieved leaderboard from collection: ${leaderboard.length} students');
+          return leaderboard.take(limit).toList();
+        } else {
+          // No leaderboard collection exists, calculate from submissions
+          print('📊 No leaderboard collection found, calculating from submissions...');
+          return await _calculateLeaderboardFromSubmissions(limit);
         }
-
-        // Cache locally
-        for (final entry in leaderboard) {
-          await _cacheLeaderboardEntryLocally(entry);
-        }
-
-        return leaderboard;
       } else {
         // Use cached data
         return await _getCachedLeaderboard(limit);
@@ -262,19 +250,162 @@ class AchievementsService {
     }
   }
 
+  // Calculate leaderboard from assessment submissions
+  Future<List<LeaderboardEntry>> _calculateLeaderboardFromSubmissions(int limit) async {
+    try {
+      print('📊 Calculating leaderboard from assessment submissions...');
+      
+      // Get all assessment submissions
+      final submissionsSnapshot = await _database
+          .ref('assessment_submissions')
+          .get();
+
+      print('📊 Submissions snapshot exists: ${submissionsSnapshot.exists}');
+      
+      if (!submissionsSnapshot.exists) {
+        print('📊 No assessment submissions found');
+        return [];
+      }
+
+      final Map<dynamic, dynamic> submissionsData = submissionsSnapshot.value as Map<dynamic, dynamic>;
+      print('📊 Found ${submissionsData.length} submission entries');
+      
+      final Map<String, LeaderboardEntry> studentScores = {};
+
+      // Process each submission
+      for (final entry in submissionsData.entries) {
+        final submissionId = entry.key;
+        final submission = entry.value;
+        
+        print('📊 Processing submission $submissionId');
+        print('📊 Submission type: ${submission.runtimeType}');
+        print('📊 Is Map: ${submission is Map<String, dynamic>}');
+        print('📊 Is LinkedMap: ${submission is Map}');
+        
+        if (submission is Map) {
+          final studentId = submission['studentId'] as String?;
+          final studentName = submission['studentName'] as String?;
+          final studentEmail = submission['studentEmail'] as String?;
+          final score = (submission['score'] as num?)?.toInt() ?? 0;
+          final submittedAt = submission['submittedAt'] as int?;
+
+          print('📊 Student: $studentName ($studentId), Score: $score');
+          print('📊 StudentId is null: ${studentId == null}');
+          print('📊 StudentName is null: ${studentName == null}');
+
+          if (studentId != null && studentName != null && studentId.isNotEmpty && studentName.isNotEmpty) {
+            print('📊 ✅ Processing student: $studentName ($studentId) with score: $score');
+            if (studentScores.containsKey(studentId)) {
+              // Add to existing score
+              final existing = studentScores[studentId]!;
+              studentScores[studentId] = existing.copyWith(
+                totalPoints: existing.totalPoints + score,
+                lastActivity: submittedAt != null 
+                    ? DateTime.fromMillisecondsSinceEpoch(submittedAt)
+                    : existing.lastActivity,
+                stats: {
+                  'assessmentsCompleted': (existing.stats?['assessmentsCompleted'] ?? 0) + 1,
+                  'lessonsCompleted': existing.stats?['lessonsCompleted'] ?? 0,
+                  'streakDays': existing.stats?['streakDays'] ?? 0,
+                },
+              );
+            } else {
+              // Create new entry
+              studentScores[studentId] = LeaderboardEntry(
+                studentId: studentId,
+                studentName: studentName,
+                studentEmail: studentEmail ?? '',
+                totalPoints: score,
+                achievementsCount: 0,
+                rank: 0,
+                lastActivity: submittedAt != null 
+                    ? DateTime.fromMillisecondsSinceEpoch(submittedAt)
+                    : DateTime.now(),
+                stats: {
+                  'assessmentsCompleted': 1,
+                  'lessonsCompleted': 0,
+                  'streakDays': 0,
+                },
+              );
+            }
+          } else {
+            print('📊 ❌ Skipping student - invalid data: studentId=$studentId, studentName=$studentName');
+          }
+        } else {
+          print('📊 ❌ Submission is not a Map: ${submission.runtimeType}');
+        }
+      }
+
+      print('📊 Processed ${studentScores.length} unique students');
+
+      // Convert to list and sort by points
+      final List<LeaderboardEntry> leaderboard = studentScores.values.toList();
+      leaderboard.sort((a, b) => b.totalPoints.compareTo(a.totalPoints));
+
+      // Assign ranks
+      for (int i = 0; i < leaderboard.length; i++) {
+        leaderboard[i] = leaderboard[i].copyWith(rank: i + 1);
+      }
+
+      print('📊 Calculated leaderboard with ${leaderboard.length} students');
+      for (final entry in leaderboard.take(5)) {
+        print('📊 ${entry.studentName}: ${entry.totalPoints} points');
+      }
+
+      // Create leaderboard collection in Realtime Database
+      await _createLeaderboardCollection(leaderboard);
+
+      // Cache locally
+      for (final entry in leaderboard) {
+        await _cacheLeaderboardEntryLocally(entry);
+      }
+
+      return leaderboard.take(limit).toList();
+    } catch (e) {
+      print('Error calculating leaderboard from submissions: $e');
+      return [];
+    }
+  }
+
+  // Create leaderboard collection in Realtime Database
+  Future<void> _createLeaderboardCollection(List<LeaderboardEntry> leaderboard) async {
+    try {
+      print('📊 Creating leaderboard collection in Realtime Database...');
+      
+      // Clear existing leaderboard data
+      await _database.ref('leaderboard').remove();
+      
+      // Add each student to leaderboard
+      for (final entry in leaderboard) {
+        await _database
+            .ref('leaderboard/${entry.studentId}')
+            .set(entry.toRealtimeDatabase());
+      }
+      
+      print('📊 Created leaderboard collection with ${leaderboard.length} students');
+    } catch (e) {
+      print('Error creating leaderboard collection: $e');
+    }
+  }
+
   // Get student leaderboard position
   Future<LeaderboardEntry?> getStudentLeaderboardPosition(String studentId) async {
     try {
       if (_connectivityService.isConnected) {
-        // Fetch from Firestore
-        final doc = await _firestore.collection('leaderboard').doc(studentId).get();
-        
-        if (doc.exists) {
-          final entry = LeaderboardEntry.fromFirestore(doc);
-          await _cacheLeaderboardEntryLocally(entry);
-          return entry;
-        }
-        return null;
+        // Calculate from submissions
+        final leaderboard = await _calculateLeaderboardFromSubmissions(1000);
+        return leaderboard.firstWhere(
+          (entry) => entry.studentId == studentId,
+          orElse: () => LeaderboardEntry(
+            studentId: studentId,
+            studentName: '',
+            studentEmail: '',
+            totalPoints: 0,
+            achievementsCount: 0,
+            rank: 0,
+            lastActivity: DateTime.now(),
+          ),
+        );
       } else {
         // Use cached data
         final leaderboard = await _getCachedLeaderboard(1000);
@@ -574,129 +705,30 @@ class AchievementsService {
 
   // Update leaderboard with points (public method for assessment service)
   Future<void> updateLeaderboardWithPoints(String studentId, String studentName, int points) async {
+    print('🏆 Updating leaderboard: $studentName earned $points points');
     await _updateLeaderboard(studentId, studentName, points);
   }
 
-  // Create sample leaderboard data for demonstration
-  Future<void> _createSampleLeaderboardData() async {
+  // Check for existing submissions and calculate leaderboard
+  Future<void> updateLeaderboardForExistingSubmissions() async {
     try {
-      final sampleEntries = [
-        LeaderboardEntry(
-          studentId: 'sample_student_1',
-          studentName: 'Maria Santos',
-          studentEmail: 'maria.santos@example.com',
-          totalPoints: 450,
-          achievementsCount: 4,
-          rank: 1,
-          lastActivity: DateTime.now().subtract(const Duration(hours: 2)),
-          stats: {'lessonsCompleted': 8, 'assessmentsCompleted': 12, 'streakDays': 5},
-        ),
-        LeaderboardEntry(
-          studentId: 'sample_student_2',
-          studentName: 'Juan Dela Cruz',
-          studentEmail: 'juan.delacruz@example.com',
-          totalPoints: 380,
-          achievementsCount: 3,
-          rank: 2,
-          lastActivity: DateTime.now().subtract(const Duration(hours: 4)),
-          stats: {'lessonsCompleted': 6, 'assessmentsCompleted': 10, 'streakDays': 3},
-        ),
-        LeaderboardEntry(
-          studentId: 'sample_student_3',
-          studentName: 'Ana Rodriguez',
-          studentEmail: 'ana.rodriguez@example.com',
-          totalPoints: 320,
-          achievementsCount: 2,
-          rank: 3,
-          lastActivity: DateTime.now().subtract(const Duration(hours: 6)),
-          stats: {'lessonsCompleted': 5, 'assessmentsCompleted': 8, 'streakDays': 2},
-        ),
-        LeaderboardEntry(
-          studentId: 'sample_student_4',
-          studentName: 'Carlos Mendoza',
-          studentEmail: 'carlos.mendoza@example.com',
-          totalPoints: 280,
-          achievementsCount: 2,
-          rank: 4,
-          lastActivity: DateTime.now().subtract(const Duration(hours: 8)),
-          stats: {'lessonsCompleted': 4, 'assessmentsCompleted': 7, 'streakDays': 1},
-        ),
-        LeaderboardEntry(
-          studentId: 'sample_student_5',
-          studentName: 'Sofia Garcia',
-          studentEmail: 'sofia.garcia@example.com',
-          totalPoints: 240,
-          achievementsCount: 1,
-          rank: 5,
-          lastActivity: DateTime.now().subtract(const Duration(hours: 12)),
-          stats: {'lessonsCompleted': 3, 'assessmentsCompleted': 5, 'streakDays': 1},
-        ),
-      ];
-
-      // Save to Firestore
-      for (final entry in sampleEntries) {
-        await _firestore
-            .collection('leaderboard')
-            .doc(entry.studentId)
-            .set(entry.toFirestore());
-        
-        // Save to Realtime Database
-        await _database
-            .ref('leaderboard/${entry.studentId}')
-            .set(entry.toRealtimeDatabase());
-      }
-
-      print('📊 Created ${sampleEntries.length} sample leaderboard entries in Firebase');
+      print('🔄 Calculating leaderboard from existing assessment submissions...');
+      final leaderboard = await _calculateLeaderboardFromSubmissions(50);
+      print('📊 Found ${leaderboard.length} students with assessment submissions');
     } catch (e) {
-      print('Error creating sample leaderboard data: $e');
+      print('Error calculating leaderboard from existing submissions: $e');
     }
   }
 
-  // Update leaderboard for a student
+  // Update leaderboard for a student (now just logs - leaderboard is calculated from submissions)
   Future<void> _updateLeaderboard(String studentId, String studentName, int points) async {
     try {
-      if (_connectivityService.isConnected) {
-        // Get current leaderboard entry
-        final currentEntry = await getStudentLeaderboardPosition(studentId);
-        final student = await _studentService.getStudentById(studentId);
-        final achievements = await getStudentAchievements(studentId);
-
-        int totalPoints = points;
-        if (currentEntry != null) {
-          totalPoints = currentEntry.totalPoints + points;
-        }
-
-        final newEntry = LeaderboardEntry(
-          studentId: studentId,
-          studentName: studentName,
-          studentEmail: student?.email ?? '',
-          totalPoints: totalPoints,
-          achievementsCount: achievements.length,
-          rank: 0, // Will be calculated when fetching leaderboard
-          lastActivity: DateTime.now(),
-          stats: {
-            'lessonsCompleted': achievements.where((a) => a.achievementTitle.contains('Lesson')).length,
-            'assessmentsCompleted': achievements.where((a) => a.achievementTitle.contains('Assessment')).length,
-            'streakDays': achievements.where((a) => a.achievementTitle.contains('Streak')).length,
-          },
-        );
-
-        // Update in Firestore
-        await _firestore
-            .collection('leaderboard')
-            .doc(studentId)
-            .set(newEntry.toFirestore());
-
-        // Update in Realtime Database
-        await _database
-            .ref('leaderboard/$studentId')
-            .set(newEntry.toRealtimeDatabase());
-
-        // Cache locally
-        await _cacheLeaderboardEntryLocally(newEntry);
-      }
+      print('📊 Assessment submission recorded: $studentName earned $points points');
+      print('📊 Leaderboard will be calculated from assessment submissions');
+      // No need to update a separate leaderboard collection
+      // Leaderboard is now calculated dynamically from assessment submissions
     } catch (e) {
-      print('Error updating leaderboard: $e');
+      print('Error logging leaderboard update: $e');
     }
   }
 

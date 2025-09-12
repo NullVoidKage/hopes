@@ -576,15 +576,22 @@ class AssessmentService {
       final ref = _database.ref('assessment_submissions').push();
       await ref.set(submissionData);
       
-      // Update leaderboard with points earned
-      if (finalScore > 0) {
+      // Update leaderboard with points earned (including participation points)
+      int pointsToAdd = finalScore;
+      if (pointsToAdd == 0 && answers.isNotEmpty) {
+        // Give participation points for attempting assessment
+        pointsToAdd = 1; // 1 point for attempting
+        print('📝 Giving participation points for attempting assessment');
+      }
+      
+      if (pointsToAdd > 0) {
         try {
           await _achievementsService.updateLeaderboardWithPoints(
             currentStudentId,
             studentProfile?.displayName ?? 'Student',
-            finalScore,
+            pointsToAdd,
           );
-          print('✅ Leaderboard updated with $finalScore points');
+          print('✅ Leaderboard updated with $pointsToAdd points');
         } catch (e) {
           print('⚠️ Failed to update leaderboard: $e');
         }
@@ -613,6 +620,31 @@ class AssessmentService {
     } catch (e) {
       print('❌ Error getting student ID: $e');
       return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
+  // Update submission grade
+  Future<void> updateSubmissionGrade(String submissionId, int grade, String feedback) async {
+    try {
+      if (!_connectivityService.isConnected) {
+        throw Exception('Cannot update grade while offline. Please connect to the internet.');
+      }
+
+      // Update in Realtime Database
+      await _database
+          .ref('assessment_submissions')
+          .child(submissionId)
+          .update({
+        'score': grade,
+        'feedback': feedback,
+        'isGraded': true,
+        'gradedAt': ServerValue.timestamp,
+      });
+
+      print('✅ Submission grade updated successfully');
+    } catch (e) {
+      print('Error updating submission grade: $e');
+      throw Exception('Failed to update grade: ${e.toString()}');
     }
   }
 

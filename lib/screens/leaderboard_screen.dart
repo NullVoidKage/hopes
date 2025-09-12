@@ -23,6 +23,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   bool _isLoading = false;
   String _selectedFilter = 'all';
   String _selectedCategory = 'all';
+  bool _hasTriedCreatingSampleData = false;
 
   @override
   void initState() {
@@ -52,6 +53,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
         // Load leaderboard from Firebase
         final leaderboard = await _achievementsService.getLeaderboard(limit: 100);
+        
+        // If still empty, try to calculate from existing submissions (only once)
+        if (leaderboard.isEmpty && !_hasTriedCreatingSampleData) {
+          _hasTriedCreatingSampleData = true;
+          try {
+            await _achievementsService.updateLeaderboardForExistingSubmissions();
+            final updatedLeaderboard = await _achievementsService.getLeaderboard(limit: 100);
+            setState(() {
+              _leaderboard = updatedLeaderboard;
+              _achievements = achievements;
+              _currentUserPosition = userPosition;
+            });
+            return;
+          } catch (e) {
+            print('Error calculating leaderboard from existing submissions: $e');
+          }
+        }
         print('🎯 LeaderboardScreen: Loaded ${leaderboard.length} leaderboard entries');
         
         setState(() {

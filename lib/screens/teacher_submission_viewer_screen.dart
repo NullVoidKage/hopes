@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/assessment_submission.dart';
+import '../models/assessment.dart';
 import '../services/submission_service.dart';
+import '../services/assessment_service.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/offline_indicator.dart';
+import 'assessment_grading_screen.dart';
 
 class TeacherSubmissionViewerScreen extends StatefulWidget {
   final String teacherId;
@@ -20,6 +23,7 @@ class TeacherSubmissionViewerScreen extends StatefulWidget {
 
 class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerScreen> {
   final SubmissionService _submissionService = SubmissionService();
+  final AssessmentService _assessmentService = AssessmentService();
   final ConnectivityService _connectivityService = ConnectivityService();
   
   List<AssessmentSubmission> _submissions = [];
@@ -732,23 +736,70 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
     );
   }
 
-  void _gradeSubmission(AssessmentSubmission submission) {
-    // TODO: Navigate to grading screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Grading submission: ${submission.id}'),
-        backgroundColor: const Color(0xFFFF9500),
+  void _gradeSubmission(AssessmentSubmission submission) async {
+    // Get the assessment details
+    final assessment = await _getAssessmentById(submission.assessmentId);
+    if (assessment == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Assessment not found'),
+          backgroundColor: Color(0xFFFF3B30),
+        ),
+      );
+      return;
+    }
+
+    // Navigate to grading screen
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => AssessmentGradingScreen(
+          submission: submission,
+          assessment: assessment,
+        ),
       ),
     );
+
+    // Refresh the list if grading was successful
+    if (result == true) {
+      _loadSubmissions();
+    }
   }
 
-  void _editGrade(AssessmentSubmission submission) {
-    // TODO: Navigate to edit grade screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Editing grade for: ${submission.id}'),
-        backgroundColor: const Color(0xFF34C759),
+  void _editGrade(AssessmentSubmission submission) async {
+    // Get the assessment details
+    final assessment = await _getAssessmentById(submission.assessmentId);
+    if (assessment == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Assessment not found'),
+          backgroundColor: Color(0xFFFF3B30),
+        ),
+      );
+      return;
+    }
+
+    // Navigate to grading screen for editing
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => AssessmentGradingScreen(
+          submission: submission,
+          assessment: assessment,
+        ),
       ),
     );
+
+    // Refresh the list if grading was successful
+    if (result == true) {
+      _loadSubmissions();
+    }
+  }
+
+  Future<Assessment?> _getAssessmentById(String assessmentId) async {
+    try {
+      return await _assessmentService.getAssessmentById(assessmentId);
+    } catch (e) {
+      print('Error getting assessment: $e');
+      return null;
+    }
   }
 }
