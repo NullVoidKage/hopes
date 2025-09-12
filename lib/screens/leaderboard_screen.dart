@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/achievements.dart';
 import '../services/achievements_service.dart';
 import '../services/student_service.dart';
+import '../services/offline_service.dart';
+import '../widgets/enhanced_badge_card.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({Key? key}) : super(key: key);
@@ -11,9 +13,7 @@ class LeaderboardScreen extends StatefulWidget {
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
 
-class _LeaderboardScreenState extends State<LeaderboardScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final AchievementsService _achievementsService = AchievementsService();
   final StudentService _studentService = StudentService();
   
@@ -23,11 +23,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   bool _isLoading = false;
   String _selectedFilter = 'all';
   String _selectedCategory = 'all';
+  bool _hasTriedCreatingSampleData = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    print('🎯 LeaderboardScreen: initState called');
     _loadData();
   }
 
@@ -39,10 +40,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        // Load leaderboard
-        final leaderboard = await _achievementsService.getLeaderboard(limit: 100);
-        
-        // Load achievements
+        // Load achievements first
         final achievements = await _achievementsService.getAllAchievements();
         
         // Get current user position if they're a student
@@ -53,6 +51,27 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           // User might not be a student or not on leaderboard
         }
 
+        // Load leaderboard from Firebase
+        final leaderboard = await _achievementsService.getLeaderboard(limit: 100);
+        
+        // If still empty, try to calculate from existing submissions (only once)
+        if (leaderboard.isEmpty && !_hasTriedCreatingSampleData) {
+          _hasTriedCreatingSampleData = true;
+          try {
+            await _achievementsService.updateLeaderboardForExistingSubmissions();
+            final updatedLeaderboard = await _achievementsService.getLeaderboard(limit: 100);
+            setState(() {
+              _leaderboard = updatedLeaderboard;
+              _achievements = achievements;
+              _currentUserPosition = userPosition;
+            });
+            return;
+          } catch (e) {
+            print('Error calculating leaderboard from existing submissions: $e');
+          }
+        }
+        print('🎯 LeaderboardScreen: Loaded ${leaderboard.length} leaderboard entries');
+        
         setState(() {
           _leaderboard = leaderboard;
           _achievements = achievements;
@@ -60,9 +79,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         });
       }
     } catch (e) {
+      print('🎯 LeaderboardScreen: Error loading data: $e');
+      setState(() {
+        _leaderboard = [];
+        _achievements = [];
+        _currentUserPosition = null;
+      });
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading data: $e')),
+          SnackBar(
+            content: Text('Failed to load leaderboard data: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -76,34 +105,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leaderboard & Achievements'),
+        title: const Text('Leaderboard'),
         backgroundColor: const Color(0xFF007AFF),
         foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Leaderboard'),
-            Tab(text: 'Achievements'),
-            Tab(text: 'My Progress'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildLeaderboardTab(),
-          _buildAchievementsTab(),
-          _buildMyProgressTab(),
-        ],
-      ),
+      body: _buildLeaderboardTab(),
     );
   }
 
   Widget _buildLeaderboardTab() {
     final filteredLeaderboard = _getFilteredLeaderboard();
+    print('🎯 LeaderboardScreen: Building leaderboard tab');
+    print('🎯 LeaderboardScreen: Total leaderboard entries: ${_leaderboard.length}');
+    print('🎯 LeaderboardScreen: Filtered leaderboard entries: ${filteredLeaderboard.length}');
+    print('🎯 LeaderboardScreen: Is loading: $_isLoading');
 
     return Column(
       children: [
@@ -398,84 +413,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   Widget _buildAchievementCard(Achievement achievement) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E5E7)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Icon(
-            _getAchievementIcon(achievement.iconName),
-            color: Colors.white,
-            size: 30,
-          ),
-        ),
-        title: Text(
-          achievement.title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(achievement.description),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor(achievement.category).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    achievement.category.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: _getCategoryColor(achievement.category),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Icon(Icons.star, size: 16, color: Colors.amber[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${achievement.points} pts',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    // Check if current user has earned this achievement
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isEarned = currentUser != null && 
+        _currentUserPosition != null && 
+        _currentUserPosition!.achievementsCount > 0;
+    
+    return EnhancedBadgeCard(
+      title: achievement.title,
+      description: achievement.description,
+      category: achievement.category,
+      points: achievement.points,
+      iconName: achievement.iconName,
+      colorHex: achievement.colorHex,
+      isEarned: isEarned,
+      isNew: false, // You can implement logic to detect new badges
+      onTap: () => _showBadgeDetails(achievement),
     );
   }
 
@@ -625,18 +578,28 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   List<LeaderboardEntry> _getFilteredLeaderboard() {
-    switch (_selectedFilter) {
-      case 'top10':
-        return _leaderboard.take(10).toList();
-      case 'top25':
-        return _leaderboard.take(25).toList();
-      case 'recent':
-        final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-        return _leaderboard
-            .where((entry) => entry.lastActivity.isAfter(weekAgo))
-            .toList();
-      default:
-        return _leaderboard;
+    try {
+      // Safety check to prevent infinite loops
+      if (_leaderboard.isEmpty) {
+        return [];
+      }
+      
+      switch (_selectedFilter) {
+        case 'top10':
+          return _leaderboard.take(10).toList();
+        case 'top25':
+          return _leaderboard.take(25).toList();
+        case 'recent':
+          final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+          return _leaderboard
+              .where((entry) => entry.lastActivity.isAfter(weekAgo))
+              .toList();
+        default:
+          return List.from(_leaderboard); // Create a copy to prevent issues
+      }
+    } catch (e) {
+      print('🎯 LeaderboardScreen: Error filtering leaderboard: $e');
+      return [];
     }
   }
 
@@ -705,9 +668,156 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     }
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  void _showBadgeDetails(Achievement achievement) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: [
+                Color(int.parse('0xFF${achievement.colorHex.substring(1)}')).withOpacity(0.1),
+                Colors.white,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Badge icon
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')).withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _getAchievementIcon(achievement.iconName),
+                  color: Colors.white,
+                  size: 50,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Badge title
+              Text(
+                achievement.title,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              
+              // Badge description
+              Text(
+                achievement.description,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              
+              // Points and category
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star, color: Colors.white, size: 20),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${achievement.points} Points',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _getCategoryColor(achievement.category).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getCategoryColor(achievement.category),
+                      ),
+                    ),
+                    child: Text(
+                      achievement.category.toUpperCase(),
+                      style: TextStyle(
+                        color: _getCategoryColor(achievement.category),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Close button
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(int.parse('0xFF${achievement.colorHex.substring(1)}')),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
+
+  void _showBadgeCelebration(Achievement achievement) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Text('🎉 ${achievement.title}'),
+        content: Text(achievement.description),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
 }

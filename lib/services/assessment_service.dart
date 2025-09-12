@@ -5,11 +5,12 @@ import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import 'connectivity_service.dart';
 import 'offline_service.dart';
-
+import 'achievements_service.dart';
 class AssessmentService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final ConnectivityService _connectivityService = ConnectivityService();
   final AuthService _authService = AuthService();
+  final AchievementsService _achievementsService = AchievementsService();
 
   // Create a new assessment
   Future<String> createAssessment(Assessment assessment) async {
@@ -575,6 +576,37 @@ class AssessmentService {
       final ref = _database.ref('assessment_submissions').push();
       await ref.set(submissionData);
       
+      // Update leaderboard with points earned (including participation points)
+      int pointsToAdd = finalScore;
+      if (pointsToAdd == 0 && answers.isNotEmpty) {
+        // Give participation points for attempting assessment
+        pointsToAdd = 1; // 1 point for attempting
+        print('📝 Giving participation points for attempting assessment');
+      }
+      
+      if (pointsToAdd > 0) {
+        try {
+          await _achievementsService.updateLeaderboardWithPoints(
+            currentStudentId,
+            studentProfile?.displayName ?? 'Student',
+            pointsToAdd,
+          );
+          print('✅ Leaderboard updated with $pointsToAdd points');
+          
+          // Check and award achievements
+          print('🏆 Checking achievements for student: $currentStudentId');
+          final newAchievements = await _achievementsService.checkAndAwardAchievements(currentStudentId);
+          if (newAchievements.isNotEmpty) {
+            print('🏆 🎉 Awarded ${newAchievements.length} new achievements!');
+            for (final achievement in newAchievements) {
+              print('🏆 - ${achievement.achievementTitle}');
+            }
+          }
+        } catch (e) {
+          print('⚠️ Failed to update leaderboard: $e');
+        }
+      }
+      
       print('✅ Enhanced assessment submission created successfully');
       print('📊 Submission data: $submissionData');
     } catch (e) {
@@ -598,6 +630,31 @@ class AssessmentService {
     } catch (e) {
       print('❌ Error getting student ID: $e');
       return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
+  // Update submission grade
+  Future<void> updateSubmissionGrade(String submissionId, int grade, String feedback) async {
+    try {
+      if (!_connectivityService.isConnected) {
+        throw Exception('Cannot update grade while offline. Please connect to the internet.');
+      }
+
+      // Update in Realtime Database
+      await _database
+          .ref('assessment_submissions')
+          .child(submissionId)
+          .update({
+        'score': grade,
+        'feedback': feedback,
+        'isGraded': true,
+        'gradedAt': ServerValue.timestamp,
+      });
+
+      print('✅ Submission grade updated successfully');
+    } catch (e) {
+      print('Error updating submission grade: $e');
+      throw Exception('Failed to update grade: ${e.toString()}');
     }
   }
 

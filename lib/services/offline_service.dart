@@ -1142,6 +1142,32 @@ class OfflineService {
             'createdAt': DateTime.now().subtract(const Duration(days: 15)).millisecondsSinceEpoch,
             'updatedAt': null,
           },
+          {
+            'id': 'achievement_5',
+            'title': 'Fast Learner',
+            'description': 'Complete 3 lessons in under 10 minutes each',
+            'category': 'special',
+            'points': 30,
+            'iconName': 'lightbulb',
+            'colorHex': '#FF9500',
+            'criteria': {'specialCondition': 'fast_learner', 'fastLessons': 3, 'maxTimePerLesson': 10},
+            'isActive': true,
+            'createdAt': DateTime.now().subtract(const Duration(days: 10)).millisecondsSinceEpoch,
+            'updatedAt': null,
+          },
+          {
+            'id': 'achievement_6',
+            'title': 'Perfect Quiz Master',
+            'description': 'Get perfect scores on 5 consecutive quizzes',
+            'category': 'special',
+            'points': 75,
+            'iconName': 'trophy',
+            'colorHex': '#FFD700',
+            'criteria': {'specialCondition': 'perfect_quiz_master', 'perfectQuizzes': 5, 'consecutive': true},
+            'isActive': true,
+            'createdAt': DateTime.now().subtract(const Duration(days: 5)).millisecondsSinceEpoch,
+            'updatedAt': null,
+          },
         ];
 
         // Sample student achievements data
@@ -1266,6 +1292,94 @@ class OfflineService {
     } catch (e) {
       if (kDebugMode) {
         print('Error populating sample data: $e');
+      }
+    }
+  }
+
+  // Populate demo leaderboard data for testing
+  static Future<void> populateDemoLeaderboard() async {
+    try {
+      final demoLeaderboard = [
+        {
+          'studentId': 'demo_student_1',
+          'studentName': 'Maria Santos',
+          'studentEmail': 'maria.santos@demo.com',
+          'totalPoints': 450,
+          'achievementsCount': 4,
+          'rank': 1,
+          'lastActivity': DateTime.now().subtract(const Duration(hours: 2)).millisecondsSinceEpoch,
+          'stats': {
+            'lessonsCompleted': 8,
+            'assessmentsCompleted': 12,
+            'streakDays': 5,
+          },
+        },
+        {
+          'studentId': 'demo_student_2',
+          'studentName': 'Juan Dela Cruz',
+          'studentEmail': 'juan.delacruz@demo.com',
+          'totalPoints': 380,
+          'achievementsCount': 3,
+          'rank': 2,
+          'lastActivity': DateTime.now().subtract(const Duration(hours: 4)).millisecondsSinceEpoch,
+          'stats': {
+            'lessonsCompleted': 6,
+            'assessmentsCompleted': 10,
+            'streakDays': 3,
+          },
+        },
+        {
+          'studentId': 'demo_student_3',
+          'studentName': 'Ana Rodriguez',
+          'studentEmail': 'ana.rodriguez@demo.com',
+          'totalPoints': 320,
+          'achievementsCount': 2,
+          'rank': 3,
+          'lastActivity': DateTime.now().subtract(const Duration(hours: 6)).millisecondsSinceEpoch,
+          'stats': {
+            'lessonsCompleted': 5,
+            'assessmentsCompleted': 8,
+            'streakDays': 2,
+          },
+        },
+        {
+          'studentId': 'demo_student_4',
+          'studentName': 'Carlos Mendoza',
+          'studentEmail': 'carlos.mendoza@demo.com',
+          'totalPoints': 280,
+          'achievementsCount': 2,
+          'rank': 4,
+          'lastActivity': DateTime.now().subtract(const Duration(hours: 8)).millisecondsSinceEpoch,
+          'stats': {
+            'lessonsCompleted': 4,
+            'assessmentsCompleted': 7,
+            'streakDays': 1,
+          },
+        },
+        {
+          'studentId': 'demo_student_5',
+          'studentName': 'Sofia Garcia',
+          'studentEmail': 'sofia.garcia@demo.com',
+          'totalPoints': 240,
+          'achievementsCount': 1,
+          'rank': 5,
+          'lastActivity': DateTime.now().subtract(const Duration(hours: 12)).millisecondsSinceEpoch,
+          'stats': {
+            'lessonsCompleted': 3,
+            'assessmentsCompleted': 5,
+            'streakDays': 1,
+          },
+        },
+      ];
+
+      for (final entry in demoLeaderboard) {
+        await cacheLeaderboardEntry(entry);
+      }
+      
+      print('📊 Cached ${demoLeaderboard.length} demo leaderboard entries');
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error populating demo leaderboard: $e');
       }
     }
   }

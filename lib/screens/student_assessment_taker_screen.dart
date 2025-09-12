@@ -6,6 +6,8 @@ import '../services/connectivity_service.dart';
 import '../services/offline_service.dart';
 import '../services/submission_service.dart';
 import '../services/auth_service.dart';
+import '../services/achievements_service.dart';
+import '../widgets/badge_celebration.dart';
 
 class StudentAssessmentTakerScreen extends StatefulWidget {
   final Assessment assessment;
@@ -24,6 +26,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   final ConnectivityService _connectivityService = ConnectivityService();
   final OfflineService _offlineService = OfflineService();
   final AuthService _authService = AuthService();
+  final AchievementsService _achievementsService = AchievementsService();
   
   // Get current student ID from Firebase Auth
   String _getCurrentStudentId() {
@@ -325,12 +328,12 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
               case QuestionType.trueFalse:
                 correctAnswer = question.correctAnswer ?? 'True';
                 isCorrect = answer.toLowerCase() == correctAnswer.toLowerCase();
-                points = isCorrect ? 10 : 0;
+                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
                 break;
               case QuestionType.multipleChoice:
                 correctAnswer = question.correctAnswer ?? 'A';
                 isCorrect = answer == correctAnswer;
-                points = isCorrect ? 10 : 0;
+                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
                 break;
               case QuestionType.shortAnswer:
               case QuestionType.essay:
@@ -408,12 +411,12 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
               case QuestionType.trueFalse:
                 correctAnswer = question.correctAnswer ?? 'True';
                 isCorrect = answer.toLowerCase() == correctAnswer.toLowerCase();
-                points = isCorrect ? 10 : 0;
+                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
                 break;
               case QuestionType.multipleChoice:
                 correctAnswer = question.correctAnswer ?? 'A';
                 isCorrect = answer == correctAnswer;
-                points = isCorrect ? 10 : 0;
+                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
                 break;
               case QuestionType.shortAnswer:
               case QuestionType.essay:
@@ -478,6 +481,9 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
             duration: const Duration(seconds: 3),
           ),
         );
+        
+        // Check for new achievements and show celebration
+        await _checkAndShowCelebration();
       }
     } catch (e) {
       print('❌ Error submitting assessment: $e');
@@ -1326,5 +1332,46 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       default:
         return 'Question';
     }
+  }
+
+  Future<void> _checkAndShowCelebration() async {
+    try {
+      final studentId = _getCurrentStudentId();
+      
+      // Check for new achievements
+      final newAchievements = await _achievementsService.checkAndAwardAchievements(studentId);
+      
+      // Show celebration for the first new achievement
+      if (newAchievements.isNotEmpty && mounted) {
+        final latestAchievement = newAchievements.first;
+        
+        // Get achievement details
+        final allAchievements = await _achievementsService.getAllAchievements();
+        final achievement = allAchievements.firstWhere(
+          (a) => a.id == latestAchievement.achievementId,
+          orElse: () => allAchievements.first,
+        );
+        
+        // Show celebration dialog
+        _showBadgeCelebration(achievement);
+      }
+    } catch (e) {
+      print('Error checking achievements: $e');
+    }
+  }
+
+  void _showBadgeCelebration(achievement) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => BadgeCelebration(
+        badgeTitle: achievement.title,
+        badgeDescription: achievement.description,
+        points: achievement.points,
+        iconName: achievement.iconName,
+        colorHex: achievement.colorHex,
+        onAnimationComplete: () => Navigator.of(context).pop(),
+      ),
+    );
   }
 }
