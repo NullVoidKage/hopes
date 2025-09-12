@@ -264,6 +264,11 @@ class _AssessmentGradingScreenState extends State<AssessmentGradingScreen> {
                       final question = entry.value;
                       final answer = widget.submission.detailedAnswers[index];
                       
+                      print('🔍 Question $index: ${question.question}');
+                      print('🔍 Answer: ${answer?.answer ?? 'null'}');
+                      print('🔍 Detailed answers map: ${widget.submission.detailedAnswers}');
+                      print('🔍 Looking for index: $index');
+                      
                       return _buildQuestionCard(index + 1, question, answer);
                     }).toList(),
                   ],

@@ -55,26 +55,54 @@ class AchievementsService {
     }
   }
 
-  // Get all achievements
+  // Get all achievements from Realtime Database
   Future<List<Achievement>> getAllAchievements() async {
     try {
+      print('🏆 Getting all achievements from Realtime Database...');
+      
       if (_connectivityService.isConnected) {
-        // Fetch from Firestore
-        final querySnapshot = await _firestore
-            .collection('achievements')
-            .where('isActive', isEqualTo: true)
-            .orderBy('points', descending: true)
+        // Fetch from Realtime Database
+        final snapshot = await _database
+            .ref('achievements')
+            .orderByChild('points')
             .get();
 
-        final achievements = querySnapshot.docs
-            .map((doc) => Achievement.fromFirestore(doc))
-            .toList();
-
-        // Cache locally
-        for (final achievement in achievements) {
-          await _cacheAchievementLocally(achievement);
+        if (!snapshot.exists) {
+          print('🏆 No achievements found in Realtime Database');
+          return [];
         }
 
+        final achievements = <Achievement>[];
+        final data = _convertLinkedMapToMap(snapshot.value as Map);
+        
+        for (final entry in data.entries) {
+          final achievementData = _convertLinkedMapToMap(entry.value as Map);
+          achievements.add(Achievement(
+            id: entry.key,
+            title: achievementData['title'] ?? '',
+            description: achievementData['description'] ?? '',
+            points: achievementData['points'] ?? 0,
+            category: achievementData['category'] ?? 'general',
+            criteria: Map<String, dynamic>.from(achievementData['criteria'] ?? {}),
+            iconName: achievementData['iconName'] ?? 'star',
+            colorHex: achievementData['colorHex'] ?? '#007AFF',
+            isActive: achievementData['isActive'] ?? true,
+            createdAt: achievementData['createdAt'] is int 
+                ? DateTime.fromMillisecondsSinceEpoch(achievementData['createdAt'] as int)
+                : DateTime.parse(achievementData['createdAt']?.toString() ?? DateTime.now().toIso8601String()),
+          ));
+        }
+
+        // Sort by points ascending
+        achievements.sort((a, b) => a.points.compareTo(b.points));
+
+        print('🏆 Found ${achievements.length} achievements in Realtime Database');
+        
+        // Debug: Print achievement details
+        for (final achievement in achievements) {
+          print('🏆 Achievement: ${achievement.title} - Points: ${achievement.points} - Criteria: ${achievement.criteria}');
+        }
+        
         return achievements;
       } else {
         // Use cached data
@@ -141,23 +169,23 @@ class AchievementsService {
       );
 
       if (_connectivityService.isConnected) {
-        // Save to Firestore
-        final docRef = await _firestore
-            .collection('student_achievements')
-            .add(studentAchievement.toFirestore());
-
-        // Save to Realtime Database
+        // Generate unique ID for Realtime Database
+        final achievementId = 'achievement_${DateTime.now().millisecondsSinceEpoch}_${studentId}';
+        
+        // Save to Realtime Database only
         await _database
-            .ref('student_achievements/${docRef.id}')
+            .ref('student_achievements/$achievementId')
             .set(studentAchievement.toRealtimeDatabase());
+
+        print('🏆 ✅ Saved achievement to Realtime Database: $achievementId');
 
         // Update leaderboard
         await _updateLeaderboard(studentId, studentName, achievement.points);
 
         // Cache locally
-        await _cacheStudentAchievementLocally(studentAchievement.copyWith(id: docRef.id));
+        await _cacheStudentAchievementLocally(studentAchievement.copyWith(id: achievementId));
 
-        return docRef.id;
+        return achievementId;
       } else {
         // Offline mode
         final tempId = 'temp_student_achievement_${DateTime.now().millisecondsSinceEpoch}';
@@ -174,26 +202,48 @@ class AchievementsService {
     }
   }
 
-  // Get student achievements
+  // Get student achievements from Realtime Database
   Future<List<StudentAchievement>> getStudentAchievements(String studentId) async {
     try {
+      print('🏆 Getting student achievements from Realtime Database for student: $studentId');
+      
       if (_connectivityService.isConnected) {
-        // Fetch from Firestore
-        final querySnapshot = await _firestore
-            .collection('student_achievements')
-            .where('studentId', isEqualTo: studentId)
-            .orderBy('unlockedAt', descending: true)
+        // Fetch from Realtime Database
+        final snapshot = await _database
+            .ref('student_achievements')
+            .orderByChild('studentId')
+            .equalTo(studentId)
             .get();
 
-        final achievements = querySnapshot.docs
-            .map((doc) => StudentAchievement.fromFirestore(doc))
-            .toList();
-
-        // Cache locally
-        for (final achievement in achievements) {
-          await _cacheStudentAchievementLocally(achievement);
+        if (!snapshot.exists) {
+          print('🏆 No achievements found for student: $studentId');
+          return [];
         }
 
+        final achievements = <StudentAchievement>[];
+        final data = _convertLinkedMapToMap(snapshot.value as Map);
+        
+        for (final entry in data.entries) {
+          final achievementData = _convertLinkedMapToMap(entry.value as Map);
+          achievements.add(StudentAchievement(
+            id: entry.key,
+            studentId: achievementData['studentId'] ?? '',
+            studentName: achievementData['studentName'] ?? '',
+            achievementId: achievementData['achievementId'] ?? '',
+            achievementTitle: achievementData['achievementTitle'] ?? '',
+            achievementDescription: achievementData['achievementDescription'] ?? '',
+            points: achievementData['points'] ?? 0,
+            unlockedAt: achievementData['unlockedAt'] is int 
+                ? DateTime.fromMillisecondsSinceEpoch(achievementData['unlockedAt'] as int)
+                : DateTime.parse(achievementData['unlockedAt']?.toString() ?? DateTime.now().toIso8601String()),
+            metadata: Map<String, dynamic>.from(achievementData['metadata'] ?? {}),
+          ));
+        }
+
+        // Sort by unlockedAt descending
+        achievements.sort((a, b) => b.unlockedAt.compareTo(a.unlockedAt));
+
+        print('🏆 Found ${achievements.length} achievements for student: $studentId');
         return achievements;
       } else {
         // Use cached data
@@ -217,11 +267,28 @@ class AchievementsService {
 
         if (leaderboardSnapshot.exists) {
           final Map<dynamic, dynamic> data = leaderboardSnapshot.value as Map<dynamic, dynamic>;
+          print('📊 Raw leaderboard data: $data');
+          print('📊 Data type: ${data.runtimeType}');
+          print('📊 Data keys: ${data.keys.toList()}');
           final List<LeaderboardEntry> leaderboard = [];
           
           for (final entry in data.values) {
-            if (entry is Map<String, dynamic>) {
-              leaderboard.add(LeaderboardEntry.fromRealtimeDatabase(entry, entry['studentId'] ?? ''));
+            print('📊 Processing entry: $entry');
+            print('📊 Entry type: ${entry.runtimeType}');
+            if (entry is Map) {
+              try {
+                // Convert LinkedMap to Map<String, dynamic> recursively
+                final entryMap = _convertLinkedMapToMap(entry);
+                print('📊 Entry map: $entryMap');
+                final leaderboardEntry = LeaderboardEntry.fromRealtimeDatabase(entryMap, entryMap['studentId'] ?? '');
+                leaderboard.add(leaderboardEntry);
+                print('📊 ✅ Successfully added entry: ${leaderboardEntry.studentName}');
+              } catch (e) {
+                print('📊 ❌ Error processing entry: $e');
+                print('📊 ❌ Problematic entry: $entry');
+              }
+            } else {
+              print('📊 ❌ Entry is not a Map: $entry');
             }
           }
           
@@ -431,6 +498,7 @@ class AchievementsService {
   // Check and award achievements based on student activity
   Future<List<StudentAchievement>> checkAndAwardAchievements(String studentId) async {
     try {
+      print('🏆 Checking achievements for student: $studentId');
       final achievements = <StudentAchievement>[];
       final currentAchievements = await getStudentAchievements(studentId);
       final allAchievements = await getAllAchievements();
@@ -439,9 +507,11 @@ class AchievementsService {
       final student = await _studentService.getStudentById(studentId);
       final progress = await _progressService.getStudentProgress(studentId);
       
-      // For now, use empty lists since we don't have direct student assessment/lesson methods
-      // In a real implementation, these would be fetched from student-specific endpoints
-      final assessments = <Assessment>[];
+      // Get student's assessment submissions
+      final studentSubmissions = await _getStudentAssessmentSubmissions(studentId);
+      print('📊 Found ${studentSubmissions.length} assessment submissions for student');
+      
+      // Get student's lessons (for now, use empty list)
       final lessons = <Lesson>[];
       
       final learningPaths = await _learningPathService.getStudentLearningPaths(studentId);
@@ -449,17 +519,22 @@ class AchievementsService {
       for (final achievement in allAchievements) {
         // Skip if already awarded
         if (currentAchievements.any((ca) => ca.achievementId == achievement.id)) {
+          print('🏆 Achievement ${achievement.title} already awarded, skipping');
           continue;
         }
+
+        print('🏆 Checking achievement: ${achievement.title}');
 
         // Check if achievement criteria are met
         if (await _checkAchievementCriteria(achievement, {
           'student': student,
           'progress': progress,
-          'assessments': assessments,
+          'assessments': studentSubmissions,
           'lessons': lessons,
           'learningPaths': learningPaths,
         })) {
+          print('🏆 ✅ Achievement criteria met for: ${achievement.title}');
+          
           // Award achievement
           final studentAchievement = await awardAchievementToStudent(
             studentId,
@@ -480,13 +555,145 @@ class AchievementsService {
               unlockedAt: DateTime.now(),
               metadata: {'autoAwarded': true},
             ));
+            print('🏆 🎉 Awarded achievement: ${achievement.title}');
           }
+        } else {
+          print('🏆 ❌ Achievement criteria not met for: ${achievement.title}');
         }
       }
 
+      print('🏆 Total achievements awarded: ${achievements.length}');
       return achievements;
     } catch (e) {
       print('Error checking achievements: $e');
+      return [];
+    }
+  }
+
+  // Check point-based achievements
+  Future<List<StudentAchievement>> _checkPointBasedAchievements(String studentId, String studentName, int totalPoints) async {
+    try {
+      print('🏆 Checking point-based achievements for $totalPoints points...');
+      final achievements = <StudentAchievement>[];
+      final currentAchievements = await getStudentAchievements(studentId);
+      final allAchievements = await getAllAchievements();
+      
+      // Filter only point-based achievements
+      final pointAchievements = allAchievements.where((a) => 
+        a.criteria.containsKey('totalPoints') && a.criteria['totalPoints'] is int
+      ).toList();
+      
+      print('🏆 Found ${pointAchievements.length} point-based achievements');
+      
+      for (final achievement in pointAchievements) {
+        final requiredPoints = achievement.criteria['totalPoints'] as int;
+        
+        // Skip if already awarded
+        if (currentAchievements.any((ca) => ca.achievementId == achievement.id)) {
+          print('🏆 Achievement ${achievement.title} already awarded, skipping');
+          continue;
+        }
+        
+        // Check if student has enough points
+        if (totalPoints >= requiredPoints) {
+          print('🏆 ✅ Student has $totalPoints points, meets requirement for ${achievement.title} (${requiredPoints} points)');
+          
+          // Award achievement
+          final studentAchievement = await awardAchievementToStudent(
+            studentId,
+            studentName,
+            achievement,
+            {'autoAwarded': true, 'pointsEarned': totalPoints, 'checkedAt': DateTime.now().toIso8601String()},
+          );
+          
+          if (studentAchievement.isNotEmpty) {
+            achievements.add(StudentAchievement(
+              id: studentAchievement,
+              studentId: studentId,
+              studentName: studentName,
+              achievementId: achievement.id,
+              achievementTitle: achievement.title,
+              achievementDescription: achievement.description,
+              points: achievement.points,
+              unlockedAt: DateTime.now(),
+              metadata: {'autoAwarded': true, 'pointsEarned': totalPoints},
+            ));
+            print('🏆 🎉 Awarded achievement: ${achievement.title}');
+          }
+        } else {
+          print('🏆 ❌ Student has $totalPoints points, needs ${requiredPoints} for ${achievement.title}');
+        }
+      }
+      
+      return achievements;
+    } catch (e) {
+      print('Error checking point-based achievements: $e');
+      return [];
+    }
+  }
+
+  // Get total points from assessment submissions for a student
+  Future<int> getTotalPointsFromSubmissions(String studentId) async {
+    try {
+      print('🏆 Getting total points from submissions for student: $studentId');
+      
+      final submissions = await _getStudentAssessmentSubmissions(studentId);
+      int totalPoints = 0;
+      
+      for (final submission in submissions) {
+        final score = (submission['score'] as num?)?.toInt() ?? 0;
+        totalPoints += score;
+      }
+      
+      print('🏆 Student $studentId has $totalPoints total points from ${submissions.length} submissions');
+      return totalPoints;
+    } catch (e) {
+      print('Error getting total points from submissions: $e');
+      return 0;
+    }
+  }
+
+  // Convert LinkedMap to Map<String, dynamic> recursively
+  Map<String, dynamic> _convertLinkedMapToMap(Map map) {
+    final result = <String, dynamic>{};
+    
+    for (final key in map.keys) {
+      final value = map[key];
+      if (value is Map) {
+        result[key.toString()] = _convertLinkedMapToMap(value);
+      } else {
+        result[key.toString()] = value;
+      }
+    }
+    
+    return result;
+  }
+
+  // Get student's assessment submissions
+  Future<List<Map<String, dynamic>>> _getStudentAssessmentSubmissions(String studentId) async {
+    try {
+      final snapshot = await _database
+          .ref('assessment_submissions')
+          .orderByChild('studentId')
+          .equalTo(studentId)
+          .get();
+
+      if (!snapshot.exists) {
+        return [];
+      }
+
+      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+      final List<Map<String, dynamic>> submissions = [];
+      
+      for (final entry in data.values) {
+        if (entry is Map) {
+          submissions.add(Map<String, dynamic>.from(entry));
+        }
+      }
+      
+      return submissions;
+    } catch (e) {
+      print('Error getting student assessment submissions: $e');
       return [];
     }
   }
@@ -500,7 +707,7 @@ class AchievementsService {
       final criteria = achievement.criteria;
       final student = studentData['student'] as Student?;
       final progress = studentData['progress'] as List<StudentProgress>;
-      final assessments = studentData['assessments'] as List<Assessment>;
+      final assessments = studentData['assessments'] as List<Map<String, dynamic>>;
       final lessons = studentData['lessons'] as List<Lesson>;
       final learningPaths = studentData['learningPaths'] as List<dynamic>;
 
@@ -528,15 +735,21 @@ class AchievementsService {
   bool _checkAcademicCriteria(
     Map<String, dynamic> criteria,
     List<StudentProgress> progress,
-    List<Assessment> assessments,
+    List<Map<String, dynamic>> assessments,
   ) {
     try {
       final minScore = criteria['minScore'] ?? 0;
       final minAssessments = criteria['minAssessments'] ?? 0;
       final minLessons = criteria['minLessons'] ?? 0;
 
-      // Check assessment scores - using totalPoints for now since score isn't available
-      final highScores = assessments.where((a) => a.totalPoints >= minScore).length;
+      // Check assessment scores from real submission data
+      final highScores = assessments.where((a) {
+        final score = (a['score'] as num?)?.toInt() ?? 0;
+        final maxScore = (a['maxPossibleScore'] as num?)?.toInt() ?? 10;
+        final percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+        return percentage >= minScore;
+      }).length;
+      
       if (highScores < minAssessments) return false;
 
       // Check lesson completion
@@ -545,6 +758,7 @@ class AchievementsService {
 
       return true;
     } catch (e) {
+      print('Error checking academic criteria: $e');
       return false;
     }
   }
@@ -626,7 +840,7 @@ class AchievementsService {
   bool _checkMilestoneCriteria(
     Map<String, dynamic> criteria,
     List<StudentProgress> progress,
-    List<Assessment> assessments,
+    List<Map<String, dynamic>> assessments,
   ) {
     try {
       final totalLessons = criteria['totalLessons'] ?? 0;
@@ -640,9 +854,9 @@ class AchievementsService {
       // Check total assessments taken
       if (assessments.length < totalAssessments) return false;
 
-      // Check total points earned - using completionRate for now since points isn't available
-      final earnedPoints = progress.fold<int>(0, (sum, p) => sum + p.completionRate.round());
-      if (earnedPoints < totalPoints) return false;
+      // Check total points earned from assessments
+      final earnedPoints = assessments.fold<int>(0, (sum, a) => sum + ((a['score'] as num?)?.toInt() ?? 0));
+      if (totalPoints > 0 && earnedPoints < totalPoints) return false;
 
       return true;
     } catch (e) {
@@ -663,8 +877,12 @@ class AchievementsService {
           final lessons = studentData['lessons'] as List<Lesson>;
           return lessons.isNotEmpty;
         case 'perfect_score':
-          final assessments = studentData['assessments'] as List<Assessment>;
-          return assessments.any((a) => a.totalPoints == 100);
+          final assessments = studentData['assessments'] as List<Map<String, dynamic>>;
+          return assessments.any((a) {
+            final score = (a['score'] as num?)?.toInt() ?? 0;
+            final maxScore = (a['maxPossibleScore'] as num?)?.toInt() ?? 10;
+            return maxScore > 0 && score == maxScore;
+          });
         case 'weekend_warrior':
           final progress = studentData['progress'] as List<StudentProgress>;
           final weekendActivity = progress.any((p) {
@@ -691,9 +909,12 @@ class AchievementsService {
         case 'perfect_quiz_master':
           // Check for consecutive perfect quiz scores
           final perfectQuizzes = criteria['perfectQuizzes'] ?? 5;
-          final assessments = studentData['assessments'] as List<Assessment>;
-          // For now, check if student has perfect scores (this would need actual quiz attempt data)
-          final perfectScores = assessments.where((a) => a.totalPoints == 100).length;
+          final assessments = studentData['assessments'] as List<Map<String, dynamic>>;
+          final perfectScores = assessments.where((a) {
+            final score = (a['score'] as num?)?.toInt() ?? 0;
+            final maxScore = (a['maxPossibleScore'] as num?)?.toInt() ?? 10;
+            return maxScore > 0 && score == maxScore;
+          }).length;
           return perfectScores >= perfectQuizzes;
         default:
           return false;
@@ -717,6 +938,297 @@ class AchievementsService {
       print('📊 Found ${leaderboard.length} students with assessment submissions');
     } catch (e) {
       print('Error calculating leaderboard from existing submissions: $e');
+    }
+  }
+
+  // Manually process all existing assessment submissions for achievements
+  Future<void> processExistingSubmissionsForAchievements() async {
+    try {
+      print('🔄 Processing existing assessment submissions for achievements...');
+      
+      // Get all assessment submissions
+      final snapshot = await _database
+          .ref('assessment_submissions')
+          .get();
+
+      if (!snapshot.exists) {
+        print('📊 No assessment submissions found');
+        return;
+      }
+
+      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+      final Map<String, List<Map<String, dynamic>>> studentSubmissions = {};
+      
+      // Group submissions by student
+      for (final entry in data.values) {
+        if (entry is Map) {
+          final submission = Map<String, dynamic>.from(entry);
+          final studentId = submission['studentId'] as String?;
+          if (studentId != null) {
+            studentSubmissions.putIfAbsent(studentId, () => []).add(submission);
+          }
+        }
+      }
+      
+      print('📊 Found submissions for ${studentSubmissions.length} students');
+      
+      // Process each student's submissions
+      for (final studentId in studentSubmissions.keys) {
+        print('🏆 Processing achievements for student: $studentId');
+        final submissions = studentSubmissions[studentId]!;
+        
+        // Calculate total points for this student
+        int totalPoints = 0;
+        for (final submission in submissions) {
+          final score = (submission['score'] as num?)?.toInt() ?? 0;
+          totalPoints += score;
+        }
+        
+        print('📊 Student $studentId has $totalPoints total points from ${submissions.length} submissions');
+        
+        // Get student name from submissions
+        final studentName = submissions.isNotEmpty ? submissions.first['studentName'] ?? 'Student' : 'Student';
+        print('🏆 Student name from submissions: $studentName');
+        
+        // Check and award achievements based on total points
+        print('🏆 Checking point-based achievements for student $studentId ($studentName) with $totalPoints points...');
+        final newAchievements = await _checkPointBasedAchievements(studentId, studentName, totalPoints);
+        if (newAchievements.isNotEmpty) {
+          print('🏆 🎉 Awarded ${newAchievements.length} achievements to student $studentId:');
+          for (final achievement in newAchievements) {
+            print('🏆 - ${achievement.achievementTitle}');
+          }
+        } else {
+          print('🏆 No new achievements for student $studentId');
+        }
+      }
+      
+      print('✅ Finished processing existing submissions for achievements');
+    } catch (e) {
+      print('Error processing existing submissions for achievements: $e');
+    }
+  }
+
+  // Create sample achievements in the database
+  Future<void> createSampleAchievements() async {
+    try {
+      print('🏆 Creating sample achievements...');
+      
+      final sampleAchievements = [
+        Achievement(
+          id: 'achievement_1',
+          title: 'First Steps',
+          description: 'Complete your first lesson',
+          category: 'milestone',
+          points: 10,
+          iconName: 'school',
+          colorHex: '#007AFF',
+          criteria: {'totalLessons': 1},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 30)),
+        ),
+        Achievement(
+          id: 'achievement_2',
+          title: 'Perfect Score',
+          description: 'Get 100% on an assessment',
+          category: 'academic',
+          points: 25,
+          iconName: 'star',
+          colorHex: '#FFD700',
+          criteria: {'minScore': 100, 'minAssessments': 1},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 25)),
+        ),
+        Achievement(
+          id: 'achievement_3',
+          title: 'Weekend Warrior',
+          description: 'Study on weekends for 3 consecutive weeks',
+          category: 'streak',
+          points: 15,
+          iconName: 'fire',
+          colorHex: '#FF6B35',
+          criteria: {'minStreak': 3, 'streakType': 'weekly'},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 20)),
+        ),
+        Achievement(
+          id: 'achievement_4',
+          title: 'Knowledge Seeker',
+          description: 'Complete 10 lessons',
+          category: 'participation',
+          points: 50,
+          iconName: 'book',
+          colorHex: '#34C759',
+          criteria: {'minLessons': 10},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 15)),
+        ),
+        Achievement(
+          id: 'achievement_5',
+          title: 'Fast Learner',
+          description: 'Complete 3 lessons in under 10 minutes each',
+          category: 'special',
+          points: 30,
+          iconName: 'lightbulb',
+          colorHex: '#FF9500',
+          criteria: {'specialCondition': 'fast_learner', 'fastLessons': 3, 'maxTimePerLesson': 10},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 10)),
+        ),
+        Achievement(
+          id: 'achievement_6',
+          title: 'Perfect Quiz Master',
+          description: 'Get perfect scores on 5 consecutive quizzes',
+          category: 'special',
+          points: 75,
+          iconName: 'trophy',
+          colorHex: '#FFD700',
+          criteria: {'specialCondition': 'perfect_quiz_master', 'perfectQuizzes': 5, 'consecutive': true},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 5)),
+        ),
+        // Points milestone badges
+        Achievement(
+          id: 'achievement_10_points',
+          title: 'First Steps',
+          description: 'Earn your first 10 points',
+          category: 'milestone',
+          points: 10,
+          iconName: 'star',
+          colorHex: '#34C759',
+          criteria: {'totalPoints': 10},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_20_points',
+          title: 'Rising Star',
+          description: 'Earn 20 points',
+          category: 'milestone',
+          points: 15,
+          iconName: 'star',
+          colorHex: '#007AFF',
+          criteria: {'totalPoints': 20},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_30_points',
+          title: 'Learning Champion',
+          description: 'Earn 30 points',
+          category: 'milestone',
+          points: 20,
+          iconName: 'star',
+          colorHex: '#FF9500',
+          criteria: {'totalPoints': 30},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_40_points',
+          title: 'Knowledge Builder',
+          description: 'Earn 40 points',
+          category: 'milestone',
+          points: 25,
+          iconName: 'star',
+          colorHex: '#AF52DE',
+          criteria: {'totalPoints': 40},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_50_points',
+          title: 'Academic Achiever',
+          description: 'Earn 50 points',
+          category: 'milestone',
+          points: 30,
+          iconName: 'star',
+          colorHex: '#FF6B35',
+          criteria: {'totalPoints': 50},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_60_points',
+          title: 'Study Master',
+          description: 'Earn 60 points',
+          category: 'milestone',
+          points: 35,
+          iconName: 'star',
+          colorHex: '#5856D6',
+          criteria: {'totalPoints': 60},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_70_points',
+          title: 'Learning Expert',
+          description: 'Earn 70 points',
+          category: 'milestone',
+          points: 40,
+          iconName: 'star',
+          colorHex: '#FF2D92',
+          criteria: {'totalPoints': 70},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_80_points',
+          title: 'Knowledge Warrior',
+          description: 'Earn 80 points',
+          category: 'milestone',
+          points: 45,
+          iconName: 'star',
+          colorHex: '#32D74B',
+          criteria: {'totalPoints': 80},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_90_points',
+          title: 'Academic Legend',
+          description: 'Earn 90 points',
+          category: 'milestone',
+          points: 50,
+          iconName: 'star',
+          colorHex: '#FF9F0A',
+          criteria: {'totalPoints': 90},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+        Achievement(
+          id: 'achievement_100_points',
+          title: 'Century Scholar',
+          description: 'Earn 100 points',
+          category: 'milestone',
+          points: 60,
+          iconName: 'star',
+          colorHex: '#FFD700',
+          criteria: {'totalPoints': 100},
+          isActive: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        ),
+      ];
+
+      for (final achievement in sampleAchievements) {
+        try {
+          // Check if achievement already exists in Realtime Database
+          final existing = await _database.ref('achievements/${achievement.id}').get();
+          if (!existing.exists) {
+            await _database.ref('achievements/${achievement.id}').set(achievement.toRealtimeDatabase());
+            print('🏆 Created achievement: ${achievement.title}');
+          } else {
+            print('🏆 Achievement already exists: ${achievement.title}');
+          }
+        } catch (e) {
+          print('🏆 Error creating achievement ${achievement.title}: $e');
+          // Continue with other achievements even if one fails
+        }
+      }
+      
+      print('🏆 Sample achievements creation completed');
+    } catch (e) {
+      print('Error creating sample achievements: $e');
     }
   }
 

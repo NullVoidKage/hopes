@@ -68,26 +68,23 @@
       ".write": "auth != null",
       "$studentId": {
         ".read": "auth != null",
-        ".write": "auth != null",
-        ".validate": "newData.hasChildren(['studentId', 'studentName', 'totalPoints', 'lastActivity'])"
-      },
-      "sample_student_1": {
+        ".write": "auth != null"
+      }
+    },
+    "student_achievements": {
+      ".indexOn": ["studentId", "unlockedAt"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$achievementId": {
         ".read": "auth != null",
         ".write": "auth != null"
-      },
-      "sample_student_2": {
-        ".read": "auth != null",
-        ".write": "auth != null"
-      },
-      "sample_student_3": {
-        ".read": "auth != null",
-        ".write": "auth != null"
-      },
-      "sample_student_4": {
-        ".read": "auth != null",
-        ".write": "auth != null"
-      },
-      "sample_student_5": {
+      }
+    },
+    "achievements": {
+      ".indexOn": ["points", "category", "isActive"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$achievementId": {
         ".read": "auth != null",
         ".write": "auth != null"
       }

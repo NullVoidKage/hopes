@@ -18,6 +18,8 @@ import 'student_learning_path_navigator_screen.dart';
 import 'lesson_detail_screen.dart';
 import 'student_profile_edit_screen.dart';
 import 'student_settings_screen.dart';
+import 'badges_screen.dart';
+import 'leaderboard_screen.dart';
 
 // Helper class to track assessment submission status
 class AssessmentWithSubmissionStatus {
@@ -275,6 +277,18 @@ class _StudentDashboardState extends State<StudentDashboard> {
               Icons.trending_up,
               'View your learning progress',
               () => _navigateToProgress(),
+            ),
+            _buildActionCard(
+              'Badges',
+              Icons.emoji_events,
+              'View your achievements',
+              () => _navigateToBadges(),
+            ),
+            _buildActionCard(
+              'Leaderboard',
+              Icons.leaderboard,
+              'See your ranking',
+              () => _navigateToLeaderboard(),
             ),
           ],
         ),
@@ -1367,6 +1381,24 @@ class _StudentDashboardState extends State<StudentDashboard> {
         builder: (context) => StudentProfileEditScreen(
           userProfile: _userProfile!,
         ),
+      ),
+    );
+  }
+
+  void _navigateToBadges() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BadgesScreen(),
+      ),
+    );
+  }
+
+  void _navigateToLeaderboard() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LeaderboardScreen(),
       ),
     );
   }

@@ -60,7 +60,9 @@ class Student {
       final isActive = data['isActive'] as bool? ?? true;
       print('Parsed isActive: $isActive');
       
-      final metadata = data['metadata'] as Map<String, dynamic>? ?? {};
+      final metadata = data['metadata'] != null 
+          ? Map<String, dynamic>.from(data['metadata'] as Map)
+          : <String, dynamic>{};
       print('Parsed metadata: $metadata');
       
       final student = Student(

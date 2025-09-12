@@ -592,6 +592,16 @@ class AssessmentService {
             pointsToAdd,
           );
           print('✅ Leaderboard updated with $pointsToAdd points');
+          
+          // Check and award achievements
+          print('🏆 Checking achievements for student: $currentStudentId');
+          final newAchievements = await _achievementsService.checkAndAwardAchievements(currentStudentId);
+          if (newAchievements.isNotEmpty) {
+            print('🏆 🎉 Awarded ${newAchievements.length} new achievements!');
+            for (final achievement in newAchievements) {
+              print('🏆 - ${achievement.achievementTitle}');
+            }
+          }
         } catch (e) {
           print('⚠️ Failed to update leaderboard: $e');
         }
