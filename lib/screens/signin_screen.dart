@@ -256,8 +256,8 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                   fontSize: 16,
                 ),
                 prefixIcon: Icon(
-                  Icons.email_outlined, 
-                  color: Color(0xFF007AFF),
+                  Icons.email_rounded, 
+                  color: Color(0xFF00D4FF),
                   size: 20,
                 ),
                 border: InputBorder.none,
@@ -302,8 +302,8 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                   fontSize: 16,
                 ),
                 prefixIcon: const Icon(
-                  Icons.lock_outline, 
-                  color: Color(0xFF007AFF),
+                  Icons.lock_rounded, 
+                  color: Color(0xFF00D4FF),
                   size: 20,
                 ),
                 border: InputBorder.none,
@@ -315,7 +315,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                     });
                   },
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                     color: const Color(0xFF86868B),
                   ),
                 ),
@@ -346,13 +346,13 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
             child: ElevatedButton(
               onPressed: _isLoading ? null : _signInWithEmail,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF), // Apple blue
+                backgroundColor: const Color(0xFF00D4FF), // Electric blue
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 0,
-                shadowColor: const Color(0xFF007AFF).withOpacity(0.3),
+                shadowColor: const Color(0xFF00D4FF).withOpacity(0.3),
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -381,7 +381,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
             child: TextButton(
               onPressed: _showForgotPasswordScreen,
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF007AFF),
+                foregroundColor: const Color(0xFF00D4FF),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
               child: const Text(
@@ -424,8 +424,8 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                   fontSize: 16,
                 ),
                 prefixIcon: Icon(
-                  Icons.person_outline, 
-                  color: Color(0xFF007AFF),
+                  Icons.person_rounded, 
+                  color: Color(0xFF00D4FF),
                   size: 20,
                 ),
                 border: InputBorder.none,
@@ -470,8 +470,8 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                   fontSize: 16,
                 ),
                 prefixIcon: Icon(
-                  Icons.email_outlined, 
-                  color: Color(0xFF007AFF),
+                  Icons.email_rounded, 
+                  color: Color(0xFF00D4FF),
                   size: 20,
                 ),
                 border: InputBorder.none,
@@ -516,8 +516,8 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                   fontSize: 16,
                 ),
                 prefixIcon: const Icon(
-                  Icons.lock_outline, 
-                  color: Color(0xFF007AFF),
+                  Icons.lock_rounded, 
+                  color: Color(0xFF00D4FF),
                   size: 20,
                 ),
                 border: InputBorder.none,
@@ -529,7 +529,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                     });
                   },
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                     color: const Color(0xFF86868B),
                   ),
                 ),
@@ -573,8 +573,8 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                   fontSize: 16,
                 ),
                 prefixIcon: const Icon(
-                  Icons.lock_outline, 
-                  color: Color(0xFF007AFF),
+                  Icons.lock_rounded, 
+                  color: Color(0xFF00D4FF),
                   size: 20,
                 ),
                 border: InputBorder.none,
@@ -586,7 +586,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                     });
                   },
                   icon: Icon(
-                    _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                    _obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                     color: const Color(0xFF86868B),
                   ),
                 ),
@@ -617,13 +617,13 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
             child: ElevatedButton(
               onPressed: _isLoading ? null : _signUpWithEmail,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF), // Apple blue
+                backgroundColor: const Color(0xFF00D4FF), // Electric blue
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 0,
-                shadowColor: const Color(0xFF007AFF).withOpacity(0.3),
+                shadowColor: const Color(0xFF00D4FF).withOpacity(0.3),
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -668,11 +668,11 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF007AFF), // Apple blue
+                    color: const Color(0xFF00D4FF), // Electric blue
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF007AFF).withOpacity(0.3),
+                        color: const Color(0xFF00D4FF).withOpacity(0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -728,9 +728,9 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                   ),
                   child: TabBar(
                     controller: _tabController,
-                    labelColor: const Color(0xFF007AFF), // Apple blue
+                    labelColor: const Color(0xFF00D4FF), // Electric blue
                     unselectedLabelColor: const Color(0xFF86868B),
-                    indicatorColor: const Color(0xFF007AFF),
+                    indicatorColor: const Color(0xFF00D4FF),
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
                     labelStyle: const TextStyle(
@@ -806,7 +806,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                         margin: const EdgeInsets.only(left: 12),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF34C759), // Apple green
+                          color: const Color(0xFF7ED321), // Lime green
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Row(
@@ -901,7 +901,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color(0xFF007AFF),
+                                    Color(0xFF00D4FF),
                                   ),
                                 ),
                               )

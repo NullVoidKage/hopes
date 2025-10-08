@@ -117,7 +117,7 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Completed':
-        return const Color(0xFF34C759);
+        return const Color(0xFF7ED321);
       case 'In Progress':
         return const Color(0xFFFF9500);
       case 'Not Started':
@@ -130,13 +130,13 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
   IconData _getStatusIcon(String status) {
     switch (status) {
       case 'Completed':
-        return Icons.check_circle;
+        return Icons.check_circle_rounded;
       case 'In Progress':
-        return Icons.play_circle;
+        return Icons.play_circle_rounded;
       case 'Not Started':
-        return Icons.schedule;
+        return Icons.schedule_rounded;
       default:
-        return Icons.schedule;
+        return Icons.schedule_rounded;
     }
   }
 
@@ -181,8 +181,8 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
       actions: [
         IconButton(
           icon: Icon(
-            _isRefreshing ? Icons.refresh : Icons.refresh_outlined,
-            color: const Color(0xFF007AFF),
+            _isRefreshing ? Icons.refresh_rounded : Icons.refresh_rounded,
+            color: const Color(0xFF00D4FF),
           ),
           onPressed: _isRefreshing ? null : _refreshData,
         ),
@@ -213,13 +213,13 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.route,
+                  Icons.route_rounded,
                   size: 28,
-                  color: Color(0xFF007AFF),
+                  color: Color(0xFF00D4FF),
                 ),
               ),
               const SizedBox(height: 12),
@@ -273,7 +273,7 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
             child: Row(
               children: [
                 Icon(
-                  Icons.search,
+                  Icons.search_rounded,
                   color: const Color(0xFF86868B),
                   size: 20,
                 ),
@@ -316,13 +316,13 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
                       });
                     },
                     backgroundColor: Colors.white,
-                    selectedColor: const Color(0xFF007AFF).withValues(alpha: 0.15),
+                    selectedColor: const Color(0xFF00D4FF).withValues(alpha: 0.15),
                     labelStyle: TextStyle(
-                      color: isSelected ? const Color(0xFF007AFF) : const Color(0xFF86868B),
+                      color: isSelected ? const Color(0xFF00D4FF) : const Color(0xFF86868B),
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                     ),
                     side: BorderSide(
-                      color: isSelected ? const Color(0xFF007AFF) : const Color(0xFFE5E5E7),
+                      color: isSelected ? const Color(0xFF00D4FF) : const Color(0xFFE5E5E7),
                       width: isSelected ? 2 : 1,
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -344,7 +344,7 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
           child: Column(
             children: [
               CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4FF)),
               ),
               SizedBox(height: 16),
               Text(
@@ -404,12 +404,12 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
-                  Icons.school,
-                  color: Color(0xFF007AFF),
+                  Icons.school_rounded,
+                  color: Color(0xFF00D4FF),
                   size: 24,
                 ),
               ),
@@ -540,11 +540,11 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _viewLearningPathDetails(path),
-                  icon: const Icon(Icons.info_outline, size: 18),
+                  icon: const Icon(Icons.info_rounded, size: 18),
                   label: const Text('View Details'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF007AFF),
-                    side: const BorderSide(color: Color(0xFF007AFF)),
+                    foregroundColor: const Color(0xFF00D4FF),
+                    side: const BorderSide(color: Color(0xFF00D4FF)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -557,12 +557,12 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
                 child: ElevatedButton.icon(
                   onPressed: () => _continueLearningPath(path),
                   icon: Icon(
-                    status == 'Completed' ? Icons.refresh : Icons.play_arrow,
+                    status == 'Completed' ? Icons.refresh_rounded : Icons.play_arrow_rounded,
                     size: 18,
                   ),
                   label: Text(status == 'Completed' ? 'Review' : 'Continue'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF007AFF),
+                    backgroundColor: const Color(0xFF00D4FF),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -587,13 +587,13 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.route,
+                Icons.route_rounded,
                 size: 48,
-                color: Color(0xFF007AFF),
+                color: Color(0xFF00D4FF),
               ),
             ),
             const SizedBox(height: 24),
@@ -634,7 +634,7 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.search_off,
+                Icons.search_off_rounded,
                 size: 48,
                 color: Color(0xFF86868B),
               ),
@@ -669,7 +669,7 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Viewing details for: ${path.learningPathTitle}'),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF00D4FF),
       ),
     );
   }
@@ -682,7 +682,7 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$action: ${path.learningPathTitle}'),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF00D4FF),
       ),
     );
   }

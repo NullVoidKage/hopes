@@ -176,8 +176,8 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
       actions: [
         IconButton(
           icon: Icon(
-            _isRefreshing ? Icons.refresh : Icons.refresh_outlined,
-            color: const Color(0xFF007AFF),
+            _isRefreshing ? Icons.refresh_rounded : Icons.refresh_rounded,
+            color: const Color(0xFF00D4FF),
           ),
           onPressed: _isRefreshing ? null : _refreshData,
         ),
@@ -208,13 +208,13 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.person,
+                  Icons.person_rounded,
                   size: 28,
-                  color: const Color(0xFF007AFF),
+                  color: const Color(0xFF00D4FF),
                 ),
               ),
               const SizedBox(height: 12),
@@ -263,8 +263,8 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
                 child: _buildOverviewCard(
                   'Overall Progress',
                   '${_overallCompletionRate.round()}%',
-                  Icons.trending_up,
-                  const Color(0xFF34C759),
+                  Icons.trending_up_rounded,
+                  const Color(0xFF7ED321),
                   _overallCompletionRate >= 80 ? 'Excellent!' : _overallCompletionRate >= 60 ? 'Good Progress' : 'Keep Going!',
                 ),
               ),
@@ -273,7 +273,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
                 child: _buildOverviewCard(
                   'Average Score',
                   '${_overallAverageScore.round()}%',
-                  Icons.analytics,
+                  Icons.analytics_rounded,
                   const Color(0xFF007AFF),
                   _overallAverageScore >= 80 ? 'Outstanding!' : _overallAverageScore >= 60 ? 'Well Done!' : 'Practice More!',
                 ),
@@ -287,7 +287,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
                 child: _buildOverviewCard(
                   'Lessons Completed',
                   '$_totalLessonsCompleted',
-                  Icons.book,
+                  Icons.menu_book_rounded,
                   const Color(0xFFFF9500),
                   'Learning Journey',
                 ),
@@ -297,7 +297,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
                 child: _buildOverviewCard(
                   'Assessments Taken',
                   '$_totalAssessmentsTaken',
-                  Icons.quiz,
+                  Icons.psychology,
                   const Color(0xFFFF3B30),
                   'Knowledge Check',
                 ),
@@ -445,7 +445,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
         child: TabBar(
           controller: _tabController,
           indicator: BoxDecoration(
-            color: const Color(0xFF007AFF),
+            color: const Color(0xFF00D4FF),
             borderRadius: BorderRadius.circular(12),
           ),
           labelColor: Colors.white,
@@ -502,7 +502,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
       return _buildEmptyState(
         'No Progress Data Available',
         'Start learning to see your progress here. Complete lessons and take assessments to track your growth!',
-        Icons.rocket_launch,
+        Icons.rocket_launch_rounded,
         const Color(0xFF007AFF),
       );
     }
@@ -544,11 +544,11 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
-                  Icons.insights,
+                  Icons.insights_rounded,
                   color: Color(0xFF007AFF),
                   size: 20,
                 ),
@@ -810,7 +810,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                  color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(

@@ -225,7 +225,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF),
+                  color: const Color(0xFF00D4FF),
                   borderRadius: const BorderRadius.all(Radius.circular(8)),
                 ),
                 child: const Icon(
@@ -310,7 +310,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                         lesson.subject,
                         style: const TextStyle(
                           fontSize: 14,
-                          color: const Color(0xFF007AFF),
+                          color: const Color(0xFF00D4FF),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -396,10 +396,10 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                      color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFF007AFF),
+                        color: const Color(0xFF00D4FF),
                         width: 1,
                       ),
                     ),
@@ -408,7 +408,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                       children: [
                         const Icon(
                           Icons.attach_file_rounded,
-                          color: Color(0xFF007AFF),
+                          color: Color(0xFF00D4FF),
                           size: 16,
                         ),
                         const SizedBox(width: 6),
@@ -416,7 +416,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                           child: Text(
                             lesson.fileUrl != null ? _getFileNameFromUrl(lesson.fileUrl!) : 'No file attached',
                             style: const TextStyle(
-                              color: Color(0xFF007AFF),
+                              color: Color(0xFF00D4FF),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -454,7 +454,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                   child: const Text(
                     'Edit',
                     style: TextStyle(
-                      color: Color(0xFF007AFF),
+                      color: Color(0xFF00D4FF),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -557,12 +557,12 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+              color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.all(Radius.circular(20)),
             ),
             child: const Icon(
-              Icons.library_books_rounded,
-              color: Color(0xFF007AFF),
+              Icons.menu_book_rounded,
+              color: Color(0xFF00D4FF),
               size: 64,
             ),
           ),

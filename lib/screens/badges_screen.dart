@@ -83,7 +83,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF00D4FF),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -96,7 +96,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF007AFF),
+                    color: Color(0xFF00D4FF),
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(20),
                       bottomRight: Radius.circular(20),
@@ -120,19 +120,19 @@ class _BadgesScreenState extends State<BadgesScreen> {
                             'Earned',
                             '${_studentAchievements.length}',
                             Colors.green,
-                            Icons.emoji_events,
+                            Icons.workspace_premium,
                           ),
                           _buildStatCard(
                             'Available',
                             '${_allAchievements.length}',
                             Colors.orange,
-                            Icons.star,
+                            Icons.auto_awesome,
                           ),
                           _buildStatCard(
                             'Total Points',
                             '${_totalPointsFromSubmissions}',
                             Colors.purple,
-                            Icons.diamond,
+                            Icons.diamond_rounded,
                           ),
                         ],
                       ),
@@ -261,7 +261,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
           ),
         ],
         border: isEarned
-            ? Border.all(color: const Color(0xFF34C759), width: 2)
+            ? Border.all(color: const Color(0xFF7ED321), width: 2)
             : null,
       ),
       child: Row(
@@ -276,7 +276,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
                   : Colors.grey.withOpacity(0.3),
               borderRadius: BorderRadius.circular(30),
               border: isEarned
-                  ? Border.all(color: const Color(0xFF34C759), width: 2)
+                  ? Border.all(color: const Color(0xFF7ED321), width: 2)
                   : null,
             ),
             child: Icon(
@@ -309,7 +309,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF34C759),
+                          color: const Color(0xFF7ED321),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
@@ -339,7 +339,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
                 Row(
                   children: [
                     Icon(
-                      Icons.star,
+                      Icons.auto_awesome,
                       color: isEarned ? const Color(0xFFFFD700) : Colors.grey,
                       size: 16,
                     ),
@@ -381,32 +381,32 @@ class _BadgesScreenState extends State<BadgesScreen> {
   IconData _getIconData(String iconName) {
     switch (iconName) {
       case 'school':
-        return Icons.school;
+        return Icons.school_rounded;
       case 'star':
-        return Icons.star;
+        return Icons.auto_awesome;
       case 'fire':
-        return Icons.local_fire_department;
+        return Icons.local_fire_department_rounded;
       case 'book':
-        return Icons.menu_book;
+        return Icons.menu_book_rounded;
       case 'lightbulb':
-        return Icons.lightbulb;
+        return Icons.lightbulb_rounded;
       case 'trophy':
-        return Icons.emoji_events;
-      case 'diamond':
-        return Icons.diamond;
-      case 'medal':
         return Icons.workspace_premium;
+      case 'diamond':
+        return Icons.diamond_rounded;
+      case 'medal':
+        return Icons.military_tech;
       default:
-        return Icons.emoji_events;
+        return Icons.workspace_premium;
     }
   }
 
   Color _getCategoryColor(String category) {
     switch (category) {
       case 'academic':
-        return const Color(0xFF007AFF);
+        return const Color(0xFF00D4FF);
       case 'participation':
-        return const Color(0xFF34C759);
+        return const Color(0xFF7ED321);
       case 'streak':
         return const Color(0xFFFF6B35);
       case 'milestone':

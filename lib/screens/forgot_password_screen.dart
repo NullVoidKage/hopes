@@ -40,7 +40,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Password reset email sent successfully!'),
-            backgroundColor: Color(0xFF34C759), // Apple green
+            backgroundColor: Color(0xFF7ED321), // Lime green
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -172,8 +172,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     fontSize: 16,
                   ),
                   prefixIcon: Icon(
-                    Icons.email_outlined, 
-                    color: Color(0xFF007AFF),
+                    Icons.email_rounded, 
+                    color: Color(0xFF00D4FF),
                     size: 20,
                   ),
                   border: InputBorder.none,
@@ -205,13 +205,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _resetPassword,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF007AFF), // Apple blue
+                  backgroundColor: const Color(0xFF00D4FF), // Electric blue
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 0,
-                  shadowColor: const Color(0xFF007AFF).withOpacity(0.3),
+                  shadowColor: const Color(0xFF00D4FF).withOpacity(0.3),
                 ),
                 child: _isLoading
                     ? const SizedBox(
@@ -242,7 +242,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: OutlinedButton(
                 onPressed: _closeScreen,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF007AFF),
+                  foregroundColor: const Color(0xFF00D4FF),
                   side: const BorderSide(
                     color: Color(0xFFE5E5E7),
                     width: 1,
@@ -280,13 +280,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFF34C759).withOpacity(0.1), // Apple green with opacity
+              color: const Color(0xFF7ED321).withOpacity(0.1), // Lime green with opacity
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
               Icons.check_circle_rounded,
               size: 40,
-              color: Color(0xFF34C759), // Apple green
+              color: Color(0xFF7ED321), // Lime green
             ),
           ),
           

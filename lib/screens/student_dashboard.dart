@@ -99,19 +99,23 @@ class _StudentDashboardState extends State<StudentDashboard> {
           // Leaderboard data is optional, continue without it
         }
         
+        if (mounted) {
+          setState(() {
+            _userProfile = profile;
+            _recentSubmissions = recentSubs;
+            _upcomingLessons = upcomingLessons;
+            _leaderboard = leaderboard;
+            _currentUserPosition = currentUserPosition;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _userProfile = profile;
-          _recentSubmissions = recentSubs;
-          _upcomingLessons = upcomingLessons;
-          _leaderboard = leaderboard;
-          _currentUserPosition = currentUserPosition;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -276,31 +280,31 @@ class _StudentDashboardState extends State<StudentDashboard> {
           children: [
             _buildActionCard(
               'Take Assessment',
-              Icons.quiz,
+              Icons.psychology,
               'Complete quizzes and tests',
               () => _navigateToAssessment(),
             ),
             _buildActionCard(
               'View Pathways',
-              Icons.timeline,
+              Icons.route,
               'Learning journeys',
               () => _navigateToPathways(),
             ),
             _buildActionCard(
               'View Lessons',
-              Icons.school,
+              Icons.menu_book,
               'Browse and study lessons',
               () => _navigateToLessons(),
             ),
             _buildActionCard(
               'Progress',
-              Icons.trending_up,
+              Icons.rocket_launch,
               'View your learning progress',
               () => _navigateToProgress(),
             ),
             _buildActionCard(
               'Badges',
-              Icons.emoji_events,
+              Icons.workspace_premium,
               'View your achievements',
               () => _navigateToBadges(),
             ),
@@ -539,7 +543,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       child: Column(
         children: [
           Icon(
-            Icons.analytics_outlined,
+            Icons.analytics_rounded,
             size: 48,
             color: const Color(0xFF86868B),
           ),
@@ -593,7 +597,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              Icons.trending_up,
+              Icons.trending_up_rounded,
               color: _getScoreColor(submission.score.toDouble()),
               size: 20,
             ),
@@ -703,7 +707,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       child: Column(
         children: [
           Icon(
-            Icons.schedule_outlined,
+            Icons.schedule_rounded,
             size: 48,
             color: const Color(0xFF86868B),
           ),
@@ -768,12 +772,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF667eea).withValues(alpha: 0.1),
+                color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
-                Icons.school,
-                color: Color(0xFF667eea),
+                Icons.school_rounded,
+                color: Color(0xFF00D4FF),
                 size: 20,
               ),
             ),
@@ -879,9 +883,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   Future<void> _loadAndShowAssessments() async {
     try {
-      setState(() {
-        _isLoading = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+        });
+      }
 
       final assessmentService = AssessmentService();
       final connectivityService = ConnectivityService();
@@ -1460,7 +1466,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               child: Column(
                 children: [
                   Icon(
-                    Icons.assignment_turned_in,
+                    Icons.assignment_turned_in_rounded,
                     size: 48,
                     color: const Color(0xFF86868B),
                   ),
@@ -1514,8 +1520,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              Icons.assignment_turned_in,
-                             color: _getScoreColor(submission.score.toDouble()),
+              Icons.check_circle_rounded,
+              color: _getScoreColor(submission.score.toDouble()),
               size: 20,
             ),
           ),
@@ -1638,7 +1644,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       child: Column(
         children: [
           Icon(
-            Icons.leaderboard_outlined,
+            Icons.leaderboard_rounded,
             size: 48,
             color: const Color(0xFF86868B),
           ),
@@ -1755,7 +1761,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.star, size: 12, color: Colors.amber[600]),
+                        Icon(Icons.auto_awesome, size: 12, color: Colors.amber[600]),
                         const SizedBox(width: 4),
                         Text(
                           '${entry.totalPoints}p',
@@ -1770,7 +1776,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.emoji_events, size: 12, color: Colors.amber[600]),
+                        Icon(Icons.military_tech, size: 12, color: Colors.amber[600]),
                         const SizedBox(width: 4),
                         Text(
                           '${entry.achievementsCount}a',
