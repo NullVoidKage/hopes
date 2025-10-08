@@ -202,38 +202,49 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 60),
+              const SizedBox(height: 40),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF007AFF).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.person,
-                  size: 32,
+                  size: 28,
                   color: const Color(0xFF007AFF),
                 ),
               ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: Text(
+                  widget.studentName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1D1D1F),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Flexible(
+                child: Text(
+                  'Performance Overview',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: const Color(0xFF86868B),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               const SizedBox(height: 16),
-              Text(
-                widget.studentName,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1D1D1F),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Performance Overview',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: const Color(0xFF86868B),
-                ),
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),

@@ -121,7 +121,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4FF)),
           ),
         ),
       );
@@ -131,7 +131,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Student Dashboard'),
-        backgroundColor: const Color(0xFF667eea),
+        backgroundColor: const Color(0xFF00D4FF),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -216,7 +216,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
         children: [
           SafeCircleAvatar(
             radius: 30,
-            backgroundColor: const Color(0xFF007AFF),
+            backgroundColor: const Color(0xFF7ED321),
             imageUrl: _userProfile?.photoURL,
             fallbackChild: const Icon(
               Icons.person,
@@ -333,7 +333,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             Icon(
               icon,
               size: 32,
-              color: const Color(0xFF667eea),
+              color: const Color(0xFF00D4FF),
             ),
             const SizedBox(height: 12),
             Flexible(
@@ -418,7 +418,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: const Color(0xFF667eea).withValues(alpha: 0.1),
+                backgroundColor: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                 backgroundImage: _userProfile?.photoURL != null
                     ? NetworkImage(_userProfile!.photoURL!)
                     : null,
@@ -426,7 +426,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     ? const Icon(
                         Icons.person,
                         size: 30,
-                        color: Color(0xFF667eea),
+                        color: Color(0xFF00D4FF),
                       )
                     : null,
               ),
@@ -456,7 +456,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       '${_userProfile?.grade ?? 'Grade 7'} • ${_userProfile?.subjects?.length ?? 0} subjects',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF007AFF),
+                        color: Color(0xFF7ED321),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -467,7 +467,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 onPressed: () => _navigateToProfileEdit(),
                 icon: const Icon(
                   Icons.edit_outlined,
-                  color: Color(0xFF007AFF),
+                  color: Color(0xFF00D4FF),
                 ),
               ),
             ],
@@ -515,7 +515,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 child: const Text(
                   'View All',
                   style: TextStyle(
-                    color: Color(0xFF007AFF),
+                    color: Color(0xFF00D4FF),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1446,7 +1446,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 child: const Text(
                   'View All',
                   style: TextStyle(
-                    color: Color(0xFF007AFF),
+                    color: Color(0xFF00D4FF),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1614,7 +1614,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 child: const Text(
                   'View All',
                   style: TextStyle(
-                    color: Color(0xFF007AFF),
+                    color: Color(0xFF00D4FF),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1679,10 +1679,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCurrentUser ? const Color(0xFF007AFF).withOpacity(0.1) : const Color(0xFFF5F5F7),
+        color: isCurrentUser ? const Color(0xFF00D4FF).withOpacity(0.1) : const Color(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isCurrentUser ? const Color(0xFF007AFF) : const Color(0xFFE5E5E7),
+          color: isCurrentUser ? const Color(0xFF00D4FF) : const Color(0xFFE5E5E7),
           width: isCurrentUser ? 2 : 1,
         ),
       ),
@@ -1722,19 +1722,19 @@ class _StudentDashboardState extends State<StudentDashboard> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.w600,
-                          color: isCurrentUser ? const Color(0xFF007AFF) : const Color(0xFF1D1D1F),
+                          color: isCurrentUser ? const Color(0xFF00D4FF) : const Color(0xFF1D1D1F),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (isCurrentUser) ...[
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF007AFF),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00D4FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         child: const Text(
                           'YOU',
                           style: TextStyle(
@@ -1762,7 +1762,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF007AFF),
+                            color: Color(0xFF7ED321),
                           ),
                         ),
                       ],
@@ -1801,14 +1801,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             margin: const EdgeInsets.only(bottom: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF34C759).withOpacity(0.1),
+              color: const Color(0xFF7ED321).withOpacity(0.2),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               '${entry.stats['lessonsCompleted']}L',
               style: const TextStyle(
                 fontSize: 9,
-                color: Color(0xFF34C759),
+                color: Color(0xFF7ED321),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1817,14 +1817,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFFAF52DE).withOpacity(0.1),
+              color: const Color(0xFFFF6B35).withOpacity(0.2),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               '${entry.stats['assessmentsCompleted']}A',
               style: const TextStyle(
                 fontSize: 9,
-                color: Color(0xFFAF52DE),
+                color: Color(0xFFFF6B35),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1834,9 +1834,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   Color _getRankColor(int rank) {
-    if (rank == 1) return Colors.amber;
-    if (rank == 2) return Colors.grey[400]!;
-    if (rank == 3) return Colors.orange[700]!;
-    return const Color(0xFF007AFF);
+    if (rank == 1) return const Color(0xFFFFD700); // Gold
+    if (rank == 2) return const Color(0xFFC0C0C0); // Silver
+    if (rank == 3) return const Color(0xFFCD7F32); // Bronze
+    return const Color(0xFF00D4FF); // Electric Blue
   }
 }
