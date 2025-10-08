@@ -44,7 +44,6 @@ class ConnectivityService {
       OfflineService.setOnlineStatus(isConnected);
       
       if (kDebugMode) {
-        print('Connection status changed: ${isConnected ? 'Online' : 'Offline'}');
       }
     }
   }
@@ -63,8 +62,6 @@ class ConnectivityService {
     OfflineService.setOnlineStatus(_isConnected);
     
     if (kDebugMode) {
-      print('🔌 Offline mode toggled: ${_isConnected ? 'Online' : 'Offline'}');
-      print('🔌 shouldUseCachedData will now return: ${!_isConnected}');
     }
   }
 
@@ -74,8 +71,6 @@ class ConnectivityService {
     OfflineService.setOnlineStatus(false);
     
     if (kDebugMode) {
-      print('🔌 Forced offline mode');
-      print('🔌 shouldUseCachedData will now return: true');
     }
   }
 
@@ -85,8 +80,6 @@ class ConnectivityService {
     OfflineService.setOnlineStatus(true);
     
     if (kDebugMode) {
-      print('🔌 Forced online mode');
-      print('🔌 shouldUseCachedData will now return: false');
     }
   }
 

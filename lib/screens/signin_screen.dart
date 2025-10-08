@@ -190,7 +190,6 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
       }
     } catch (e) {
       // Silently fail if storage is not available
-      debugPrint('Failed to save form data: $e');
     }
   }
 
@@ -209,7 +208,6 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
       }
     } catch (e) {
       // Silently fail if storage is not available
-      debugPrint('Failed to load saved data: $e');
     }
   }
 
@@ -221,7 +219,6 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
       await prefs.remove('saved_display_name');
     } catch (e) {
       // Silently fail if storage is not available
-      debugPrint('Failed to clear saved data: $e');
     }
   }
 

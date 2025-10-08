@@ -40,7 +40,6 @@ class FeedbackService {
         return tempId;
       }
     } catch (e) {
-      print('Error creating student feedback: $e');
       rethrow;
     }
   }
@@ -70,7 +69,6 @@ class FeedbackService {
         return tempId;
       }
     } catch (e) {
-      print('Error creating student recommendation: $e');
       rethrow;
     }
   }
@@ -101,7 +99,6 @@ class FeedbackService {
         return await _getCachedStudentFeedback(studentId);
       }
     } catch (e) {
-      print('Error getting student feedback: $e');
       return await _getCachedStudentFeedback(studentId);
     }
   }
@@ -132,7 +129,6 @@ class FeedbackService {
         return await _getCachedStudentRecommendations(studentId);
       }
     } catch (e) {
-      print('Error getting student recommendations: $e');
       return await _getCachedStudentRecommendations(studentId);
     }
   }
@@ -163,7 +159,6 @@ class FeedbackService {
         return await _getCachedTeacherFeedback(teacherId);
       }
     } catch (e) {
-      print('Error getting teacher feedback: $e');
       return await _getCachedTeacherFeedback(teacherId);
     }
   }
@@ -194,7 +189,6 @@ class FeedbackService {
         return await _getCachedTeacherRecommendations(teacherId);
       }
     } catch (e) {
-      print('Error getting teacher recommendations: $e');
       return await _getCachedTeacherRecommendations(teacherId);
     }
   }
@@ -220,7 +214,6 @@ class FeedbackService {
         await _queueFeedbackForSync(feedback);
       }
     } catch (e) {
-      print('Error updating feedback: $e');
       rethrow;
     }
   }
@@ -246,7 +239,6 @@ class FeedbackService {
         await _queueRecommendationForSync(recommendation);
       }
     } catch (e) {
-      print('Error updating recommendation: $e');
       rethrow;
     }
   }
@@ -272,7 +264,6 @@ class FeedbackService {
         await _queueFeedbackReadStatusForSync(feedbackId, true);
       }
     } catch (e) {
-      print('Error marking feedback as read: $e');
       rethrow;
     }
   }
@@ -298,7 +289,6 @@ class FeedbackService {
         await _queueRecommendationReadStatusForSync(recommendationId, true);
       }
     } catch (e) {
-      print('Error marking recommendation as read: $e');
       rethrow;
     }
   }
@@ -386,7 +376,6 @@ class FeedbackService {
 
       return recommendations;
     } catch (e) {
-      print('Error generating AI recommendations: $e');
       return [];
     }
   }
@@ -429,7 +418,6 @@ class FeedbackService {
         return await _getCachedFeedbackStatistics(teacherId);
       }
     } catch (e) {
-      print('Error getting feedback statistics: $e');
       return await _getCachedFeedbackStatistics(teacherId);
     }
   }
@@ -439,7 +427,6 @@ class FeedbackService {
     try {
       await OfflineService.cacheFeedback(feedback.toRealtimeDatabase());
     } catch (e) {
-      print('Error caching feedback locally: $e');
     }
   }
 
@@ -447,7 +434,6 @@ class FeedbackService {
     try {
       await OfflineService.cacheRecommendation(recommendation.toRealtimeDatabase());
     } catch (e) {
-      print('Error caching recommendation locally: $e');
     }
   }
 
@@ -459,7 +445,6 @@ class FeedbackService {
           .map((data) => StudentFeedback.fromRealtimeDatabase(data, data['id'] ?? ''))
           .toList();
     } catch (e) {
-      print('Error getting cached student feedback: $e');
       return [];
     }
   }
@@ -472,7 +457,6 @@ class FeedbackService {
           .map((data) => StudentRecommendation.fromRealtimeDatabase(data, data['id'] ?? ''))
           .toList();
     } catch (e) {
-      print('Error getting cached student recommendations: $e');
       return [];
     }
   }
@@ -485,7 +469,6 @@ class FeedbackService {
           .map((data) => StudentFeedback.fromRealtimeDatabase(data, data['id'] ?? ''))
           .toList();
     } catch (e) {
-      print('Error getting cached teacher feedback: $e');
       return [];
     }
   }
@@ -498,7 +481,6 @@ class FeedbackService {
           .map((data) => StudentRecommendation.fromRealtimeDatabase(data, data['id'] ?? ''))
           .toList();
     } catch (e) {
-      print('Error getting cached teacher recommendations: $e');
       return [];
     }
   }
@@ -508,7 +490,6 @@ class FeedbackService {
     try {
       await OfflineService.queueFeedbackForSync(feedback.toRealtimeDatabase());
     } catch (e) {
-      print('Error queuing feedback for sync: $e');
     }
   }
 
@@ -516,7 +497,6 @@ class FeedbackService {
     try {
       await OfflineService.queueRecommendationForSync(recommendation.toRealtimeDatabase());
     } catch (e) {
-      print('Error queuing recommendation for sync: $e');
     }
   }
 
@@ -528,7 +508,6 @@ class FeedbackService {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     } catch (e) {
-      print('Error queuing feedback read status for sync: $e');
     }
   }
 
@@ -540,7 +519,6 @@ class FeedbackService {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     } catch (e) {
-      print('Error queuing recommendation read status for sync: $e');
     }
   }
 
@@ -549,7 +527,6 @@ class FeedbackService {
     try {
       await OfflineService.updateCachedFeedbackReadStatus(feedbackId, isRead);
     } catch (e) {
-      print('Error updating cached feedback read status: $e');
     }
   }
 
@@ -557,7 +534,6 @@ class FeedbackService {
     try {
       await OfflineService.updateCachedRecommendationReadStatus(recommendationId, isRead);
     } catch (e) {
-      print('Error updating cached recommendation read status: $e');
     }
   }
 
@@ -566,7 +542,6 @@ class FeedbackService {
     try {
       return await OfflineService.getCachedFeedbackStatistics(teacherId);
     } catch (e) {
-      print('Error getting cached feedback statistics: $e');
       return {
         'totalFeedback': 0,
         'unreadFeedback': 0,

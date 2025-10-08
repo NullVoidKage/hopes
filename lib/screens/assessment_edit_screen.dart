@@ -1477,9 +1477,7 @@ class _AssessmentEditScreenState extends State<AssessmentEditScreen> {
         'subject': _selectedSubject,
       });
       
-      print('✅ Activity logged: $action - $description');
     } catch (e) {
-      print('❌ Failed to log activity: $e');
       // Don't fail the assessment update if activity logging fails
     }
   }

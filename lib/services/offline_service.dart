@@ -52,7 +52,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching lessons: $e');
       }
     }
   }
@@ -69,7 +68,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached lessons: $e');
       }
       return [];
     }
@@ -84,7 +82,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching assessments: $e');
       }
     }
   }
@@ -101,7 +98,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached assessments: $e');
       }
       return [];
     }
@@ -115,7 +111,6 @@ class OfflineService {
       await prefs.setString(key, jsonEncode(stats));
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching assessment stats: $e');
       }
     }
   }
@@ -132,7 +127,6 @@ class OfflineService {
       return {};
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached assessment stats: $e');
       }
       return {};
     }
@@ -148,7 +142,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching assessment questions: $e');
       }
     }
   }
@@ -166,7 +159,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached assessment questions: $e');
       }
       return [];
     }
@@ -246,10 +238,8 @@ class OfflineService {
       await prefs.setString(submissionKey, submissionJson);
       await _updateLastSync();
       
-      print('✅ Enhanced assessment submission queued for offline: $submissionKey');
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing enhanced assessment submission: $e');
       }
     }
   }
@@ -263,7 +253,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching teacher activities: $e');
       }
     }
   }
@@ -280,7 +269,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached teacher activities: $e');
       }
       return [];
     }
@@ -295,7 +283,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching student progress: $e');
       }
     }
   }
@@ -312,7 +299,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached student progress: $e');
       }
       return [];
     }
@@ -327,7 +313,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching user profile: $e');
       }
     }
   }
@@ -343,7 +328,6 @@ class OfflineService {
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached user profile: $e');
       }
       return null;
     }
@@ -368,7 +352,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching learning path: $e');
       }
     }
   }
@@ -385,7 +368,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached learning paths: $e');
       }
       return [];
     }
@@ -410,7 +392,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching student learning path: $e');
       }
     }
   }
@@ -427,7 +408,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached student learning paths: $e');
       }
       return [];
     }
@@ -451,7 +431,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing learning path for sync: $e');
       }
     }
   }
@@ -474,7 +453,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing assignment for sync: $e');
       }
     }
   }
@@ -497,7 +475,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing progress update for sync: $e');
       }
     }
   }
@@ -520,7 +497,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing customization for sync: $e');
       }
     }
   }
@@ -536,7 +512,6 @@ class OfflineService {
       await prefs.setString(_learningPathsKey, pathsJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error removing learning path from cache: $e');
       }
     }
   }
@@ -561,7 +536,6 @@ class OfflineService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error marking learning path for deletion: $e');
       }
     }
   }
@@ -586,7 +560,6 @@ class OfflineService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating cached student learning path: $e');
       }
     }
   }
@@ -609,7 +582,6 @@ class OfflineService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating cached customizations: $e');
       }
     }
   }
@@ -638,7 +610,6 @@ class OfflineService {
       };
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached available content: $e');
       }
       return {'lessons': [], 'assessments': []};
     }
@@ -651,7 +622,6 @@ class OfflineService {
       await prefs.setInt(_lastSyncKey, DateTime.now().millisecondsSinceEpoch);
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating last sync: $e');
       }
     }
   }
@@ -667,7 +637,6 @@ class OfflineService {
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting last sync: $e');
       }
       return null;
     }
@@ -769,7 +738,6 @@ class OfflineService {
       await prefs.remove(_lastSyncKey);
     } catch (e) {
       if (kDebugMode) {
-        print('Error clearing cache: $e');
       }
     }
   }
@@ -1078,15 +1046,6 @@ class OfflineService {
       }
       
       if (kDebugMode) {
-        print('Sample data populated successfully');
-        print('📊 Cached ${sampleProgress.length} progress items');
-        print('📊 Cached ${sampleAssessments.length} assessments');
-        print('📊 Cached ${sampleActivities.length} activities');
-        print('📊 Cached ${sampleStudents.length} students');
-        print('📊 Cached ${sampleLearningPaths.length} learning paths');
-        print('📊 Cached ${sampleStudentLearningPaths.length} student learning paths');
-        print('📊 Cached ${sampleFeedback.length} feedback items');
-        print('📊 Cached ${sampleRecommendations.length} recommendations');
         
         // Sample achievements data
         final sampleAchievements = [
@@ -1284,14 +1243,9 @@ class OfflineService {
           await cacheAdaptiveDifficulty(adaptiveDifficulty);
         }
         
-        print('📊 Cached ${sampleAchievements.length} achievements');
-        print('📊 Cached ${sampleStudentAchievements.length} student achievements');
-        print('📊 Cached ${sampleLeaderboard.length} leaderboard entries');
-        print('📊 Cached ${sampleAdaptiveDifficulties.length} adaptive difficulties');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error populating sample data: $e');
       }
     }
   }
@@ -1376,10 +1330,8 @@ class OfflineService {
         await cacheLeaderboardEntry(entry);
       }
       
-      print('📊 Cached ${demoLeaderboard.length} demo leaderboard entries');
     } catch (e) {
       if (kDebugMode) {
-        print('Error populating demo leaderboard: $e');
       }
     }
   }
@@ -1393,7 +1345,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching students: $e');
       }
     }
   }
@@ -1410,7 +1361,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached students: $e');
       }
       return [];
     }
@@ -1427,7 +1377,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching feedback: $e');
       }
     }
   }
@@ -1444,7 +1393,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached feedback: $e');
       }
       return [];
     }
@@ -1461,7 +1409,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching recommendation: $e');
       }
     }
   }
@@ -1478,7 +1425,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached recommendations: $e');
       }
       return [];
     }
@@ -1502,7 +1448,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing feedback for sync: $e');
       }
     }
   }
@@ -1525,7 +1470,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing recommendation for sync: $e');
       }
     }
   }
@@ -1548,7 +1492,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing feedback read status for sync: $e');
       }
     }
   }
@@ -1571,7 +1514,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing recommendation read status for sync: $e');
       }
     }
   }
@@ -1589,7 +1531,6 @@ class OfflineService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating cached feedback read status: $e');
       }
     }
   }
@@ -1607,7 +1548,6 @@ class OfflineService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating cached recommendation read status: $e');
       }
     }
   }
@@ -1633,7 +1573,6 @@ class OfflineService {
       };
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached feedback statistics: $e');
       }
       return {
         'totalFeedback': 0,
@@ -1663,7 +1602,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching achievement: $e');
       }
     }
   }
@@ -1680,7 +1618,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached achievements: $e');
       }
       return [];
     }
@@ -1704,7 +1641,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching student achievement: $e');
       }
     }
   }
@@ -1721,7 +1657,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached student achievements: $e');
       }
       return [];
     }
@@ -1745,7 +1680,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching leaderboard entry: $e');
       }
     }
   }
@@ -1762,7 +1696,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached leaderboard: $e');
       }
       return [];
     }
@@ -1786,7 +1719,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing achievement for sync: $e');
       }
     }
   }
@@ -1809,7 +1741,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing student achievement for sync: $e');
       }
     }
   }
@@ -1832,7 +1763,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching adaptive difficulty: $e');
       }
     }
   }
@@ -1849,7 +1779,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached adaptive difficulties: $e');
       }
       return [];
     }
@@ -1873,7 +1802,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing adaptive difficulty for sync: $e');
       }
     }
   }
@@ -1896,7 +1824,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing difficulty adjustment for sync: $e');
       }
     }
   }
@@ -1915,7 +1842,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching student submissions: $e');
       }
     }
   }
@@ -1933,7 +1859,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached student submissions: $e');
       }
       return [];
     }
@@ -1949,7 +1874,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching assessment submissions: $e');
       }
     }
   }
@@ -1967,7 +1891,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached assessment submissions: $e');
       }
       return [];
     }
@@ -1983,7 +1906,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching teacher submissions: $e');
       }
     }
   }
@@ -2001,7 +1923,6 @@ class OfflineService {
       return [];
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached teacher submissions: $e');
       }
       return [];
     }
@@ -2017,7 +1938,6 @@ class OfflineService {
       await _updateLastSync();
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching submission: $e');
       }
     }
   }
@@ -2035,7 +1955,6 @@ class OfflineService {
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached submission: $e');
       }
       return null;
     }
@@ -2049,7 +1968,6 @@ class OfflineService {
       await prefs.remove(key);
     } catch (e) {
       if (kDebugMode) {
-        print('Error removing cached submission: $e');
       }
     }
   }
@@ -2072,7 +1990,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing submission update for sync: $e');
       }
     }
   }
@@ -2095,7 +2012,6 @@ class OfflineService {
       await prefs.setString(syncKey, queueJson);
     } catch (e) {
       if (kDebugMode) {
-        print('Error queuing submission deletion for sync: $e');
       }
     }
   }

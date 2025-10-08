@@ -52,9 +52,11 @@
 			<string>REVERSED_CLIENT_ID</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.105306415530-2909b849ca4890693b8bd3</string>
+				<string>com.googleusercontent.apps.105306415530-fldbtqnom8qnh0f6caklinlkmtj3v6on</string>
 			</array>
 		</dict>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to your photo library to allow you to select and upload images for your learning materials and assignments.</string>
 </dict>
 </plist>

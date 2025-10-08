@@ -172,7 +172,6 @@ class AuthService {
           'subjects': allSubjects,
         });
         
-        print('✅ Automatically enrolled student $displayName in all subjects: $allSubjects');
       }
     } catch (e) {
       throw Exception('Failed to create user profile: ${e.toString()}');
@@ -184,11 +183,9 @@ class AuthService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, using cached user profile');
         return await _getCachedUserProfile(uid);
       }
 
-      print('🌐 Online mode, fetching from Firestore');
       // If online, fetch from Firestore and cache
       final doc = await firestore.FirebaseFirestore.instance
           .collection('users')
@@ -205,7 +202,6 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Firestore error, trying cached data: $e');
       // If Firestore fails, try to return cached data
       return await _getCachedUserProfile(uid);
     }
@@ -229,12 +225,10 @@ class AuthService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, checking cached user profile');
         final cachedProfile = await _getCachedUserProfile(uid);
         return cachedProfile != null;
       }
 
-      print('🌐 Online mode, checking Firestore');
       // If online, check Firestore
       final doc = await firestore.FirebaseFirestore.instance
           .collection('users')
@@ -242,7 +236,6 @@ class AuthService {
           .get();
       return doc.exists;
     } catch (e) {
-      print('Firestore error, checking cached data: $e');
       // If Firestore fails, check cached data
       final cachedProfile = await _getCachedUserProfile(uid);
       return cachedProfile != null;
@@ -255,9 +248,7 @@ class AuthService {
       final userData = user.toFirestore();
       userData['uid'] = user.uid; // Add uid to the data
       await OfflineService.cacheUserProfile(userData);
-      print('✅ Cached user profile for ${user.uid}');
     } catch (e) {
-      print('❌ Failed to cache user profile: $e');
     }
   }
 
@@ -266,12 +257,10 @@ class AuthService {
     try {
       final cachedUserData = await OfflineService.getCachedUserProfile();
       if (cachedUserData != null && cachedUserData['uid'] == uid) {
-        print('🔌 Offline mode, returning cached user profile for $uid');
         return UserModel.fromFirestore(cachedUserData, uid);
       }
       return null;
     } catch (e) {
-      print('❌ Failed to get cached user profile: $e');
       return null;
     }
   }
@@ -279,7 +268,6 @@ class AuthService {
   // Fix existing students who don't have subjects (for existing data)
   Future<void> fixExistingStudents() async {
     try {
-      print('🔍 Checking for existing students without subjects...');
       
       // Get all users who are students
       final studentsQuery = await firestore.FirebaseFirestore.instance
@@ -287,14 +275,12 @@ class AuthService {
           .where('role', isEqualTo: 'student')
           .get();
       
-      print('🔍 Found ${studentsQuery.docs.length} students in Firestore');
       
       for (var doc in studentsQuery.docs) {
         final data = doc.data();
         final subjects = data['subjects'];
         
         if (subjects == null || (subjects is List && subjects.isEmpty)) {
-          print('🔍 Fixing student: ${data['displayName']} - no subjects found');
           
           // Update Firestore with subjects
           await firestore.FirebaseFirestore.instance
@@ -316,17 +302,12 @@ class AuthService {
             ]
           });
           
-          print('✅ Updated Firestore subjects for ${data['displayName']}');
           
-          print('✅ Student ${data['displayName']} now has subjects in Firestore');
         } else {
-          print('✅ Student ${data['displayName']} already has subjects: $subjects');
         }
       }
       
-      print('✅ Finished fixing existing students');
     } catch (e) {
-      print('❌ Error fixing existing students: $e');
     }
   }
 }

@@ -16,10 +16,6 @@ void main() async {
       if (message != null && message.contains('DebugService: Error serving requestsError')) {
         return;
       }
-      // Allow other debug prints
-      if (kDebugMode) {
-        print(message);
-      }
     };
   }
   
@@ -50,15 +46,9 @@ void main() async {
       // Note: Sample data will be populated after user authentication
       // to ensure we have the correct teacher ID
     } catch (e) {
-      if (kDebugMode) {
-        print('Error initializing offline services: $e');
-      }
       // Continue with app startup even if offline services fail
     }
   } catch (e) {
-    if (kDebugMode) {
-      print('Error during app initialization: $e');
-    }
     // Continue with app startup even if Firebase fails
   }
   

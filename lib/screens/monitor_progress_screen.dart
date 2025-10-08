@@ -64,48 +64,33 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     try {
       final String? teacherId = _auth.currentUser?.uid;
       if (teacherId != null) {
-        print('🔍 MonitorProgress: Loading data for teacher: $teacherId');
-        print('🔍 MonitorProgress: Current user email: ${_auth.currentUser?.email}');
         
         // First, let's check what's actually in the student_progress collection
         final DatabaseReference ref = FirebaseDatabase.instance.ref('student_progress');
         final DatabaseEvent event = await ref.once();
         final DataSnapshot snapshot = event.snapshot;
         
-        print('🔍 MonitorProgress: Firebase student_progress snapshot exists: ${snapshot.exists}');
         if (snapshot.value != null) {
           final data = snapshot.value as Map<dynamic, dynamic>?;
-          print('🔍 MonitorProgress: Total progress items in Firebase: ${data?.length ?? 0}');
-          print('🔍 MonitorProgress: Firebase data keys: ${data?.keys.toList()}');
           
           // Log each progress item's data structure
           data?.forEach((key, value) {
-            print('🔍 MonitorProgress: Progress $key: $value');
             if (value is Map) {
-              print('🔍 MonitorProgress: Progress $key teacherId: ${value['teacherId']}');
-              print('🔍 MonitorProgress: Progress $key studentName: ${value['studentName']}');
             }
           });
         }
         
         // Get students from Firestore (like Student Management does)
         final students = await _studentService.getAllStudents();
-        print('🔍 MonitorProgress: Loaded ${students.length} students from Firestore');
         
         // Get progress data for those students
         final progress = await _progressService.getStudentProgress(teacherId);
-        print('🔍 MonitorProgress: Loaded ${progress.length} progress items');
         
         // Calculate statistics from student data (like Student Management does)
         final stats = _calculateStatistics(students);
-        print('🔍 MonitorProgress: Calculated statistics: $stats');
         
         final activity = await _progressService.getRecentActivity(teacherId);
-        print('🔍 MonitorProgress: Loaded activity: ${activity.length} items');
         
-        print('🔍 MonitorProgress: Setting state with ${students.length} students');
-        print('🔍 MonitorProgress: First student: ${students.isNotEmpty ? students.first.name : 'No students'}');
-        print('🔍 MonitorProgress: First student subjects: ${students.isNotEmpty ? students.first.subjects : 'No subjects'}');
         
         setState(() {
           _students = students;
@@ -115,11 +100,8 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
           _isLoading = false;
         });
         
-        print('🔍 MonitorProgress: State updated. _students length: ${_students.length}');
-        print('🔍 MonitorProgress: _filteredStudents length: ${_filteredStudents.length}');
       }
     } catch (e) {
-      print('🔍 MonitorProgress: Error loading progress data: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -153,16 +135,12 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   List<Student> get _filteredStudents {
-    print('🔍 MonitorProgress: _filteredStudents called. _students length: ${_students.length}');
-    print('🔍 MonitorProgress: _selectedSubject: $_selectedSubject');
-    print('🔍 MonitorProgress: _selectedFilter: $_selectedFilter');
     
     List<Student> filtered = _students;
     
     // Filter by subject (check if student has the selected subject)
     if (_selectedSubject != 'All') {
       filtered = filtered.where((s) => s.subjects.contains(_selectedSubject)).toList();
-      print('🔍 MonitorProgress: After subject filter: ${filtered.length} students');
     }
     
     // Filter by performance (this will need to be implemented based on progress data)
@@ -178,7 +156,6 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
         break;
     }
     
-    print('🔍 MonitorProgress: Final filtered students: ${filtered.length}');
     return filtered;
   }
 
@@ -604,9 +581,6 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   Widget _buildStudentsTab() {
-    print('🔍 MonitorProgress: Building Students tab');
-    print('🔍 MonitorProgress: _students length: ${_students.length}');
-    print('🔍 MonitorProgress: _filteredStudents length: ${_filteredStudents.length}');
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -11,72 +11,53 @@ class StudentService {
   // Get all students for a teacher (now shows all students regardless of teacher ID)
   Future<List<Student>> getStudents(String teacherId) async {
     try {
-      print('🔍 StudentService: Getting students for teacher: $teacherId');
-      print('🔍 StudentService: shouldUseCachedData: ${_connectivityService.shouldUseCachedData}');
-      print('🔍 StudentService: isConnected: ${_connectivityService.isConnected}');
       
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔍 StudentService: Using cached data');
         return await _getCachedStudents(teacherId);
       }
 
       // If online, fetch from Firebase and cache
-      print('🔍 StudentService: Fetching from Firebase');
       final DatabaseReference ref = _database.ref('students');
       
       // Don't filter by teacherId - show all students to all teachers
       final DatabaseEvent event = await ref.once();
       final DataSnapshot snapshot = event.snapshot;
       
-      print('🔍 StudentService: Snapshot exists: ${snapshot.exists}');
       if (snapshot.value == null) {
-        print('🔍 StudentService: Snapshot value is null');
         return [];
       }
       
-      print('🔍 StudentService: Snapshot value type: ${snapshot.value.runtimeType}');
       final data = snapshot.value as Map<dynamic, dynamic>?;
       if (data == null) {
-        print('🔍 StudentService: Snapshot value is null after casting');
         return [];
       }
       
-      print('🔍 StudentService: Data entries count: ${data.entries.length}');
-      print('🔍 StudentService: Data keys: ${data.keys.toList()}');
       
       final studentsList = data.entries.map((entry) {
-        print('🔍 StudentService: Processing entry: ${entry.key}');
         final entryData = entry.value as Map<dynamic, dynamic>?;
         if (entryData == null) {
-          print('🔍 StudentService: Entry data is null for key: ${entry.key}');
           return null;
         }
         
-        print('🔍 StudentService: Entry data: $entryData');
-        print('🔍 StudentService: Entry teacherId: ${entryData['teacherId']}');
         
         try {
           final student = Student.fromRealtimeDatabase(
             entryData,
             entry.key.toString(),
           );
-          print('🔍 StudentService: Successfully parsed student: ${student.name}');
           return student;
         } catch (e) {
-          print('🔍 StudentService: Error parsing student data for key ${entry.key}: $e');
           return null;
         }
       }).whereType<Student>().toList();
 
-      print('🔍 StudentService: Final students list length: ${studentsList.length}');
       
       // Cache the data for offline use
       await _cacheStudentsLocally(studentsList);
       
       return studentsList;
     } catch (e) {
-      print('🔍 StudentService: Error getting students: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedStudents(teacherId);
     }
@@ -85,36 +66,25 @@ class StudentService {
   // Get ALL students in the system (for teachers to manage)
   Future<List<Student>> getAllStudents() async {
     try {
-      print('🔍 StudentService: Getting ALL students from Firestore');
-      print('🔍 StudentService: shouldUseCachedData: ${_connectivityService.shouldUseCachedData}');
-      print('🔍 StudentService: isConnected: ${_connectivityService.isConnected}');
       
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔍 StudentService: Using cached data for all students');
         return await _getCachedAllStudents();
       }
 
       // If online, fetch from Firestore
-      print('🔍 StudentService: Fetching all students from Firestore');
       final studentsQuery = await FirebaseFirestore.instance
           .collection('users')
           .where('role', isEqualTo: 'student')
           .get();
       
-      print('🔍 StudentService: Found ${studentsQuery.docs.length} students in Firestore');
       
       final studentsList = studentsQuery.docs.map((doc) {
         final data = doc.data();
-        print('🔍 StudentService: Processing student: ${data['displayName']}');
-        print('🔍 StudentService: Student subjects: ${data['subjects']}');
-        print('🔍 StudentService: Student email: ${data['email']}');
-        print('🔍 StudentService: Student grade: ${data['grade']}');
         
         try {
           // Convert Firestore data to Student model
           final subjects = (data['subjects'] as List<dynamic>?)?.cast<String>() ?? [];
-          print('🔍 StudentService: Converted subjects: $subjects (length: ${subjects.length})');
           
           final student = Student(
             id: doc.id,
@@ -135,22 +105,18 @@ class StudentService {
             },
           );
           
-          print('🔍 StudentService: Successfully created student: ${student.name} with ${student.subjects.length} subjects');
           return student;
         } catch (e) {
-          print('🔍 StudentService: Error creating student from Firestore data: $e');
           return null;
         }
       }).whereType<Student>().toList();
 
-      print('🔍 StudentService: Final students list length: ${studentsList.length}');
       
       // Cache the data for offline use
       await _cacheAllStudentsLocally(studentsList);
       
       return studentsList;
     } catch (e) {
-      print('🔍 StudentService: Error getting all students from Firestore: $e');
       // If Firestore fails, try to return cached data
       return await _getCachedAllStudents();
     }
@@ -170,7 +136,6 @@ class StudentService {
         Student.fromRealtimeDatabase(data, data['id'] ?? '')
       ).toList();
     } catch (e) {
-      print('Error getting cached students: $e');
       return [];
     }
   }
@@ -184,7 +149,6 @@ class StudentService {
       }).toList();
       await OfflineService.cacheStudents(studentData);
     } catch (e) {
-      print('Error caching students: $e');
     }
   }
 
@@ -196,7 +160,6 @@ class StudentService {
         Student.fromRealtimeDatabase(data, data['id'] ?? '')
       ).toList();
     } catch (e) {
-      print('Error getting cached all students: $e');
       return [];
     }
   }
@@ -210,7 +173,6 @@ class StudentService {
       }).toList();
       await OfflineService.cacheStudents(studentData);
     } catch (e) {
-      print('Error caching all students: $e');
     }
   }
 
@@ -232,11 +194,9 @@ class StudentService {
           studentId,
         );
       } catch (e) {
-        print('Error parsing student data: $e');
         return null;
       }
     } catch (e) {
-      print('Error getting student by ID: $e');
       return null;
     }
   }
@@ -250,7 +210,6 @@ class StudentService {
       await newStudentRef.set(student.toRealtimeDatabase());
       return true;
     } catch (e) {
-      print('Error adding student: $e');
       return false;
     }
   }
@@ -262,7 +221,6 @@ class StudentService {
       await ref.update(student.toRealtimeDatabase());
       return true;
     } catch (e) {
-      print('Error updating student: $e');
       return false;
     }
   }
@@ -274,7 +232,6 @@ class StudentService {
       await ref.remove();
       return true;
     } catch (e) {
-      print('Error deleting student: $e');
       return false;
     }
   }
@@ -285,7 +242,6 @@ class StudentService {
       final List<Student> allStudents = await getStudents(teacherId);
       return allStudents.where((student) => student.subjects.contains(subject)).toList();
     } catch (e) {
-      print('Error getting students by subject: $e');
       return [];
     }
   }
@@ -296,7 +252,6 @@ class StudentService {
       final List<Student> allStudents = await getStudents(teacherId);
       return allStudents.where((student) => student.grade == grade).toList();
     } catch (e) {
-      print('Error getting students by grade: $e');
       return [];
     }
   }
@@ -314,7 +269,6 @@ class StudentService {
                student.section.toLowerCase().contains(lowercaseQuery);
       }).toList();
     } catch (e) {
-      print('Error searching students: $e');
       return [];
     }
   }
@@ -326,7 +280,6 @@ class StudentService {
       await ref.set(isActive);
       return true;
     } catch (e) {
-      print('Error toggling student status: $e');
       return false;
     }
   }
@@ -369,7 +322,6 @@ class StudentService {
         'subjectDistribution': subjectDistribution,
       };
     } catch (e) {
-      print('Error getting student statistics: $e');
       return {};
     }
   }

@@ -10,6 +10,8 @@ import '../models/assessment_submission.dart';
 import '../services/lesson_service_realtime.dart';
 import '../models/lesson.dart';
 import '../widgets/safe_network_image.dart';
+import '../services/achievements_service.dart';
+import '../models/achievements.dart';
 import 'student_lesson_viewer_screen.dart';
 import 'student_assessment_taker_screen.dart';
 import 'student_submission_history_screen.dart';
@@ -45,10 +47,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
   final AuthService _authService = AuthService();
   final SubmissionService _submissionService = SubmissionService();
   final LessonServiceRealtime _lessonService = LessonServiceRealtime();
+  final AchievementsService _achievementsService = AchievementsService();
   UserModel? _userProfile;
   bool _isLoading = true;
   List<AssessmentSubmission> _recentSubmissions = [];
   List<Lesson> _upcomingLessons = [];
+  List<LeaderboardEntry> _leaderboard = [];
+  LeaderboardEntry? _currentUserPosition;
 
 
 
@@ -72,7 +77,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
           recentSubs.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
           recentSubs = recentSubs.take(3).toList();
         } catch (e) {
-          print('⚠️ Error loading recent submissions: $e');
         }
         
         // Load upcoming lessons
@@ -83,13 +87,24 @@ class _StudentDashboardState extends State<StudentDashboard> {
           upcomingLessons.sort((a, b) => b.createdAt.compareTo(a.createdAt));
           upcomingLessons = upcomingLessons.take(3).toList();
         } catch (e) {
-          print('⚠️ Error loading upcoming lessons: $e');
+        }
+        
+        // Load leaderboard data
+        List<LeaderboardEntry> leaderboard = [];
+        LeaderboardEntry? currentUserPosition;
+        try {
+          leaderboard = await _achievementsService.getLeaderboard(limit: 10);
+          currentUserPosition = await _achievementsService.getStudentLeaderboardPosition(user.uid);
+        } catch (e) {
+          // Leaderboard data is optional, continue without it
         }
         
         setState(() {
           _userProfile = profile;
           _recentSubmissions = recentSubs;
           _upcomingLessons = upcomingLessons;
+          _leaderboard = leaderboard;
+          _currentUserPosition = currentUserPosition;
           _isLoading = false;
         });
       }
@@ -165,6 +180,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 
                 // Upcoming Lessons
                 _buildUpcomingLessons(),
+                
+                const SizedBox(height: 30),
+                
+                // Leaderboard
+                _buildLeaderboard(),
               ],
             ),
           ),
@@ -252,7 +272,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 1.2,
+          childAspectRatio: 1.3,
           children: [
             _buildActionCard(
               'Take Assessment',
@@ -284,12 +304,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
               'View your achievements',
               () => _navigateToBadges(),
             ),
-            _buildActionCard(
-              'Leaderboard',
-              Icons.leaderboard,
-              'See your ranking',
-              () => _navigateToLeaderboard(),
-            ),
           ],
         ),
       ],
@@ -314,30 +328,39 @@ class _StudentDashboardState extends State<StudentDashboard> {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 40,
+              size: 32,
               color: const Color(0xFF667eea),
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
+            const SizedBox(height: 12),
+            Flexible(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF333333),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -833,21 +856,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
       // Get the current Firebase Auth user
       final currentUser = _authService.currentUser;
       if (currentUser != null && currentUser.uid.isNotEmpty) {
-        print('🔐 Using Firebase Auth UID: ${currentUser.uid}');
         return currentUser.uid; // This is the UNIQUE Firebase UID
       }
       
       // Fallback to user profile if available
       if (_userProfile != null && _userProfile!.uid.isNotEmpty) {
-        print('👤 Using User Profile UID: ${_userProfile!.uid}');
         return _userProfile!.uid;
       }
       
       // Last resort - this should never happen if user is authenticated
-      print('⚠️ No valid user ID found, using fallback');
       return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
     } catch (e) {
-      print('❌ Error getting student ID: $e');
       return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
@@ -860,7 +879,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   Future<void> _loadAndShowAssessments() async {
     try {
-      print('🚀 Starting to load assessments...');
       setState(() {
         _isLoading = true;
       });
@@ -873,10 +891,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
       
       // Check connectivity and load assessments
       if (connectivityService.isConnected) {
-        print('🌐 Online - loading from Firebase');
         // Load from Firebase
         assessments = await assessmentService.getAllPublishedAssessments();
-        print('📊 Found ${assessments.length} assessments from Firebase');
         
         // Cache assessments offline
         if (assessments.isNotEmpty) {
@@ -885,43 +901,35 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ...a.toRealtimeDatabase(),
           }).toList();
           await OfflineService.cacheAssessments(assessmentData);
-          print('💾 Cached ${assessmentData.length} assessments offline');
         }
       } else {
-        print('🔌 Offline - loading from cache');
         // Load from offline cache
         final cachedAssessments = await OfflineService.getCachedAssessments();
         assessments = cachedAssessments
             .where((data) => data['isPublished'] == true)
             .map((data) => Assessment.fromRealtimeDatabase(data['id'] ?? '', data))
             .toList();
-        print('📊 Found ${assessments.length} assessments from cache');
       }
 
       // Get current student ID (this should come from auth service in production)
       final currentStudentId = _getCurrentStudentId();
-      print('🔍 Using Student ID: $currentStudentId');
       
       // Check submission status for each assessment
       List<AssessmentWithSubmissionStatus> assessmentsWithStatus = [];
       for (var assessment in assessments) {
         try {
           // Check if student has already submitted this assessment
-          print('🔍 Checking submissions for assessment: ${assessment.id}');
           final submissions = await submissionService.getStudentSubmissions(currentStudentId);
-          print('📊 Found ${submissions.length} submissions for student: $currentStudentId');
           
           final hasSubmitted = submissions.any((submission) => 
             submission.assessmentId == assessment.id
           );
-          print('✅ Assessment ${assessment.id} - Has submitted: $hasSubmitted');
           
           AssessmentSubmission? existingSubmission;
           if (hasSubmitted) {
             existingSubmission = submissions.firstWhere((submission) => 
               submission.assessmentId == assessment.id
             );
-            print('📝 Found existing submission: ${existingSubmission.id}');
           }
           
           assessmentsWithStatus.add(AssessmentWithSubmissionStatus(
@@ -930,7 +938,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
             existingSubmission: existingSubmission,
           ));
         } catch (e) {
-          print('⚠️ Error checking submission status for ${assessment.id}: $e');
           // If we can't check status, assume not submitted
           assessmentsWithStatus.add(AssessmentWithSubmissionStatus(
             assessment: assessment,
@@ -940,12 +947,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
         }
       }
 
-      print('🎯 Total assessments with status: ${assessmentsWithStatus.length}');
       if (mounted) {
         _showAssessmentOptions(assessmentsWithStatus);
       }
     } catch (e) {
-      print('❌ Error loading assessments: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1182,11 +1187,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
             if (hasSubmitted && existingSubmission != null)
               Text(
-                '${existingSubmission!.accuracy.toStringAsFixed(1)}%',
+                '${existingSubmission.accuracy.toStringAsFixed(1)}%',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: _getScoreColor(existingSubmission!.accuracy),
+                  color: _getScoreColor(existingSubmission.accuracy),
                 ),
               ),
           ],
@@ -1569,5 +1574,269 @@ class _StudentDashboardState extends State<StudentDashboard> {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
+  }
+
+  Widget _buildLeaderboard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFFE5E5E7),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Leaderboard',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _navigateToLeaderboard(),
+                child: const Text(
+                  'View All',
+                  style: TextStyle(
+                    color: Color(0xFF007AFF),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Show leaderboard or empty state
+          if (_leaderboard.isEmpty)
+            _buildEmptyLeaderboardState()
+          else
+            _buildLeaderboardItems(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyLeaderboardState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        children: [
+          Icon(
+            Icons.leaderboard_outlined,
+            size: 48,
+            color: const Color(0xFF86868B),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No leaderboard data yet',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1D1D1F),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Complete lessons and assessments to see rankings here.',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF86868B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeaderboardItems() {
+    return Column(
+      children: _leaderboard.take(5).map((entry) => _buildLeaderboardItem(entry)).toList(),
+    );
+  }
+
+  Widget _buildLeaderboardItem(LeaderboardEntry entry) {
+    final isCurrentUser = _currentUserPosition?.studentId == entry.studentId;
+    final rank = _leaderboard.indexOf(entry) + 1;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isCurrentUser ? const Color(0xFF007AFF).withOpacity(0.1) : const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCurrentUser ? const Color(0xFF007AFF) : const Color(0xFFE5E5E7),
+          width: isCurrentUser ? 2 : 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Rank
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: _getRankColor(rank),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                rank.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Student info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        entry.studentName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.w600,
+                          color: isCurrentUser ? const Color(0xFF007AFF) : const Color(0xFF1D1D1F),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isCurrentUser) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF007AFF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'YOU',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star, size: 12, color: Colors.amber[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${entry.totalPoints}p',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF007AFF),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.emoji_events, size: 12, color: Colors.amber[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${entry.achievementsCount}a',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF86868B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Stats chips
+          _buildLeaderboardStatsChips(entry),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeaderboardStatsChips(LeaderboardEntry entry) {
+    return Column(
+      children: [
+        if (entry.stats['lessonsCompleted'] != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            margin: const EdgeInsets.only(bottom: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF34C759).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${entry.stats['lessonsCompleted']}L',
+              style: const TextStyle(
+                fontSize: 9,
+                color: Color(0xFF34C759),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        if (entry.stats['assessmentsCompleted'] != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFFAF52DE).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${entry.stats['assessmentsCompleted']}A',
+              style: const TextStyle(
+                fontSize: 9,
+                color: Color(0xFFAF52DE),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Color _getRankColor(int rank) {
+    if (rank == 1) return Colors.amber;
+    if (rank == 2) return Colors.grey[400]!;
+    if (rank == 3) return Colors.orange[700]!;
+    return const Color(0xFF007AFF);
   }
 }

@@ -755,26 +755,17 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
     });
 
     try {
-      print('🚀 Starting file upload...');
-      print('📁 File name: ${_selectedFile?.name ?? 'Unknown'}');
-      print('📏 File size: ${_selectedFile?.size ?? 0} bytes');
-      print('🔑 Teacher ID: ${widget.teacherProfile.uid}');
       
       final storage = FirebaseStorage.instance;
       final fileName = '${DateTime.now().millisecondsSinceEpoch}_${_selectedFile?.name ?? 'unknown_file'}';
       final ref = storage.ref().child('lesson_files/${widget.teacherProfile.uid}/$fileName');
       
-      print('📤 Storage path: lesson_files/${widget.teacherProfile.uid}/$fileName');
       
       // Upload file
-      print('⏳ Starting upload...');
       final uploadTask = ref.putData(_selectedFile?.bytes ?? Uint8List(0));
       final snapshot = await uploadTask;
-      print('✅ Upload completed!');
       
-      print('🔗 Getting download URL...');
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      print('🔗 Download URL: $downloadUrl');
 
       setState(() {
         _uploadedFileUrl = downloadUrl;
@@ -782,7 +773,6 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
         _isUploadingFile = false;
       });
 
-      print('💾 State updated with file URL: $_uploadedFileUrl');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -809,7 +799,6 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
         );
       }
     } catch (e) {
-      print('❌ File upload error: $e');
       setState(() {
         _isUploadingFile = false;
       });
@@ -1167,9 +1156,6 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
     });
 
     try {
-      print('📝 Creating lesson...');
-      print('📁 File URL: $_uploadedFileUrl');
-      print('📁 File Name: $_uploadedFileName');
       
       final lesson = Lesson(
         id: '', // Will be set by Firestore
@@ -1188,12 +1174,9 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
         fileUrl: _uploadedFileUrl,
       );
 
-      print('📋 Lesson object created with fileUrl: ${lesson.fileUrl}');
 
       final lessonService = LessonServiceRealtime();
-      print('🚀 Calling lessonService.createLesson...');
       await lessonService.createLesson(lesson);
-      print('✅ Lesson created successfully!');
 
       // Log the activity for teacher dashboard
       await _logTeacherActivity('Lesson Created', 'Created lesson: ${lesson.title}');
@@ -1208,7 +1191,6 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      print('❌ Lesson creation error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1334,9 +1316,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
         'subject': _selectedSubject,
       });
       
-      print('✅ Activity logged: $action - $description');
     } catch (e) {
-      print('❌ Failed to log activity: $e');
       // Don't fail the lesson upload if activity logging fails
     }
   }

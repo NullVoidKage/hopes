@@ -56,7 +56,6 @@ class TeacherDashboardService {
       return dashboardData;
     } catch (e) {
       // If Firebase fails, try to return cached data
-      print('Firebase error, trying cached data: $e');
       return await _getCachedDashboardData(teacherId, teacherSubjects);
     }
   }
@@ -64,7 +63,6 @@ class TeacherDashboardService {
   // Get student progress for teacher's subjects
   Future<List<StudentProgress>> _getStudentProgress(List<String> subjects) async {
     try {
-      print('🔍 TeacherDashboardService: Fetching student progress for subjects: $subjects');
       
       // First try to get from Firebase Realtime Database
       final DatabaseReference ref = _database.ref('student_progress');
@@ -74,7 +72,6 @@ class TeacherDashboardService {
       if (snapshot.value != null) {
         final data = snapshot.value as Map<dynamic, dynamic>?;
         if (data != null && data.isNotEmpty) {
-          print('🔍 TeacherDashboardService: Found ${data.entries.length} progress entries in Realtime DB');
           
           final progressList = data.entries.map((entry) {
             final entryData = entry.value as Map<dynamic, dynamic>?;
@@ -86,22 +83,18 @@ class TeacherDashboardService {
                 entry.key.toString(),
               );
             } catch (e) {
-              print('🔍 TeacherDashboardService: Error parsing progress data: $e');
               return null;
             }
           }).whereType<StudentProgress>().toList();
           
-          print('🔍 TeacherDashboardService: Successfully parsed ${progressList.length} progress records');
           return progressList;
         }
       }
       
       // If no progress data exists, create sample progress from Firestore students
-      print('🔍 TeacherDashboardService: No progress data found, creating sample data from students');
       return await _createSampleProgressFromStudents(subjects);
       
     } catch (e) {
-      print('🔍 TeacherDashboardService: Error fetching student progress: $e');
       return await _createSampleProgressFromStudents(subjects);
     }
   }
@@ -109,7 +102,6 @@ class TeacherDashboardService {
   // Create sample progress data from existing students
   Future<List<StudentProgress>> _createSampleProgressFromStudents(List<String> subjects) async {
     try {
-      print('🔍 TeacherDashboardService: Creating sample progress from students');
       
       // Get students from Firestore
       final studentsQuery = await FirebaseFirestore.instance
@@ -118,11 +110,9 @@ class TeacherDashboardService {
           .get();
       
       if (studentsQuery.docs.isEmpty) {
-        print('🔍 TeacherDashboardService: No students found in Firestore');
         return [];
       }
       
-      print('🔍 TeacherDashboardService: Found ${studentsQuery.docs.length} students in Firestore');
       
       final List<StudentProgress> sampleProgress = [];
       
@@ -135,7 +125,6 @@ class TeacherDashboardService {
         // Create progress for each subject the student is enrolled in
         for (final subject in studentSubjects) {
           if (subjects.isEmpty || subjects.contains(subject)) {
-            print('🔍 TeacherDashboardService: Creating progress for ${data['displayName']} in subject: $subject');
             
             // Generate realistic sample progress
             final lessonsCompleted = (DateTime.now().millisecond % 5) + 1; // 1-5 lessons
@@ -163,16 +152,13 @@ class TeacherDashboardService {
             );
             
             sampleProgress.add(progress);
-            print('🔍 TeacherDashboardService: Progress record created for ${studentName} in $subject');
           }
         }
       }
       
-      print('🔍 TeacherDashboardService: Created ${sampleProgress.length} sample progress records');
       return sampleProgress;
       
     } catch (e) {
-      print('🔍 TeacherDashboardService: Error creating sample progress: $e');
       return [];
     }
   }
@@ -180,7 +166,6 @@ class TeacherDashboardService {
   // Get recent activities for teacher
   Future<List<TeacherActivity>> _getRecentActivities(String teacherId) async {
     try {
-      print('🔍 TeacherDashboardService: Fetching recent activities for teacher: $teacherId');
       
       final snapshot = await _database
           .ref('teacher_activities')
@@ -190,7 +175,6 @@ class TeacherDashboardService {
       if (snapshot.exists) {
         final data = snapshot.value as Map<dynamic, dynamic>?;
         if (data != null && data.isNotEmpty) {
-          print('🔍 TeacherDashboardService: Found ${data.length} activities in Realtime DB');
           
           final activities = <TeacherActivity>[];
           data.forEach((key, value) {
@@ -199,7 +183,6 @@ class TeacherDashboardService {
                 final activity = TeacherActivity.fromRealtimeDatabase(key.toString(), value);
                 activities.add(activity);
               } catch (e) {
-                print('Error parsing teacher activity: $e');
               }
             }
           });
@@ -207,24 +190,20 @@ class TeacherDashboardService {
           // Sort by timestamp (newest first) and take last 10
           activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
           final recentActivities = activities.take(10).toList();
-          print('🔍 TeacherDashboardService: Returning ${recentActivities.length} recent activities');
           return recentActivities;
         }
       }
       
       // If no activities exist, create sample activities
-      print('🔍 TeacherDashboardService: No activities found, creating sample activities');
       return _createSampleTeacherActivities(teacherId);
       
     } catch (e) {
-      print('🔍 TeacherDashboardService: Error fetching activities, creating sample: $e');
       return _createSampleTeacherActivities(teacherId);
     }
   }
 
   // Create sample teacher activities
   List<TeacherActivity> _createSampleTeacherActivities(String teacherId) {
-    print('🔍 TeacherDashboardService: Creating sample teacher activities');
     
     final now = DateTime.now();
     final activities = <TeacherActivity>[];
@@ -289,7 +268,6 @@ class TeacherDashboardService {
       metadata: {'sample': true},
     ));
     
-    print('🔍 TeacherDashboardService: Created ${activities.length} sample activities');
     return activities;
   }
 
@@ -301,19 +279,16 @@ class TeacherDashboardService {
           .where('role', isEqualTo: 'student')
           .get();
       
-      print('🔍 TeacherDashboardService: Found ${studentsQuery.docs.length} students in Firestore');
       
       // Log each student for debugging
       for (final doc in studentsQuery.docs) {
         final data = doc.data();
         final studentName = data['displayName'] ?? 'Unknown';
         final studentSubjects = (data['subjects'] as List<dynamic>?)?.cast<String>() ?? [];
-        print('🔍 TeacherDashboardService: Student: $studentName, Subjects: $studentSubjects (${studentSubjects.length} subjects)');
       }
       
       return studentsQuery.docs.length;
     } catch (e) {
-      print('🔍 TeacherDashboardService: Error getting student count: $e');
       return 0;
     }
   }
@@ -354,11 +329,6 @@ class TeacherDashboardService {
     // Calculate average progress per student (not per progress record)
     final averageProgress = uniqueStudents.isNotEmpty ? totalProgress / uniqueStudents.length : 0.0;
 
-    print('🔍 TeacherDashboardService: Statistics calculation:');
-    print('🔍 TeacherDashboardService: - Total progress records: ${studentProgress.length}');
-    print('🔍 TeacherDashboardService: - Unique students: ${uniqueStudents.length}');
-    print('🔍 TeacherDashboardService: - Active students: ${activeStudentIds.length}');
-    print('🔍 TeacherDashboardService: - Average progress: ${averageProgress.toStringAsFixed(1)}%');
 
     return {
       'subjectStats': subjectStats,
@@ -371,8 +341,6 @@ class TeacherDashboardService {
   // Log a new teacher activity
   Future<void> logActivity(String teacherId, String type, String title, String description) async {
     try {
-      print('🔍 TeacherDashboardService: Logging activity for teacher: $teacherId');
-      print('🔍 TeacherDashboardService: Activity type: $type, title: $title');
       
       await _database.ref('teacher_activities').child(teacherId).push().set({
         'teacherId': teacherId,
@@ -387,9 +355,7 @@ class TeacherDashboardService {
         },
       });
       
-      print('🔍 TeacherDashboardService: Activity logged successfully');
     } catch (e) {
-      print('🔍 TeacherDashboardService: Failed to log activity: $e');
       throw Exception('Failed to log activity: ${e.toString()}');
     }
   }
@@ -397,8 +363,6 @@ class TeacherDashboardService {
   // Log a new teacher activity with subject
   Future<void> logActivityWithSubject(String teacherId, String type, String title, String description, String subject) async {
     try {
-      print('🔍 TeacherDashboardService: Logging activity with subject for teacher: $teacherId');
-      print('🔍 TeacherDashboardService: Activity type: $type, title: $title, subject: $subject');
       
       await _database.ref('teacher_activities').child(teacherId).push().set({
         'teacherId': teacherId,
@@ -413,9 +377,7 @@ class TeacherDashboardService {
         },
       });
       
-      print('🔍 TeacherDashboardService: Activity with subject logged successfully');
     } catch (e) {
-      print('🔍 TeacherDashboardService: Failed to log activity with subject: $e');
       throw Exception('Failed to log activity: ${e.toString()}');
     }
   }
@@ -423,7 +385,6 @@ class TeacherDashboardService {
   // Create real student progress when teachers perform actions
   Future<void> createStudentProgressForAction(String teacherId, String subject, String actionType) async {
     try {
-      print('🔍 TeacherDashboardService: Creating student progress for action: $actionType in $subject');
       
       // Get students from Firestore who are enrolled in this subject
       final studentsQuery = await FirebaseFirestore.instance
@@ -432,7 +393,6 @@ class TeacherDashboardService {
           .get();
       
       if (studentsQuery.docs.isEmpty) {
-        print('🔍 TeacherDashboardService: No students found for progress creation');
         return;
       }
       
@@ -471,14 +431,11 @@ class TeacherDashboardService {
             };
             
             await _database.ref('student_progress').push().set(progressData);
-            print('🔍 TeacherDashboardService: Created progress for student ${data['displayName']} in $subject');
           }
         }
       }
       
-      print('🔍 TeacherDashboardService: Student progress creation completed for $subject');
     } catch (e) {
-      print('🔍 TeacherDashboardService: Error creating student progress: $e');
     }
   }
 
@@ -508,7 +465,6 @@ class TeacherDashboardService {
         averageProgress: stats['averageProgress'],
       );
     } catch (e) {
-      print('Error getting cached dashboard data: $e');
       // Return empty dashboard data if cache fails
       return TeacherDashboardData(
         studentProgress: [],
@@ -565,7 +521,6 @@ class TeacherDashboardService {
       
       await OfflineService.cacheTeacherActivities(activitiesData);
     } catch (e) {
-      print('Error caching dashboard data: $e');
     }
   }
 }

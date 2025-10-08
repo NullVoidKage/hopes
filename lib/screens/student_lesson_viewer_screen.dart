@@ -73,13 +73,10 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
       
       if (_connectivityService.shouldUseCachedData) {
         // Use offline cached data
-        print('🔍 StudentLessonViewer: Using offline cached data');
         lessons = await _getCachedLessons();
       } else {
         // Fetch from Firebase and cache
-        print('🔍 StudentLessonViewer: Fetching from Firebase');
         lessons = await _lessonService.getAllPublishedLessons();
-        print('🔍 StudentLessonViewer: Fetched ${lessons.length} lessons from Firebase');
         await _cacheLessonsLocally(lessons);
       }
       
@@ -89,10 +86,8 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
           _filteredLessons = lessons;
           _isLoading = false;
         });
-        print('🔍 StudentLessonViewer: Loaded ${lessons.length} lessons total');
       }
     } catch (e) {
-      print('🔍 StudentLessonViewer: Error loading lessons: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -109,9 +104,7 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
 
   Future<List<Lesson>> _getCachedLessons() async {
     try {
-      print('🔍 StudentLessonViewer: Getting cached lessons');
       final cachedData = await OfflineService.getCachedLessons();
-      print('🔍 StudentLessonViewer: Found ${cachedData.length} cached lessons');
       
       final lessons = <Lesson>[];
       for (final lessonData in cachedData) {
@@ -123,15 +116,12 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
             );
             lessons.add(lesson);
           } catch (e) {
-            print('🔍 StudentLessonViewer: Error parsing cached lesson: $e');
           }
         }
       }
       
-      print('🔍 StudentLessonViewer: Parsed ${lessons.length} published lessons from cache');
       return lessons;
     } catch (e) {
-      print('🔍 StudentLessonViewer: Error getting cached lessons: $e');
       return [];
     }
   }

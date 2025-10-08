@@ -1114,26 +1114,17 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
     });
 
     try {
-      print('🚀 Starting file upload...');
-      print('📁 File name: ${_selectedFile?.name ?? 'Unknown'}');
-      print('📏 File size: ${_selectedFile?.size ?? 0} bytes');
-      print('🔑 Teacher ID: ${widget.teacherProfile.uid}');
       
       final storage = FirebaseStorage.instance;
       final fileName = '${DateTime.now().millisecondsSinceEpoch}_${_selectedFile?.name ?? 'unknown_file'}';
       final ref = storage.ref().child('lesson_files/${widget.teacherProfile.uid}/$fileName');
       
-      print('📤 Storage path: lesson_files/${widget.teacherProfile.uid}/$fileName');
       
       // Upload file
-      print('⏳ Starting upload...');
       final uploadTask = ref.putData(_selectedFile?.bytes ?? Uint8List(0));
       final snapshot = await uploadTask;
-      print('✅ Upload completed!');
       
-      print('🔗 Getting download URL...');
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      print('🔗 Download URL: $downloadUrl');
 
       setState(() {
         _uploadedFileUrl = downloadUrl;
@@ -1142,7 +1133,6 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
         _hasChanges = true;
       });
 
-      print('💾 State updated with file URL: $_uploadedFileUrl');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1169,7 +1159,6 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
         );
       }
     } catch (e) {
-      print('❌ File upload error: $e');
       setState(() {
         _isUploadingFile = false;
       });
@@ -1229,9 +1218,6 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
     });
 
     try {
-      print('📝 Updating lesson...');
-      print('📁 File URL: $_uploadedFileUrl');
-      print('📁 File Name: $_uploadedFileName');
       
       final updatedLesson = widget.lesson.copyWith(
         title: _titleController.text.trim(),
@@ -1246,12 +1232,9 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
         updatedAt: DateTime.now(),
       );
 
-      print('📋 Updated lesson object: ${updatedLesson.toRealtimeDatabase()}');
 
       final lessonService = LessonServiceRealtime();
-      print('🚀 Calling lessonService.updateLesson...');
       await lessonService.updateLesson(updatedLesson.id, updatedLesson.toRealtimeDatabase());
-      print('✅ Lesson updated successfully!');
 
       // Log the activity for teacher dashboard
       await _logTeacherActivity('Lesson Updated', 'Updated lesson: ${updatedLesson.title}');
@@ -1266,7 +1249,6 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
         Navigator.of(context).pop(updatedLesson);
       }
     } catch (e) {
-      print('❌ Lesson update error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

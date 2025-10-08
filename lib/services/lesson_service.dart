@@ -35,11 +35,9 @@ class LessonService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, using cached lessons for teacher: $teacherId');
         return await _getCachedLessonsByTeacher(teacherId);
       }
 
-      print('🌐 Online mode, fetching from Firestore for teacher: $teacherId');
       // If online, fetch from Firestore and cache
       final querySnapshot = await _firestore
           .collection('lessons')
@@ -56,7 +54,6 @@ class LessonService {
 
       return lessons;
     } catch (e) {
-      print('Firestore error, trying cached data: $e');
       // If Firestore fails, try to return cached data
       return await _getCachedLessonsByTeacher(teacherId);
     }
@@ -71,7 +68,6 @@ class LessonService {
           .map((data) => Lesson.fromRealtimeDatabase(data['id'] ?? '', data))
           .toList();
     } catch (e) {
-      print('Error getting cached lessons: $e');
       return [];
     }
   }
@@ -85,7 +81,6 @@ class LessonService {
       }).toList();
       await OfflineService.cacheLessons(lessonData);
     } catch (e) {
-      print('Error caching lessons: $e');
     }
   }
 
@@ -94,11 +89,9 @@ class LessonService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, using cached lessons for subject: $subject');
         return await _getCachedLessonsBySubject(subject);
       }
 
-      print('🌐 Online mode, fetching from Firestore for subject: $subject');
       // If online, fetch from Firestore and cache
       final querySnapshot = await _firestore
           .collection('lessons')
@@ -116,7 +109,6 @@ class LessonService {
 
       return lessons;
     } catch (e) {
-      print('Firestore error, trying cached data: $e');
       // If Firestore fails, try to return cached data
       return await _getCachedLessonsBySubject(subject);
     }
@@ -131,7 +123,6 @@ class LessonService {
           .map((data) => Lesson.fromRealtimeDatabase(data['id'] ?? '', data))
           .toList();
     } catch (e) {
-      print('Error getting cached lessons by subject: $e');
       return [];
     }
   }
@@ -141,11 +132,9 @@ class LessonService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, using cached lesson: $lessonId');
         return await _getCachedLessonById(lessonId);
       }
 
-      print('🌐 Online mode, fetching from Firestore: $lessonId');
       // If online, fetch from Firestore and cache
       final doc = await _firestore
           .collection('lessons')
@@ -162,7 +151,6 @@ class LessonService {
       }
       return null;
     } catch (e) {
-      print('Firestore error, trying cached data: $e');
       // If Firestore fails, try to return cached data
       return await _getCachedLessonById(lessonId);
     }
@@ -173,12 +161,10 @@ class LessonService {
     try {
       // Check if we should queue for sync
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, queuing lesson update for sync');
         await _queueLessonUpdateForSync(lessonId, updates);
         return;
       }
 
-      print('🌐 Online mode, updating in Firestore');
       // If online, update in Firestore
       await _firestore
           .collection('lessons')
@@ -292,7 +278,6 @@ class LessonService {
       }
       return null;
     } catch (e) {
-      print('Error getting cached lesson: $e');
       return null;
     }
   }
@@ -324,7 +309,6 @@ class LessonService {
       
       await OfflineService.cacheLessons(existingLessons);
     } catch (e) {
-      print('Error caching lesson locally: $e');
     }
   }
 
@@ -341,9 +325,7 @@ class LessonService {
         }
       }
       await OfflineService.cacheLessons(cachedLessons);
-      print('✅ Queued lesson update for sync: $lessonId');
     } catch (e) {
-      print('Error queuing lesson update: $e');
     }
   }
 }

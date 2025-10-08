@@ -1407,9 +1407,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         'subject': _selectedSubject,
       });
       
-      print('✅ Activity logged: $action - $description');
     } catch (e) {
-      print('❌ Failed to log activity: $e');
       // Don't fail the assessment creation if activity logging fails
     }
   }

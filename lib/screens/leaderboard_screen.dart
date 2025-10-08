@@ -28,7 +28,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   void initState() {
     super.initState();
-    print('🎯 LeaderboardScreen: initState called');
     _loadData();
   }
 
@@ -67,10 +66,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             });
             return;
           } catch (e) {
-            print('Error calculating leaderboard from existing submissions: $e');
           }
         }
-        print('🎯 LeaderboardScreen: Loaded ${leaderboard.length} leaderboard entries');
         
         setState(() {
           _leaderboard = leaderboard;
@@ -79,7 +76,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         });
       }
     } catch (e) {
-      print('🎯 LeaderboardScreen: Error loading data: $e');
       setState(() {
         _leaderboard = [];
         _achievements = [];
@@ -115,10 +111,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   Widget _buildLeaderboardTab() {
     final filteredLeaderboard = _getFilteredLeaderboard();
-    print('🎯 LeaderboardScreen: Building leaderboard tab');
-    print('🎯 LeaderboardScreen: Total leaderboard entries: ${_leaderboard.length}');
-    print('🎯 LeaderboardScreen: Filtered leaderboard entries: ${filteredLeaderboard.length}');
-    print('🎯 LeaderboardScreen: Is loading: $_isLoading');
 
     return Column(
       children: [
@@ -598,7 +590,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           return List.from(_leaderboard); // Create a copy to prevent issues
       }
     } catch (e) {
-      print('🎯 LeaderboardScreen: Error filtering leaderboard: $e');
       return [];
     }
   }

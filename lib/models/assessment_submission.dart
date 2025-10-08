@@ -267,7 +267,6 @@ class AssessmentSubmission {
             try {
               parsedAnswers[index] = DetailedAnswer.fromMap(value as Map<Object?, Object?>);
             } catch (e) {
-              print('⚠️ Error parsing detailed answer $index: $e');
             }
           }
         }

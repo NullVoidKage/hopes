@@ -39,7 +39,6 @@ class LearningPathService {
         return tempId;
       }
     } catch (e) {
-      print('Error creating learning path: $e');
       rethrow;
     }
   }
@@ -70,7 +69,6 @@ class LearningPathService {
         return await _getCachedLearningPaths(teacherId);
       }
     } catch (e) {
-      print('Error getting learning paths: $e');
       // Fallback to cached data
       return await _getCachedLearningPaths(teacherId);
     }
@@ -102,7 +100,6 @@ class LearningPathService {
         return await _getCachedLearningPaths(null);
       }
     } catch (e) {
-      print('Error getting all learning paths: $e');
       return await _getCachedLearningPaths(null);
     }
   }
@@ -128,7 +125,6 @@ class LearningPathService {
         await _queueLearningPathForSync(learningPath);
       }
     } catch (e) {
-      print('Error updating learning path: $e');
       rethrow;
     }
   }
@@ -150,7 +146,6 @@ class LearningPathService {
         await _markLearningPathForDeletion(pathId);
       }
     } catch (e) {
-      print('Error deleting learning path: $e');
       rethrow;
     }
   }
@@ -203,7 +198,6 @@ class LearningPathService {
         return tempId;
       }
     } catch (e) {
-      print('Error assigning learning path: $e');
       rethrow;
     }
   }
@@ -234,7 +228,6 @@ class LearningPathService {
         return await _getCachedStudentLearningPaths(studentId);
       }
     } catch (e) {
-      print('Error getting student learning paths: $e');
       return await _getCachedStudentLearningPaths(studentId);
     }
   }
@@ -265,7 +258,6 @@ class LearningPathService {
         return await _getCachedStudentLearningPathsByTeacher(teacherId);
       }
     } catch (e) {
-      print('Error getting teacher assignments: $e');
       return await _getCachedStudentLearningPathsByTeacher(teacherId);
     }
   }
@@ -303,7 +295,6 @@ class LearningPathService {
         await _queueProgressUpdateForSync(assignmentId, stepProgress, status);
       }
     } catch (e) {
-      print('Error updating student path progress: $e');
       rethrow;
     }
   }
@@ -339,7 +330,6 @@ class LearningPathService {
         return await _getCachedAvailableContent();
       }
     } catch (e) {
-      print('Error getting available content: $e');
       return await _getCachedAvailableContent();
     }
   }
@@ -374,7 +364,6 @@ class LearningPathService {
         await _queueCustomizationForSync(assignmentId, customizations);
       }
     } catch (e) {
-      print('Error customizing learning path: $e');
       rethrow;
     }
   }
@@ -384,7 +373,6 @@ class LearningPathService {
     try {
       await OfflineService.cacheLearningPath(learningPath.toRealtimeDatabase());
     } catch (e) {
-      print('Error caching learning path locally: $e');
     }
   }
 
@@ -400,7 +388,6 @@ class LearningPathService {
       }
       return paths;
     } catch (e) {
-      print('Error getting cached learning paths: $e');
       return [];
     }
   }
@@ -409,7 +396,6 @@ class LearningPathService {
     try {
       await OfflineService.cacheStudentLearningPath(assignment.toRealtimeDatabase());
     } catch (e) {
-      print('Error caching student learning path locally: $e');
     }
   }
 
@@ -421,7 +407,6 @@ class LearningPathService {
           .map((data) => StudentLearningPath.fromRealtimeDatabase(data, data['id'] ?? ''))
           .toList();
     } catch (e) {
-      print('Error getting cached student learning paths: $e');
       return [];
     }
   }
@@ -434,7 +419,6 @@ class LearningPathService {
           .map((data) => StudentLearningPath.fromRealtimeDatabase(data, data['id'] ?? ''))
           .toList();
     } catch (e) {
-      print('Error getting cached teacher assignments: $e');
       return [];
     }
   }
@@ -444,7 +428,6 @@ class LearningPathService {
     try {
       await OfflineService.queueLearningPathForSync(learningPath.toRealtimeDatabase());
     } catch (e) {
-      print('Error queuing learning path for sync: $e');
     }
   }
 
@@ -452,7 +435,6 @@ class LearningPathService {
     try {
       await OfflineService.queueAssignmentForSync(assignment.toRealtimeDatabase());
     } catch (e) {
-      print('Error queuing assignment for sync: $e');
     }
   }
 
@@ -469,7 +451,6 @@ class LearningPathService {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     } catch (e) {
-      print('Error queuing progress update for sync: $e');
     }
   }
 
@@ -484,7 +465,6 @@ class LearningPathService {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     } catch (e) {
-      print('Error queuing customization for sync: $e');
     }
   }
 
@@ -493,7 +473,6 @@ class LearningPathService {
     try {
       await OfflineService.removeLearningPathFromCache(pathId);
     } catch (e) {
-      print('Error removing learning path from cache: $e');
     }
   }
 
@@ -501,7 +480,6 @@ class LearningPathService {
     try {
       await OfflineService.markLearningPathForDeletion(pathId);
     } catch (e) {
-      print('Error marking learning path for deletion: $e');
     }
   }
 
@@ -517,7 +495,6 @@ class LearningPathService {
         status
       );
     } catch (e) {
-      print('Error updating cached student learning path: $e');
     }
   }
 
@@ -528,7 +505,6 @@ class LearningPathService {
     try {
       await OfflineService.updateCachedCustomizations(assignmentId, customizations);
     } catch (e) {
-      print('Error updating cached customizations: $e');
     }
   }
 
@@ -536,7 +512,6 @@ class LearningPathService {
     try {
       return await OfflineService.getCachedAvailableContent();
     } catch (e) {
-      print('Error getting cached available content: $e');
       return {'lessons': [], 'assessments': []};
     }
   }

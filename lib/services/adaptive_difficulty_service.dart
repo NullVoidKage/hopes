@@ -66,7 +66,6 @@ class AdaptiveDifficultyService {
 
       return await createAdaptiveDifficulty(newProfile);
     } catch (e) {
-      print('Error getting adaptive difficulty: $e');
       // Return default profile
       return AdaptiveDifficulty(
         id: 'default_$studentId',
@@ -113,7 +112,6 @@ class AdaptiveDifficultyService {
         return profileWithId;
       }
     } catch (e) {
-      print('Error creating adaptive difficulty: $e');
       rethrow;
     }
   }
@@ -201,7 +199,6 @@ class AdaptiveDifficultyService {
       
       return updatedProfile;
     } catch (e) {
-      print('Error updating performance: $e');
       rethrow;
     }
   }
@@ -302,7 +299,6 @@ class AdaptiveDifficultyService {
         await _queueDifficultyAdjustmentForSync(adjustment);
       }
     } catch (e) {
-      print('Error recording difficulty adjustment: $e');
     }
   }
 
@@ -340,7 +336,6 @@ class AdaptiveDifficultyService {
       
       return recommendations;
     } catch (e) {
-      print('Error getting adaptive content recommendations: $e');
       return {};
     }
   }
@@ -441,7 +436,6 @@ class AdaptiveDifficultyService {
         await _queueAdaptiveDifficultyForSync(profile);
       }
     } catch (e) {
-      print('Error saving adaptive difficulty: $e');
     }
   }
 
@@ -450,7 +444,6 @@ class AdaptiveDifficultyService {
     try {
       await OfflineService.cacheAdaptiveDifficulty(profile.toRealtimeDatabase());
     } catch (e) {
-      print('Error caching adaptive difficulty locally: $e');
     }
   }
 
@@ -466,7 +459,6 @@ class AdaptiveDifficultyService {
       }
       return null;
     } catch (e) {
-      print('Error getting cached adaptive difficulty: $e');
       return null;
     }
   }
@@ -476,7 +468,6 @@ class AdaptiveDifficultyService {
     try {
       await OfflineService.queueAdaptiveDifficultyForSync(profile.toRealtimeDatabase());
     } catch (e) {
-      print('Error queuing adaptive difficulty for sync: $e');
     }
   }
 
@@ -484,7 +475,6 @@ class AdaptiveDifficultyService {
     try {
       await OfflineService.queueDifficultyAdjustmentForSync(adjustment.toRealtimeDatabase());
     } catch (e) {
-      print('Error queuing difficulty adjustment for sync: $e');
     }
   }
 }

@@ -84,7 +84,6 @@ class LessonServiceRealtime {
     } catch (e) {
       // If Firebase fails, try to return cached data
       if (kDebugMode) {
-        print('Firebase error, trying cached data: $e');
       }
       return await _getCachedLessonsByTeacher(teacherId);
     }
@@ -133,7 +132,6 @@ class LessonServiceRealtime {
     } catch (e) {
       // If Firebase fails, try to return cached data
       if (kDebugMode) {
-        print('Firebase error, trying cached data: $e');
       }
       return await _getCachedLessonsBySubject(subject);
     }
@@ -177,7 +175,6 @@ class LessonServiceRealtime {
     } catch (e) {
       // If Firebase fails, try to return cached data
       if (kDebugMode) {
-        print('Firebase error, trying cached data: $e');
       }
       return await _getCachedAllLessons();
     }
@@ -324,7 +321,6 @@ class LessonServiceRealtime {
       return lessons;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached lessons by teacher: $e');
       }
       return [];
     }
@@ -352,7 +348,6 @@ class LessonServiceRealtime {
       return lessons;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached lessons by subject: $e');
       }
       return [];
     }
@@ -380,7 +375,6 @@ class LessonServiceRealtime {
       return lessons;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting cached all published lessons: $e');
       }
       return [];
     }
@@ -407,7 +401,6 @@ class LessonServiceRealtime {
       await OfflineService.cacheLessons(lessonsData);
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching lessons locally: $e');
       }
     }
   }
@@ -435,7 +428,6 @@ class LessonServiceRealtime {
       await OfflineService.cacheLessons(existingLessons);
     } catch (e) {
       if (kDebugMode) {
-        print('Error caching single lesson locally: $e');
       }
     }
   }

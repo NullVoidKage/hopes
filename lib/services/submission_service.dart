@@ -14,7 +14,6 @@ class SubmissionService {
     try {
       if (_connectivityService.isConnected) {
         // Try to get from Firebase
-        print('🌐 Fetching student submissions from Firebase for student: $studentId');
         final ref = _database.ref('assessment_submissions');
         final query = ref.orderByChild('studentId').equalTo(studentId);
         final snapshot = await query.get();
@@ -27,7 +26,6 @@ class SubmissionService {
           for (var child in snapshot.children) {
             try {
               processedCount++;
-              print('🔍 Processing submission ${child.key} (${processedCount}/${snapshot.children.length})');
               
               final submission = AssessmentSubmission.fromRealtimeDatabase(
                 child.value as Map<Object?, Object?>,
@@ -36,29 +34,24 @@ class SubmissionService {
               submissions.add(submission);
             } catch (e) {
               errorCount++;
-              print('⚠️ Error parsing submission ${child.key}: $e');
               // Continue processing other submissions instead of failing completely
             }
           }
           
-          print('📊 Processed $processedCount submissions, $errorCount errors');
           
           // Sort by submission date (newest first)
           submissions.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
           
-          print('📊 Loaded ${submissions.length} valid submissions from Firebase');
           
           // Cache submissions offline
           await OfflineService.cacheStudentSubmissions(studentId, submissions);
           
           return submissions;
         } else {
-          print('📭 No submissions found in Firebase for student: $studentId');
           return [];
         }
       } else {
         // Use cached data when offline
-        print('📱 Using cached submissions for student: $studentId');
         final cachedData = await OfflineService.getCachedStudentSubmissions(studentId);
         return cachedData.map((data) => AssessmentSubmission.fromRealtimeDatabase(
           data as Map<Object?, Object?>,
@@ -66,7 +59,6 @@ class SubmissionService {
         )).toList();
       }
     } catch (e) {
-      print('❌ Error fetching student submissions: $e');
       
       // Fallback to cached data
       try {
@@ -76,7 +68,6 @@ class SubmissionService {
           (data['id'] ?? '').toString(),
         )).toList();
       } catch (cacheError) {
-        print('❌ Error accessing cached submissions: $cacheError');
         return [];
       }
     }
@@ -87,7 +78,6 @@ class SubmissionService {
     try {
       if (_connectivityService.isConnected) {
         // Try to get from Firebase
-        print('🌐 Fetching assessment submissions from Firebase for assessment: $assessmentId');
         final ref = _database.ref('assessment_submissions');
         final query = ref.orderByChild('assessmentId').equalTo(assessmentId);
         final snapshot = await query.get();
@@ -102,26 +92,22 @@ class SubmissionService {
               );
               submissions.add(submission);
             } catch (e) {
-              print('⚠️ Error parsing submission ${child.key}: $e');
             }
           }
           
           // Sort by submission date (newest first)
           submissions.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
           
-          print('📊 Loaded ${submissions.length} submissions from Firebase for assessment: $assessmentId');
           
           // Cache submissions offline
           await OfflineService.cacheAssessmentSubmissions(assessmentId, submissions);
           
           return submissions;
         } else {
-          print('📭 No submissions found in Firebase for assessment: $assessmentId');
           return [];
         }
       } else {
         // Use cached data when offline
-        print('📱 Using cached submissions for assessment: $assessmentId');
         final cachedData = await OfflineService.getCachedAssessmentSubmissions(assessmentId);
         return cachedData.map((data) => AssessmentSubmission.fromRealtimeDatabase(
           data as Map<Object?, Object?>,
@@ -129,7 +115,6 @@ class SubmissionService {
         )).toList();
       }
     } catch (e) {
-      print('❌ Error fetching assessment submissions: $e');
       
       // Fallback to cached data
       try {
@@ -139,7 +124,6 @@ class SubmissionService {
           (data['id'] ?? '').toString(),
         )).toList();
       } catch (cacheError) {
-        print('❌ Error accessing cached submissions: $cacheError');
         return [];
       }
     }
@@ -150,17 +134,13 @@ class SubmissionService {
     try {
       if (_connectivityService.isConnected) {
         // Try to get from Firebase
-        print('🌐 Fetching teacher submissions from Firebase for teacher: $teacherId');
         final ref = _database.ref('assessment_submissions');
         
         // First, let's see ALL submissions to debug
         final allSnapshot = await ref.get();
-        print('🔍 Total submissions in database: ${allSnapshot.children.length}');
         
         if (allSnapshot.exists) {
-          print('📋 All submission keys: ${allSnapshot.children.map((c) => c.key).toList()}');
           for (var child in allSnapshot.children.take(3)) { // Show first 3 for debugging
-            print('📄 Submission ${child.key}: ${child.value}');
           }
         }
         
@@ -178,30 +158,22 @@ class SubmissionService {
               );
               submissions.add(submission);
             } catch (e) {
-              print('⚠️ Error parsing submission ${child.key}: $e');
             }
           }
           
           // Sort by submission date (newest first)
           submissions.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
           
-          print('📊 Loaded ${submissions.length} submissions from Firebase for teacher: $teacherId');
           
           // Cache submissions offline
           await OfflineService.cacheTeacherSubmissions(teacherId, submissions);
           
           return submissions;
         } else {
-          print('📭 No submissions found in Firebase for teacher: $teacherId');
-          print('🔍 This might mean:');
-          print('   1. No submissions exist yet');
-          print('   2. Teacher ID mismatch: looking for "$teacherId"');
-          print('   3. Data structure is different');
           return [];
         }
       } else {
         // Use cached data when offline
-        print('📱 Using cached submissions for teacher: $teacherId');
         final cachedData = await OfflineService.getCachedTeacherSubmissions(teacherId);
         return cachedData.map((data) => AssessmentSubmission.fromRealtimeDatabase(
           data as Map<Object?, Object?>,
@@ -209,7 +181,6 @@ class SubmissionService {
         )).toList();
       }
     } catch (e) {
-      print('❌ Error fetching teacher submissions: $e');
       
       // Fallback to cached data
       try {
@@ -219,7 +190,6 @@ class SubmissionService {
           (data['id'] ?? '').toString(),
         )).toList();
       } catch (cacheError) {
-        print('❌ Error accessing cached submissions: $cacheError');
         return [];
       }
     }
@@ -230,7 +200,6 @@ class SubmissionService {
     try {
       if (_connectivityService.isConnected) {
         // Try to get from Firebase
-        print('🌐 Fetching submission from Firebase: $submissionId');
         final ref = _database.ref('assessment_submissions/$submissionId');
         final snapshot = await ref.get();
         
@@ -240,19 +209,16 @@ class SubmissionService {
             submissionId,
           );
           
-          print('📊 Loaded submission: ${submission.id}');
           
           // Cache submission offline
           await OfflineService.cacheSubmission(submissionId, submission);
           
           return submission;
         } else {
-          print('📭 Submission not found: $submissionId');
           return null;
         }
       } else {
         // Use cached data when offline
-        print('📱 Using cached submission: $submissionId');
         final cachedData = await OfflineService.getCachedSubmission(submissionId);
         if (cachedData != null) {
           return AssessmentSubmission.fromRealtimeDatabase(
@@ -263,7 +229,6 @@ class SubmissionService {
         return null;
       }
     } catch (e) {
-      print('❌ Error fetching submission: $e');
       
       // Fallback to cached data
       try {
@@ -276,7 +241,6 @@ class SubmissionService {
         }
         return null;
       } catch (cacheError) {
-        print('❌ Error accessing cached submission: $cacheError');
         return null;
       }
     }
@@ -287,11 +251,9 @@ class SubmissionService {
     try {
       if (_connectivityService.isConnected) {
         // Update in Firebase
-        print('🌐 Updating submission in Firebase: ${submission.id}');
         final ref = _database.ref('assessment_submissions/${submission.id}');
         await ref.update(submission.toMap());
         
-        print('✅ Submission updated successfully');
         
         // Update cache
         await OfflineService.cacheSubmission(submission.id, submission);
@@ -299,7 +261,6 @@ class SubmissionService {
         return true;
       } else {
         // Queue update for when online
-        print('📱 Queuing submission update for when online: ${submission.id}');
         await OfflineService.queueSubmissionUpdate(submission);
         
         // Update cache immediately for offline use
@@ -308,7 +269,6 @@ class SubmissionService {
         return true;
       }
     } catch (e) {
-      print('❌ Error updating submission: $e');
       return false;
     }
   }
@@ -318,11 +278,9 @@ class SubmissionService {
     try {
       if (_connectivityService.isConnected) {
         // Delete from Firebase
-        print('🌐 Deleting submission from Firebase: $submissionId');
         final ref = _database.ref('assessment_submissions/$submissionId');
         await ref.remove();
         
-        print('✅ Submission deleted successfully');
         
         // Remove from cache
         await OfflineService.removeCachedSubmission(submissionId);
@@ -330,7 +288,6 @@ class SubmissionService {
         return true;
       } else {
         // Queue deletion for when online
-        print('📱 Queuing submission deletion for when online: $submissionId');
         await OfflineService.queueSubmissionDeletion(submissionId);
         
         // Remove from cache immediately for offline use
@@ -339,7 +296,6 @@ class SubmissionService {
         return true;
       }
     } catch (e) {
-      print('❌ Error deleting submission: $e');
       return false;
     }
   }
@@ -385,7 +341,6 @@ class SubmissionService {
         'subjects': subjects.toList(),
       };
     } catch (e) {
-      print('❌ Error getting student submission stats: $e');
       return {
         'totalSubmissions': 0,
         'averageScore': 0.0,

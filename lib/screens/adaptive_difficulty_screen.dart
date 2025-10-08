@@ -56,7 +56,6 @@ class _AdaptiveDifficultyScreenState extends State<AdaptiveDifficultyScreen>
           );
           difficulties.add(difficulty);
         } catch (e) {
-          print('Error loading difficulty for student ${student.id}: $e');
         }
       }
 

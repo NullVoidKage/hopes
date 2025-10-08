@@ -27,43 +27,32 @@ class Student {
 
   factory Student.fromRealtimeDatabase(Map<dynamic, dynamic> data, String id) {
     try {
-      print('Parsing student data: $data');
       
       final name = data['name']?.toString() ?? '';
-      print('Parsed name: $name');
       
       final email = data['email']?.toString() ?? '';
-      print('Parsed email: $email');
       
       final grade = data['grade']?.toString() ?? '';
-      print('Parsed grade: $grade');
       
       final section = data['section']?.toString() ?? '';
-      print('Parsed section: $section');
       
       final subjects = data['subjects'] != null 
           ? List<String>.from((data['subjects'] as List).map((e) => e.toString()))
           : <String>[];
-      print('Parsed subjects: $subjects');
       
       final teacherId = data['teacherId']?.toString() ?? '';
-      print('Parsed teacherId: $teacherId');
       
       final teacherName = data['teacherName']?.toString() ?? '';
-      print('Parsed teacherName: $teacherName');
       
       final joinedAt = data['joinedAt'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(data['joinedAt'] as int) 
           : DateTime.now();
-      print('Parsed joinedAt: $joinedAt');
       
       final isActive = data['isActive'] as bool? ?? true;
-      print('Parsed isActive: $isActive');
       
       final metadata = data['metadata'] != null 
           ? Map<String, dynamic>.from(data['metadata'] as Map)
           : <String, dynamic>{};
-      print('Parsed metadata: $metadata');
       
       final student = Student(
         id: id,
@@ -79,12 +68,8 @@ class Student {
         metadata: metadata,
       );
       
-      print('Successfully created student: ${student.name}');
       return student;
     } catch (e) {
-      print('Error in Student.fromRealtimeDatabase: $e');
-      print('Data: $data');
-      print('ID: $id');
       rethrow;
     }
   }

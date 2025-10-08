@@ -46,27 +46,16 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
   Future<void> _loadUserProfile() async {
     try {
-      print('🔍 TeacherPanel: Loading user profile and dashboard data');
       final user = _authService.currentUser;
       if (user != null) {
-        print('🔍 TeacherPanel: Current user ID: ${user.uid}');
         final profile = await _authService.getUserProfile(user.uid);
         if (profile != null) {
-          print('🔍 TeacherPanel: User profile loaded: ${profile.displayName}');
-          print('🔍 TeacherPanel: User subjects: ${profile.subjects}');
           
-          print('🔍 TeacherPanel: Fetching dashboard data...');
           final dashboardData = await _dashboardService.getDashboardData(
             user.uid,
             profile.subjects ?? [],
           );
           
-          print('🔍 TeacherPanel: Dashboard data loaded:');
-          print('🔍 TeacherPanel: - Student progress: ${dashboardData.studentProgress.length} records');
-          print('🔍 TeacherPanel: - Recent activities: ${dashboardData.recentActivities.length} records');
-          print('🔍 TeacherPanel: - Total students: ${dashboardData.totalStudents}');
-          print('🔍 TeacherPanel: - Active students: ${dashboardData.activeStudents}');
-          print('🔍 TeacherPanel: - Average progress: ${dashboardData.averageProgress}%');
           
           setState(() {
             _userProfile = profile;
@@ -74,19 +63,16 @@ class _TeacherPanelState extends State<TeacherPanel> {
             _isLoading = false;
           });
         } else {
-          print('🔍 TeacherPanel: No user profile found');
           setState(() {
             _isLoading = false;
           });
         }
       } else {
-        print('🔍 TeacherPanel: No current user found');
         setState(() {
           _isLoading = false;
         });
       }
     } catch (e) {
-      print('🔍 TeacherPanel: Error loading data: $e');
       setState(() {
         _isLoading = false;
       });

@@ -60,11 +60,9 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
     setState(() => _isLoading = true);
     
     try {
-      print('🔍 StudentManagement: Loading students from Firestore');
       
       // Get all students from the service (now fetches from Firestore)
       final students = await _studentService.getAllStudents();
-      print('🔍 StudentManagement: Loaded ${students.length} students from Firestore');
       
       // Calculate statistics manually from the loaded students
       final gradeDistribution = <String, int>{};
@@ -95,7 +93,6 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
         _isLoading = false;
       });
     } catch (e) {
-      print('🔍 StudentManagement: Error loading student data: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -806,7 +803,6 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
         );
       }
     } catch (e) {
-      print('Error removing subject: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -877,7 +873,6 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
         );
       }
     } catch (e) {
-      print('Error adding subject: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );

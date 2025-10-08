@@ -9,7 +9,6 @@ void downloadFile(String url, String fileName) {
       ..click();
   } catch (e) {
     if (kDebugMode) {
-      print('Web download error: $e');
     }
     // Fallback: open in new tab
     openInNewTab(url);
@@ -21,7 +20,6 @@ void openInNewTab(String url) {
     html.window.open(url, '_blank');
   } catch (e) {
     if (kDebugMode) {
-      print('Web open error: $e');
     }
   }
 }
@@ -33,7 +31,6 @@ void openPdfPreview(String url) {
     html.window.open(url, '_blank');
   } catch (e) {
     if (kDebugMode) {
-      print('Web PDF preview error: $e');
     }
     // Fallback: open in new tab
     openInNewTab(url);
@@ -55,14 +52,12 @@ void copyToClipboard(String text) {
     textArea.remove();
   } catch (e) {
     if (kDebugMode) {
-      print('Web clipboard error: $e');
     }
     // Fallback: try using navigator.clipboard if available
     try {
       html.window.navigator.clipboard?.writeText(text);
     } catch (e2) {
       if (kDebugMode) {
-        print('Web navigator clipboard error: $e2');
       }
     }
   }

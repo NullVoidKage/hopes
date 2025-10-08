@@ -34,15 +34,12 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       // Get the current Firebase Auth user
       final currentUser = _authService.currentUser;
       if (currentUser != null && currentUser.uid.isNotEmpty) {
-        print('🔐 Using Firebase Auth UID: ${currentUser.uid}');
         return currentUser.uid; // This is the UNIQUE Firebase UID
       }
       
       // Last resort - this should never happen if user is authenticated
-      print('⚠️ No valid user ID found, using fallback');
       return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
     } catch (e) {
-      print('❌ Error getting student ID: $e');
       return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
@@ -98,7 +95,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           return;
         }
       } catch (e) {
-        print('⚠️ Could not check submission status: $e');
         // Continue loading if we can't check status
       }
 
@@ -107,11 +103,8 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       
       if (isOnline) {
         // Load from online service
-        print('🌐 Loading questions from Firebase for assessment: ${widget.assessment.id}');
         final questions = await _assessmentService.getAssessmentQuestions(widget.assessment.id);
-        print('📊 Loaded ${questions.length} questions from Firebase');
         if (questions.isNotEmpty) {
-          print('🔍 First question: ${questions.first.question} (Type: ${questions.first.type})');
         }
         
         if (!mounted) return;
@@ -125,9 +118,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         }
       } else {
         // Load from offline cache
-        print('🔌 Loading questions from offline cache for assessment: ${widget.assessment.id}');
         final cachedQuestions = await OfflineService.getCachedAssessmentQuestions(widget.assessment.id);
-        print('📊 Loaded ${cachedQuestions.length} questions from cache');
         
         if (!mounted) return;
         setState(() {
@@ -135,7 +126,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         });
         
         if (_questions.isNotEmpty) {
-          print('🔍 First question from cache: ${_questions.first.question} (Type: ${_questions.first.type})');
         }
       }
     } catch (e) {
@@ -307,7 +297,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       
       if (isOnline) {
         // Submit online
-        print('🌐 Submitting assessment online...');
         // Calculate score and create detailed answers
         int totalScore = 0;
         int correctAnswers = 0;
@@ -386,10 +375,8 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           averageTimePerQuestion: averageTimePerQuestion,
           isAutoGraded: true,
         );
-        print('✅ Assessment submitted successfully online');
       } else {
         // Queue for offline submission with enhanced data
-        print('🔌 Queuing assessment for offline submission...');
         
         // Calculate score and create detailed answers for offline submission
         int totalScore = 0;
@@ -469,7 +456,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           averageTimePerQuestion: averageTimePerQuestion,
           isAutoGraded: true,
         );
-        print('✅ Assessment queued for offline submission with enhanced data');
       }
 
       if (mounted) {
@@ -486,7 +472,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         await _checkAndShowCelebration();
       }
     } catch (e) {
-      print('❌ Error submitting assessment: $e');
       
       if (mounted) {
         // Show more specific error messages
@@ -1356,7 +1341,6 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         _showBadgeCelebration(achievement);
       }
     } catch (e) {
-      print('Error checking achievements: $e');
     }
   }
 

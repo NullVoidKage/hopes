@@ -35,11 +35,6 @@ class Assessment {
 
   // Create from Realtime Database
   factory Assessment.fromRealtimeDatabase(String id, Map<dynamic, dynamic> data) {
-    print('🔍 Creating Assessment from Firebase data:');
-    print('🔍 ID: $id');
-    print('🔍 Title: ${data['title']}');
-    print('🔍 Questions data: ${data['questions']}');
-    print('🔍 Questions type: ${data['questions']?.runtimeType}');
     
     final assessment = Assessment(
       id: id,
@@ -69,7 +64,6 @@ class Assessment {
       instructions: data['instructions']?.toString(),
     );
     
-    print('✅ Assessment created with ${assessment.questions.length} questions');
     return assessment;
   }
 
@@ -85,7 +79,6 @@ class Assessment {
             final question = AssessmentQuestion.fromMap(questionData);
             questions.add(question);
           } catch (e) {
-            print('❌ Error parsing question from list: $e');
           }
         }
       }
@@ -97,7 +90,6 @@ class Assessment {
             final question = AssessmentQuestion.fromMap(questionData);
             questions.add(question);
           } catch (e) {
-            print('❌ Error parsing question $key: $e');
           }
         }
       });
@@ -192,11 +184,8 @@ class AssessmentQuestion {
 
   // Create from Map
   factory AssessmentQuestion.fromMap(Map<dynamic, dynamic> data) {
-    print('🔍 Parsing question data: $data');
-    print('🔍 Question type from Firebase: ${data['type']}');
     
     final questionType = data['type']?.toString() ?? '';
-    print('🔍 Question type string: $questionType');
     
     QuestionType parsedType;
     try {
@@ -204,9 +193,7 @@ class AssessmentQuestion {
         (e) => e.toString().split('.').last == questionType,
         orElse: () => QuestionType.multipleChoice,
       );
-      print('✅ Successfully parsed question type: $parsedType');
     } catch (e) {
-      print('❌ Error parsing question type: $e');
       parsedType = QuestionType.multipleChoice;
     }
     
@@ -226,7 +213,6 @@ class AssessmentQuestion {
       showCorrectAnswer: data['showCorrectAnswer'] as bool? ?? false,
     );
     
-    print('✅ Created question: ${question.question} (Type: ${question.type})');
     return question;
   }
 

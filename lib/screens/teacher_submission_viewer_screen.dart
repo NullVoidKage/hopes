@@ -798,7 +798,6 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
     try {
       return await _assessmentService.getAssessmentById(assessmentId);
     } catch (e) {
-      print('Error getting assessment: $e');
       return null;
     }
   }

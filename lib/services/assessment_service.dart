@@ -53,7 +53,6 @@ class AssessmentService {
               final assessment = Assessment.fromRealtimeDatabase(key, value);
               assessments.add(assessment);
             } catch (e) {
-              print('Error parsing assessment: $e');
             }
           }
         });
@@ -69,7 +68,6 @@ class AssessmentService {
       
       return [];
     } catch (e) {
-      print('Error getting assessments: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedAssessmentsByTeacher(teacherId);
     }
@@ -89,7 +87,6 @@ class AssessmentService {
         Assessment.fromRealtimeDatabase(data['id'] ?? '', data)
       ).toList();
     } catch (e) {
-      print('Error getting cached assessments: $e');
       return [];
     }
   }
@@ -103,7 +100,6 @@ class AssessmentService {
       }).toList();
       await OfflineService.cacheAssessments(assessmentData);
     } catch (e) {
-      print('Error caching assessments: $e');
     }
   }
 
@@ -112,11 +108,9 @@ class AssessmentService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, using cached assessments');
         return await _getCachedAllPublishedAssessments();
       }
 
-      print('🌐 Online mode, fetching from Firebase');
       // If online, fetch from Firebase and cache
       final snapshot = await _database
           .ref('assessments')
@@ -135,7 +129,6 @@ class AssessmentService {
                 assessments.add(assessment);
               }
             } catch (e) {
-              print('Error parsing assessment: $e');
             }
           }
         });
@@ -151,7 +144,6 @@ class AssessmentService {
       
       return [];
     } catch (e) {
-      print('Firebase error, trying cached data: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedAllPublishedAssessments();
     }
@@ -166,7 +158,6 @@ class AssessmentService {
           .map((data) => Assessment.fromRealtimeDatabase(data['id'] ?? '', data))
           .toList();
     } catch (e) {
-      print('Error getting cached assessments: $e');
       return [];
     }
   }
@@ -176,11 +167,9 @@ class AssessmentService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, using cached assessments for subject: $subject');
         return await _getCachedAssessmentsBySubject(subject);
       }
 
-      print('🌐 Online mode, fetching from Firebase for subject: $subject');
       // If online, fetch from Firebase and cache
       final snapshot = await _database
           .ref('assessments')
@@ -201,7 +190,6 @@ class AssessmentService {
                 assessments.add(assessment);
               }
             } catch (e) {
-              print('Error parsing assessment: $e');
             }
           }
         });
@@ -217,7 +205,6 @@ class AssessmentService {
       
       return [];
     } catch (e) {
-      print('Firebase error, trying cached data: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedAssessmentsBySubject(subject);
     }
@@ -232,7 +219,6 @@ class AssessmentService {
           .map((data) => Assessment.fromRealtimeDatabase(data['id'] ?? '', data))
           .toList();
     } catch (e) {
-      print('Error getting cached assessments: $e');
       return [];
     }
   }
@@ -242,11 +228,9 @@ class AssessmentService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, using cached assessment: $assessmentId');
         return await _getCachedAssessmentById(assessmentId);
       }
 
-      print('🌐 Online mode, fetching from Firebase: $assessmentId');
       // If online, fetch from Firebase and cache
       final snapshot = await _database
           .ref('assessments')
@@ -264,7 +248,6 @@ class AssessmentService {
       }
       return null;
     } catch (e) {
-      print('Firebase error, trying cached data: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedAssessmentById(assessmentId);
     }
@@ -314,11 +297,9 @@ class AssessmentService {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔌 Offline mode, using cached assessment stats');
         return await _getCachedAssessmentStats(teacherId);
       }
 
-      print('🌐 Online mode, calculating stats from Firebase');
       // If online, fetch from Firebase and calculate
       final assessments = await getAssessmentsByTeacher(teacherId);
       
@@ -344,7 +325,6 @@ class AssessmentService {
       
       return stats;
     } catch (e) {
-      print('Firebase error, trying cached stats: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedAssessmentStats(teacherId);
     }
@@ -355,11 +335,9 @@ class AssessmentService {
     try {
       // Check if we should use cached data
       if (!_connectivityService.isConnected) {
-        print('🔌 Offline mode, using cached questions');
         return await _getCachedAssessmentQuestions(assessmentId);
       }
 
-      print('🌐 Online mode, fetching from Firebase');
       // If online, fetch from Firebase and cache
       final snapshot = await _database
           .ref('assessments')
@@ -371,49 +349,35 @@ class AssessmentService {
         final questions = <AssessmentQuestion>[];
         final data = snapshot.value;
         
-        print('📊 Raw question data from Firebase: $data');
-        print('📊 Data type: ${data.runtimeType}');
         
         if (data is List) {
           // Questions are stored as an array
-          print('📊 Found ${data.length} questions in Firebase array');
           
           for (int i = 0; i < data.length; i++) {
             final questionData = data[i];
             if (questionData is Map) {
               try {
-                print('🔍 Parsing question $i: $questionData');
                 final question = AssessmentQuestion.fromMap(questionData);
                 questions.add(question);
-                print('✅ Successfully parsed question: ${question.question}');
               } catch (e) {
-                print('❌ Error parsing question $i: $e');
-                print('❌ Question data: $questionData');
               }
             }
           }
         } else if (data is Map) {
           // Questions are stored as a map (fallback)
-          print('📊 Found ${data.length} questions in Firebase map');
           
           data.forEach((key, questionData) {
             if (questionData is Map) {
               try {
-                print('🔍 Parsing question $key: $questionData');
                 final question = AssessmentQuestion.fromMap(questionData);
                 questions.add(question);
-                print('✅ Successfully parsed question: ${question.question}');
               } catch (e) {
-                print('❌ Error parsing question $key: $e');
-                print('❌ Question data: $questionData');
               }
             }
           });
         } else {
-          print('⚠️ Unexpected data type for questions: ${data.runtimeType}');
         }
 
-        print('📝 Total questions parsed: ${questions.length}');
         
         // Cache the questions for offline use
         if (questions.isNotEmpty) {
@@ -423,10 +387,8 @@ class AssessmentService {
         return questions;
       }
       
-      print('⚠️ No questions found in Firebase');
       return [];
     } catch (e) {
-      print('❌ Error getting assessment questions: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedAssessmentQuestions(assessmentId);
     }
@@ -438,7 +400,6 @@ class AssessmentService {
       final cachedQuestions = await OfflineService.getCachedAssessmentQuestions(assessmentId);
       return cachedQuestions.map((q) => AssessmentQuestion.fromMap(q as Map)).toList();
     } catch (e) {
-      print('Error getting cached questions: $e');
       return [];
     }
   }
@@ -448,7 +409,6 @@ class AssessmentService {
     try {
       await OfflineService.cacheAssessmentQuestions(assessmentId, questions);
     } catch (e) {
-      print('Error caching assessment questions: $e');
     }
   }
 
@@ -481,7 +441,6 @@ class AssessmentService {
 
       // Check if student has already submitted this assessment
       final currentStudentId = _getCurrentStudentId();
-      print('🔍 Checking for duplicate submissions - Student ID: $currentStudentId, Assessment ID: $assessmentId');
       
       final existingSubmissionsRef = _database
           .ref('assessment_submissions')
@@ -489,20 +448,17 @@ class AssessmentService {
           .equalTo(currentStudentId);
       
       final existingSubmissionsSnapshot = await existingSubmissionsRef.get();
-      print('📊 Found ${existingSubmissionsSnapshot.children.length} existing submissions for student');
       
       if (existingSubmissionsSnapshot.exists) {
         // Check if any existing submission is for this assessment
         for (var child in existingSubmissionsSnapshot.children) {
           final submissionData = child.value as Map<dynamic, dynamic>?;
           if (submissionData != null && submissionData['assessmentId'] == assessmentId) {
-            print('❌ DUPLICATE SUBMISSION DETECTED! Student $currentStudentId already submitted assessment $assessmentId');
             throw Exception('You have already submitted this assessment. Duplicate submissions are not allowed.');
           }
         }
       }
       
-      print('✅ No duplicate submissions found, proceeding with submission');
 
       // Get the assessment to include teacherId and other details
       final assessmentSnapshot = await _database
@@ -527,9 +483,7 @@ class AssessmentService {
       UserModel? studentProfile;
       try {
         studentProfile = await _authService.getUserProfile(currentStudentId);
-        print('👤 Fetched student profile: ${studentProfile?.displayName ?? 'Unknown'}');
       } catch (e) {
-        print('⚠️ Could not fetch student profile: $e');
       }
 
       final submissionData = {
@@ -581,7 +535,6 @@ class AssessmentService {
       if (pointsToAdd == 0 && answers.isNotEmpty) {
         // Give participation points for attempting assessment
         pointsToAdd = 1; // 1 point for attempting
-        print('📝 Giving participation points for attempting assessment');
       }
       
       if (pointsToAdd > 0) {
@@ -591,24 +544,17 @@ class AssessmentService {
             studentProfile?.displayName ?? 'Student',
             pointsToAdd,
           );
-          print('✅ Leaderboard updated with $pointsToAdd points');
           
           // Check and award achievements
-          print('🏆 Checking achievements for student: $currentStudentId');
           final newAchievements = await _achievementsService.checkAndAwardAchievements(currentStudentId);
           if (newAchievements.isNotEmpty) {
-            print('🏆 🎉 Awarded ${newAchievements.length} new achievements!');
             for (final achievement in newAchievements) {
-              print('🏆 - ${achievement.achievementTitle}');
             }
           }
         } catch (e) {
-          print('⚠️ Failed to update leaderboard: $e');
         }
       }
       
-      print('✅ Enhanced assessment submission created successfully');
-      print('📊 Submission data: $submissionData');
     } catch (e) {
       throw Exception('Failed to submit assessment: ${e.toString()}');
     }
@@ -620,15 +566,12 @@ class AssessmentService {
       // Get the current Firebase Auth user
       final currentUser = _authService.currentUser;
       if (currentUser != null && currentUser.uid.isNotEmpty) {
-        print('🔐 Using Firebase Auth UID: ${currentUser.uid}');
         return currentUser.uid; // This is the UNIQUE Firebase UID
       }
       
       // Last resort - this should never happen if user is authenticated
-      print('⚠️ No valid user ID found, using fallback');
       return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
     } catch (e) {
-      print('❌ Error getting student ID: $e');
       return 'unknown_student_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
@@ -651,9 +594,7 @@ class AssessmentService {
         'gradedAt': ServerValue.timestamp,
       });
 
-      print('✅ Submission grade updated successfully');
     } catch (e) {
-      print('Error updating submission grade: $e');
       throw Exception('Failed to update grade: ${e.toString()}');
     }
   }
@@ -672,7 +613,6 @@ class AssessmentService {
       }
       return null;
     } catch (e) {
-      print('Error getting cached assessment: $e');
       return null;
     }
   }
@@ -704,7 +644,6 @@ class AssessmentService {
       
       await OfflineService.cacheAssessments(existingAssessments);
     } catch (e) {
-      print('Error caching assessment locally: $e');
     }
   }
 
@@ -728,7 +667,6 @@ class AssessmentService {
       }
       await OfflineService.cacheAssessmentStats(teacherId, cachedStats);
     } catch (e) {
-      print('Error caching assessment stats: $e');
     }
   }
 
@@ -738,7 +676,6 @@ class AssessmentService {
       final cachedStats = await OfflineService.getCachedAssessmentStats(teacherId);
       return cachedStats;
     } catch (e) {
-      print('Error getting cached assessment stats: $e');
       return {};
     }
   }

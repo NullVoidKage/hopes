@@ -26,47 +26,34 @@ class _BadgesScreenState extends State<BadgesScreen> {
 
   Future<void> _loadData() async {
     try {
-      print('🏆 BadgesScreen: Starting to load data...');
       setState(() {
         _isLoading = true;
       });
 
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        print('🏆 BadgesScreen: Current user: ${currentUser.uid}');
         
         // Create sample achievements if they don't exist
-        print('🏆 BadgesScreen: Creating sample achievements...');
         await _achievementsService.createSampleAchievements();
         
         // Process existing submissions for achievements (only once)
-        print('🏆 BadgesScreen: Processing existing submissions for achievements...');
         await _achievementsService.processExistingSubmissionsForAchievements();
         
         // Load all available achievements
-        print('🏆 BadgesScreen: Loading all available achievements...');
         final allAchievements = await _achievementsService.getAllAchievements();
-        print('🏆 BadgesScreen: Found ${allAchievements.length} available achievements');
         
         // Check and award achievements first
-        print('🏆 Checking achievements for current student...');
         final newAchievements = await _achievementsService.checkAndAwardAchievements(currentUser.uid);
         if (newAchievements.isNotEmpty) {
-          print('🏆 🎉 Awarded ${newAchievements.length} new achievements!');
           for (final achievement in newAchievements) {
-            print('🏆 - ${achievement.achievementTitle}');
           }
         }
         
         // Load student's earned achievements
-        print('🏆 BadgesScreen: Loading student achievements...');
         final studentAchievements = await _achievementsService.getStudentAchievements(currentUser.uid);
-        print('🏆 BadgesScreen: Found ${studentAchievements.length} earned achievements');
         
         // Calculate total points from assessment submissions
-        print('🏆 BadgesScreen: Calculating total points from submissions...');
         final totalPoints = await _achievementsService.getTotalPointsFromSubmissions(currentUser.uid);
-        print('🏆 BadgesScreen: Total points from submissions: $totalPoints');
         
         setState(() {
           _allAchievements = allAchievements;
@@ -75,10 +62,8 @@ class _BadgesScreenState extends State<BadgesScreen> {
           _isLoading = false;
         });
         
-        print('🏆 BadgesScreen: Data loading completed!');
       }
     } catch (e) {
-      print('Error loading badges: $e');
       setState(() {
         _isLoading = false;
       });

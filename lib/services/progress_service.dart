@@ -12,13 +12,9 @@ class ProgressService {
   // Get all student progress for a teacher
   Future<List<StudentProgress>> getStudentProgress(String teacherId) async {
     try {
-      print('🔍 ProgressService: Getting student progress for teacher: $teacherId');
-      print('🔍 ProgressService: shouldUseCachedData: ${_connectivityService.shouldUseCachedData}');
-      print('🔍 ProgressService: isConnected: ${_connectivityService.isConnected}');
       
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔍 ProgressService: Using cached data');
         return await _getCachedStudentProgress(teacherId);
       }
 
@@ -44,7 +40,6 @@ class ProgressService {
             entry.key.toString(),
           );
         } catch (e) {
-          print('Error parsing student progress data: $e');
           return null;
         }
       }).whereType<StudentProgress>().toList();
@@ -54,7 +49,6 @@ class ProgressService {
       
       return progressList;
     } catch (e) {
-      print('Error getting student progress: $e');
       // If Firebase fails, try to return cached data
       return await _getCachedStudentProgress(teacherId);
     }
@@ -63,18 +57,14 @@ class ProgressService {
   // Get cached student progress
   Future<List<StudentProgress>> _getCachedStudentProgress(String teacherId) async {
     try {
-      print('🔍 ProgressService: Getting cached progress for teacher: $teacherId');
       final cachedProgress = await OfflineService.getCachedStudentProgress();
-      print('🔍 ProgressService: Total cached progress items: ${cachedProgress.length}');
       
       // Don't filter by teacher ID - show all progress to all teachers
       final result = cachedProgress.map((data) => 
         StudentProgress.fromRealtimeDatabase(data, data['id'] ?? '')
       ).toList();
-      print('🔍 ProgressService: Returning ${result.length} progress items');
       return result;
     } catch (e) {
-      print('Error getting cached student progress: $e');
       return [];
     }
   }
@@ -85,7 +75,6 @@ class ProgressService {
       final progressData = progressList.map((progress) => progress.toRealtimeDatabase()).toList();
       await OfflineService.cacheStudentProgress(progressData);
     } catch (e) {
-      print('Error caching student progress: $e');
     }
   }
 
@@ -107,11 +96,9 @@ class ProgressService {
           studentId,
         );
       } catch (e) {
-        print('Error parsing student progress data: $e');
         return null;
       }
     } catch (e) {
-      print('Error getting student progress by ID: $e');
       return null;
     }
   }
@@ -141,7 +128,6 @@ class ProgressService {
           })
           .toList();
     } catch (e) {
-      print('Error getting progress by subject: $e');
       return [];
     }
   }
@@ -153,7 +139,6 @@ class ProgressService {
       await ref.set(progress.toRealtimeDatabase());
       return true;
     } catch (e) {
-      print('Error updating student progress: $e');
       return false;
     }
   }
@@ -165,7 +150,6 @@ class ProgressService {
       await ref.set(lessonProgress.toMap());
       return true;
     } catch (e) {
-      print('Error updating lesson progress: $e');
       return false;
     }
   }
@@ -177,7 +161,6 @@ class ProgressService {
       await ref.set(assessmentProgress.toMap());
       return true;
     } catch (e) {
-      print('Error updating assessment progress: $e');
       return false;
     }
   }
@@ -227,7 +210,6 @@ class ProgressService {
         'activeStudents': activeStudents,
       };
     } catch (e) {
-      print('Error getting progress statistics: $e');
       return {};
     }
   }
@@ -235,12 +217,9 @@ class ProgressService {
   // Get recent activity for a teacher
   Future<List<Map<String, dynamic>>> getRecentActivity(String teacherId) async {
     try {
-      print('🔍 ProgressService: Getting recent activity for teacher: $teacherId');
-      print('🔍 ProgressService: shouldUseCachedData: ${_connectivityService.shouldUseCachedData}');
       
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        print('🔍 ProgressService: Using cached data for recent activity');
         // When offline, derive activity from cached student progress
         final studentProgressList = await _getCachedStudentProgress(teacherId);
         return _generateActivitiesFromProgress(studentProgressList);
@@ -307,7 +286,6 @@ class ProgressService {
       // Return only the most recent 20 activities
       return activities.take(20).toList();
     } catch (e) {
-      print('Error getting recent activity: $e');
       // If Firebase fails, try to return cached data
       if (_connectivityService.shouldUseCachedData) {
         final studentProgressList = await _getCachedStudentProgress(teacherId);
@@ -347,7 +325,6 @@ class ProgressService {
     // Sort by timestamp (most recent first)
     activities.sort((a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int));
     
-    print('🔍 ProgressService: Generated ${activities.length} activities from ${progressList.length} progress items');
     return activities.take(10).toList();
   }
 }
