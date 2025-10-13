@@ -98,7 +98,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4FF)),
                 strokeWidth: 3,
               ),
               SizedBox(height: 24),
@@ -120,7 +120,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
       backgroundColor: const Color(0xFFF5F5F7),
       body: RefreshIndicator(
         onRefresh: _loadUserProfile,
-        color: const Color(0xFF007AFF),
+        color: const Color(0xFF00D4FF),
         backgroundColor: Colors.white,
         child: CustomScrollView(
           slivers: [
@@ -151,10 +151,10 @@ class _TeacherPanelState extends State<TeacherPanel> {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF007AFF).withOpacity(0.1),
+                              color: const Color(0xFF00D4FF).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: const Color(0xFF007AFF).withOpacity(0.2),
+                                color: const Color(0xFF00D4FF).withOpacity(0.2),
                                 width: 1,
                               ),
                             ),
@@ -167,7 +167,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
                                       fallback: const Icon(
                                         Icons.school_rounded,
                                         size: 28,
-                                        color: Color(0xFF007AFF),
+                                        color: Color(0xFF00D4FF),
                                       ),
                                     ),
                                   )
@@ -272,21 +272,21 @@ class _TeacherPanelState extends State<TeacherPanel> {
                     const SizedBox(height: 32),
                     
                     // Quick Actions Section
-                    _buildSectionHeader('Quick Actions', Icons.flash_on_rounded),
+                    _buildSectionHeader('Quick Actions', Icons.bolt_rounded),
                     const SizedBox(height: 20),
                     _buildQuickActionsGrid(),
                     
                     const SizedBox(height: 40),
                     
                     // Student Progress Section
-                    _buildSectionHeader('Student Progress', Icons.analytics_rounded),
+                    _buildSectionHeader('Student Progress', Icons.trending_up_rounded),
                     const SizedBox(height: 20),
                     _buildStudentProgressCards(),
                     
                     const SizedBox(height: 40),
                     
                     // Recent Activities Section
-                    _buildSectionHeader('Recent Activities', Icons.history_rounded),
+                    _buildSectionHeader('Recent Activities', Icons.schedule_rounded),
                     const SizedBox(height: 20),
                     _buildRecentActivitiesList(),
                     
@@ -377,7 +377,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
           child: Icon(
             icon,
             size: 20,
-            color: const Color(0xFF007AFF),
+            color: const Color(0xFF00D4FF),
           ),
         ),
         const SizedBox(width: 12),
@@ -416,35 +416,35 @@ class _TeacherPanelState extends State<TeacherPanel> {
           children: [
             _buildActionCard(
               'Lessons & Assessments',
-              Icons.library_books_rounded,
+              Icons.menu_book_rounded,
               'Create and manage content',
               const Color(0xFF007AFF),
               () => _navigateToLessonUpload(),
             ),
             _buildActionCard(
               'Students & Progress',
-              Icons.people_rounded,
+              Icons.groups_rounded,
               'Manage students & track performance',
               const Color(0xFF34C759),
               () => _navigateToStudentManagement(),
             ),
             _buildActionCard(
               'Learning Paths',
-              Icons.layers_rounded,
+              Icons.route_rounded,
               'Design learning sequences',
               const Color(0xFFFF9500),
               () => _navigateToLearningPathManagement(),
             ),
             _buildActionCard(
               'Feedback & Rankings',
-              Icons.feedback_rounded,
+              Icons.chat_bubble_rounded,
               'Engage & motivate students',
               const Color(0xFFAF52DE),
               () => _navigateToFeedbackManagement(),
             ),
             _buildActionCard(
               'Student Submissions',
-              Icons.assignment_turned_in,
+              Icons.check_circle_rounded,
               'Review & grade assessments',
               const Color(0xFF5856D6),
               () => _navigateToSubmissions(),
@@ -539,7 +539,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
                   child: _buildProgressCard(
                     'Total Students',
                     '${_dashboardData?.totalStudents ?? 0}',
-                    Icons.people_rounded,
+                    Icons.groups_rounded,
                     const Color(0xFF007AFF),
                   ),
                 ),
@@ -567,7 +567,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
                     child: _buildProgressCard(
                       'Lessons Created',
                       '${_dashboardData?.recentActivities.length ?? 0}',
-                      Icons.library_books_rounded,
+                      Icons.menu_book_rounded,
                       const Color(0xFFAF52DE),
                     ),
                   ),
@@ -735,7 +735,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 widthFactor: averageProgress / 100,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF007AFF),
+                    color: const Color(0xFF00D4FF),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -978,7 +978,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
             ),
             _buildModalOption(
               'My Lessons',
-              Icons.library_books_rounded,
+              Icons.menu_book_rounded,
               'View and manage existing lessons',
               () {
                 Navigator.pop(context);
@@ -1082,7 +1082,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
             const SizedBox(height: 20),
             _buildModalOption(
               'Student Management',
-              Icons.people_rounded,
+              Icons.groups_rounded,
               'Manage student accounts and classes',
               () {
                 Navigator.pop(context);
@@ -1150,7 +1150,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
             const SizedBox(height: 20),
             _buildModalOption(
               'Create Paths',
-              Icons.layers_rounded,
+              Icons.route_rounded,
               'Design and create learning sequences',
               () {
                 Navigator.pop(context);
@@ -1263,7 +1263,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
             const SizedBox(height: 20),
             _buildModalOption(
               'Feedback Management',
-              Icons.feedback_rounded,
+              Icons.chat_bubble_rounded,
               'View and manage student feedback',
               () {
                 Navigator.pop(context);
@@ -1416,7 +1416,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
           ),
           child: Icon(
             icon,
-            color: const Color(0xFF007AFF),
+            color: const Color(0xFF00D4FF),
             size: 24,
           ),
         ),
@@ -1525,7 +1525,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
               child: Icon(
                 icon,
                 size: 32,
-                color: const Color(0xFF007AFF),
+                color: const Color(0xFF00D4FF),
               ),
             ),
             const SizedBox(height: 16),
@@ -1573,7 +1573,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
                   child: _buildWebProgressCard(
                     'Total Students',
                     '${_dashboardData?.totalStudents ?? 0}',
-                    Icons.people_rounded,
+                    Icons.groups_rounded,
                     const Color(0xFF007AFF),
                   ),
                 ),
@@ -1600,7 +1600,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
                   child: _buildWebProgressCard(
                     'Lessons Created',
                     '${_dashboardData?.recentActivities.length ?? 0}',
-                    Icons.library_books_rounded,
+                    Icons.menu_book_rounded,
                     const Color(0xFFAF52DE),
                   ),
                 ),
@@ -1760,7 +1760,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
                       widthFactor: averageProgress / 100,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF007AFF),
+                          color: const Color(0xFF00D4FF),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -1797,7 +1797,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
             children: [
               Icon(
                 Icons.dashboard_rounded,
-                color: const Color(0xFF007AFF),
+                color: const Color(0xFF00D4FF),
                 size: 24,
               ),
               const SizedBox(width: 12),

@@ -146,13 +146,13 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+              color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.all(Radius.circular(16)),
             ),
             child: const Icon(
-              Icons.upload_file_rounded,
+              Icons.rocket_launch_rounded,
               size: 32,
-              color: Color(0xFF007AFF),
+              color: Color(0xFF00D4FF),
             ),
           ),
           const SizedBox(width: 20),
@@ -280,7 +280,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             children: [
               const Icon(
                 Icons.attach_file_rounded,
-                color: Color(0xFF007AFF),
+                color: Color(0xFF00D4FF),
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -339,7 +339,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
         child: Column(
           children: [
             Icon(
-              Icons.cloud_upload_rounded,
+              Icons.rocket_launch_rounded,
               size: 48,
               color: const Color(0xFF86868B),
             ),
@@ -364,13 +364,13 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.all(Radius.circular(20)),
               ),
               child: const Text(
                 'Choose File',
                 style: TextStyle(
-                  color: Color(0xFF007AFF),
+                  color: Color(0xFF00D4FF),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -484,7 +484,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.all(Radius.circular(8)),
                 border: Border.all(
                   color: const Color(0xFF007AFF),
@@ -495,7 +495,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
                 children: [
                   const Icon(
                     Icons.info_rounded,
-                    color: Color(0xFF007AFF),
+                    color: Color(0xFF00D4FF),
                     size: 16,
                   ),
                   const SizedBox(width: 12),
@@ -504,7 +504,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
                       'File selected! Click "Upload File" to upload to Firebase Storage.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Color(0xFF007AFF),
+                        color: Color(0xFF00D4FF),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -978,7 +978,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             focusedBorder: OutlineInputBorder(
               borderRadius: const BorderRadius.all(Radius.circular(12)),
               borderSide: const BorderSide(
-                color: Color(0xFF007AFF),
+                color: Color(0xFF00D4FF),
                 width: 2,
               ),
             ),
@@ -1087,7 +1087,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+              color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.all(Radius.circular(12)),
             ),
             child: Icon(

@@ -133,7 +133,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF007AFF)),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF00D4FF)),
             onPressed: _loadData,
           ),
         ],
@@ -208,9 +208,9 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Expanded(child: _buildStatCard('Total Students', '$totalStudents', Icons.people_rounded, const Color(0xFF007AFF))),
+          Expanded(child: _buildStatCard('Total Students', '$totalStudents', Icons.groups_rounded, const Color(0xFF00D4FF))),
           const SizedBox(width: 12),
-          Expanded(child: _buildStatCard('Subjects', '${_subjects.length}', Icons.book_rounded, const Color(0xFFFF9500))),
+          Expanded(child: _buildStatCard('Subjects', '${_subjects.length}', Icons.menu_book_rounded, const Color(0xFFFF9500))),
           const SizedBox(width: 12),
           // Empty space to maintain balance
           const Expanded(child: SizedBox()),
@@ -392,7 +392,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_rounded, size: 18, color: Colors.red),
+                        Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
                         SizedBox(width: 8),
                         Text('Delete', style: TextStyle(color: Colors.red)),
                       ],

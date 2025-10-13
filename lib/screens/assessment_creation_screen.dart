@@ -77,7 +77,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _createAssessment,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF),
+                backgroundColor: const Color(0xFF00D4FF),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -171,7 +171,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
               borderRadius: const BorderRadius.all(Radius.circular(16)),
             ),
             child: const Icon(
-              Icons.quiz_rounded,
+              Icons.psychology,
               size: 32,
               color: Color(0xFFFF9500),
             ),
@@ -667,7 +667,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
               const Spacer(),
               TextButton.icon(
                 onPressed: _addQuestion,
-                icon: const Icon(Icons.add_rounded),
+                icon: const Icon(Icons.add_circle_rounded),
                 label: const Text('Add Question'),
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF007AFF),
@@ -691,7 +691,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
               child: const Column(
                 children: [
                   Icon(
-                    Icons.quiz_rounded,
+                    Icons.psychology,
                     size: 48,
                     color: Color(0xFF86868B),
                   ),
@@ -762,7 +762,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
               IconButton(
                 onPressed: () => _removeQuestion(index),
                 icon: const Icon(
-                  Icons.delete_rounded,
+                  Icons.delete_forever_rounded,
                   color: Color(0xFFFF3B30),
                   size: 20,
                 ),
@@ -941,7 +941,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
               IconButton(
                 onPressed: () => _removeQuestionOption(index, optionIndex),
                 icon: const Icon(
-                  Icons.remove_circle_rounded,
+                  Icons.remove_circle_outline_rounded,
                   color: Color(0xFFFF3B30),
                   size: 20,
                 ),
