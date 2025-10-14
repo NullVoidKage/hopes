@@ -135,6 +135,84 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
     }
   }
 
+  // Create sample lessons for testing
+  Future<void> _createSampleLessons() async {
+    try {
+      setState(() => _isLoading = true);
+      
+      final sampleLessons = [
+        Lesson(
+          id: 'sample_lesson_1',
+          title: 'Introduction to Algebra',
+          description: 'Learn the basics of algebraic expressions and equations',
+          subject: 'Mathematics',
+          content: 'This lesson covers the fundamental concepts of algebra including variables, constants, and basic operations.',
+          teacherId: 'teacher_1',
+          teacherName: 'Sample Teacher',
+          createdAt: DateTime.now().subtract(const Duration(days: 2)),
+          updatedAt: DateTime.now().subtract(const Duration(days: 1)),
+          isPublished: true,
+          tags: ['algebra', 'mathematics', 'basics'],
+          fileUrl: null,
+        ),
+        Lesson(
+          id: 'sample_lesson_2',
+          title: 'Biology Fundamentals',
+          description: 'Introduction to living organisms and their characteristics',
+          subject: 'Science',
+          content: 'Explore the world of biology and learn about different types of living organisms.',
+          teacherId: 'teacher_1',
+          teacherName: 'Sample Teacher',
+          createdAt: DateTime.now().subtract(const Duration(days: 1)),
+          updatedAt: DateTime.now(),
+          isPublished: true,
+          tags: ['biology', 'science', 'organisms'],
+          fileUrl: null,
+        ),
+        Lesson(
+          id: 'sample_lesson_3',
+          title: 'English Grammar Basics',
+          description: 'Master the fundamentals of English grammar',
+          subject: 'English',
+          content: 'Learn about nouns, verbs, adjectives, and other parts of speech in English.',
+          teacherId: 'teacher_1',
+          teacherName: 'Sample Teacher',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          isPublished: true,
+          tags: ['grammar', 'english', 'language'],
+          fileUrl: null,
+        ),
+      ];
+      
+      // Create each lesson
+      for (final lesson in sampleLessons) {
+        await _lessonService.createLesson(lesson);
+      }
+      
+      // Reload lessons after creating sample data
+      await _loadLessons();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sample lessons created successfully!'),
+            backgroundColor: Color(0xFF34C759),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating sample lessons: $e'),
+            backgroundColor: Color(0xFFFF3B30),
+          ),
+        );
+      }
+    }
+  }
+
   void _filterLessons() {
     setState(() {
       _filteredLessons = _lessons.where((lesson) {
@@ -652,6 +730,11 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add_chart_rounded, color: Color(0xFF34C759)),
+            onPressed: () => _createSampleLessons(),
+            tooltip: 'Create Sample Lessons',
+          ),
           IconButton(
             icon: const Icon(
               Icons.refresh_rounded,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../models/student_progress.dart';
 import '../models/assessment_submission.dart';
 import '../services/progress_service.dart';
@@ -116,6 +117,115 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
     });
   }
 
+  // Create sample progress data for testing
+  Future<void> _createSampleProgressData() async {
+    try {
+      setState(() => _isLoading = true);
+      
+      // Create sample lessons
+      final lessonsRef = FirebaseDatabase.instance.ref('lessons');
+      final submissionsRef = FirebaseDatabase.instance.ref('assessment_submissions');
+      
+      final sampleLessons = [
+        {
+          'id': 'sample_lesson_1',
+          'title': 'Introduction to Algebra',
+          'subject': 'Mathematics',
+          'teacherId': 'teacher_1',
+          'teacherName': 'Sample Teacher',
+          'isCompleted': true,
+          'completedAt': DateTime.now().subtract(const Duration(days: 2)).millisecondsSinceEpoch,
+          'createdAt': DateTime.now().subtract(const Duration(days: 3)).millisecondsSinceEpoch,
+        },
+        {
+          'id': 'sample_lesson_2',
+          'title': 'Biology Fundamentals',
+          'subject': 'Science',
+          'teacherId': 'teacher_1',
+          'teacherName': 'Sample Teacher',
+          'isCompleted': true,
+          'completedAt': DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+          'createdAt': DateTime.now().subtract(const Duration(days: 2)).millisecondsSinceEpoch,
+        },
+        {
+          'id': 'sample_lesson_3',
+          'title': 'English Grammar',
+          'subject': 'English',
+          'teacherId': 'teacher_1',
+          'teacherName': 'Sample Teacher',
+          'isCompleted': false,
+          'completedAt': null,
+          'createdAt': DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+        },
+      ];
+      
+      // Create sample submissions
+      final sampleSubmissions = [
+        {
+          'id': 'sample_submission_1',
+          'studentId': widget.studentId,
+          'studentName': widget.studentName,
+          'assessmentTitle': 'Mathematics Quiz',
+          'assessmentSubject': 'Mathematics',
+          'score': 85,
+          'submittedAt': DateTime.now().subtract(const Duration(days: 2)).millisecondsSinceEpoch,
+          'accuracy': 85.0,
+        },
+        {
+          'id': 'sample_submission_2',
+          'studentId': widget.studentId,
+          'studentName': widget.studentName,
+          'assessmentTitle': 'Science Test',
+          'assessmentSubject': 'Science',
+          'score': 92,
+          'submittedAt': DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+          'accuracy': 92.0,
+        },
+        {
+          'id': 'sample_submission_3',
+          'studentId': widget.studentId,
+          'studentName': widget.studentName,
+          'assessmentTitle': 'English Assessment',
+          'assessmentSubject': 'English',
+          'score': 78,
+          'submittedAt': DateTime.now().subtract(const Duration(hours: 6)).millisecondsSinceEpoch,
+          'accuracy': 78.0,
+        },
+      ];
+      
+      // Create lessons
+      for (final lesson in sampleLessons) {
+        await lessonsRef.push().set(lesson);
+      }
+      
+      // Create submissions
+      for (final submission in sampleSubmissions) {
+        await submissionsRef.push().set(submission);
+      }
+      
+      // Reload progress data after creating sample data
+      await _loadProgressData();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sample progress data created successfully!'),
+            backgroundColor: Color(0xFF34C759),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating sample progress data: $e'),
+            backgroundColor: Color(0xFFFF3B30),
+          ),
+        );
+      }
+    }
+  }
+
   double get _overallCompletionRate {
     if (_studentProgress == null) return 0.0;
     return _studentProgress!.completionRate;
@@ -174,6 +284,11 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.add_chart_rounded, color: Color(0xFF34C759)),
+          onPressed: () => _createSampleProgressData(),
+          tooltip: 'Create Sample Progress Data',
+        ),
         IconButton(
           icon: Icon(
             _isRefreshing ? Icons.refresh_rounded : Icons.refresh_rounded,

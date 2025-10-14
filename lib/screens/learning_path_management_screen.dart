@@ -54,6 +54,157 @@ class _LearningPathManagementScreenState extends State<LearningPathManagementScr
     }
   }
 
+  // Create sample learning paths for testing
+  Future<void> _createSampleLearningPaths() async {
+    try {
+      setState(() => _isLoading = true);
+      
+      final samplePaths = [
+        LearningPath(
+          id: 'sample_path_1',
+          title: 'Mathematics Fundamentals',
+          description: 'A comprehensive learning path covering basic mathematics concepts including algebra, geometry, and arithmetic.',
+          teacherId: widget.teacherProfile.uid,
+          teacherName: widget.teacherProfile.displayName,
+          subjects: ['Mathematics'],
+          tags: ['fundamentals', 'algebra', 'geometry'],
+          steps: [
+            LearningPathStep(
+              id: 'step_1',
+              title: 'Introduction to Algebra',
+              description: 'Learn the basics of algebraic expressions and equations',
+              type: 'lesson',
+              contentId: 'lesson_1',
+              order: 1,
+              estimatedDuration: 30,
+              requirements: {'isRequired': true},
+            ),
+            LearningPathStep(
+              id: 'step_2',
+              title: 'Algebraic Operations',
+              description: 'Practice solving algebraic equations and inequalities',
+              type: 'assessment',
+              contentId: 'assessment_1',
+              order: 2,
+              estimatedDuration: 20,
+              requirements: {'isRequired': true},
+            ),
+            LearningPathStep(
+              id: 'step_3',
+              title: 'Geometry Basics',
+              description: 'Introduction to geometric shapes and properties',
+              type: 'lesson',
+              contentId: 'lesson_2',
+              order: 3,
+              estimatedDuration: 25,
+              requirements: {'isRequired': true},
+            ),
+          ],
+          isPublished: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 2)),
+          updatedAt: DateTime.now().subtract(const Duration(days: 1)),
+          metadata: {},
+        ),
+        LearningPath(
+          id: 'sample_path_2',
+          title: 'Science Exploration',
+          description: 'Discover the wonders of science through interactive lessons and experiments.',
+          teacherId: widget.teacherProfile.uid,
+          teacherName: widget.teacherProfile.displayName,
+          subjects: ['Science'],
+          tags: ['exploration', 'experiments', 'discovery'],
+          steps: [
+            LearningPathStep(
+              id: 'step_4',
+              title: 'Introduction to Biology',
+              description: 'Learn about living organisms and their characteristics',
+              type: 'lesson',
+              contentId: 'lesson_3',
+              order: 1,
+              estimatedDuration: 35,
+              requirements: {'isRequired': true},
+            ),
+            LearningPathStep(
+              id: 'step_5',
+              title: 'Biology Assessment',
+              description: 'Test your knowledge of biological concepts',
+              type: 'assessment',
+              contentId: 'assessment_2',
+              order: 2,
+              estimatedDuration: 25,
+              requirements: {'isRequired': true},
+            ),
+          ],
+          isPublished: true,
+          createdAt: DateTime.now().subtract(const Duration(days: 1)),
+          updatedAt: DateTime.now(),
+          metadata: {},
+        ),
+        LearningPath(
+          id: 'sample_path_3',
+          title: 'English Language Skills',
+          description: 'Improve your English reading, writing, and communication skills.',
+          teacherId: widget.teacherProfile.uid,
+          teacherName: widget.teacherProfile.displayName,
+          subjects: ['English'],
+          tags: ['language', 'communication', 'writing'],
+          steps: [
+            LearningPathStep(
+              id: 'step_6',
+              title: 'Grammar Fundamentals',
+              description: 'Master the basics of English grammar',
+              type: 'lesson',
+              contentId: 'lesson_4',
+              order: 1,
+              estimatedDuration: 40,
+              requirements: {'isRequired': true},
+            ),
+            LearningPathStep(
+              id: 'step_7',
+              title: 'Writing Practice',
+              description: 'Practice writing essays and creative pieces',
+              type: 'lesson',
+              contentId: 'lesson_5',
+              order: 2,
+              estimatedDuration: 30,
+              requirements: {'isRequired': false},
+            ),
+          ],
+          isPublished: false, // Draft
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          metadata: {},
+        ),
+      ];
+      
+      // Create each learning path
+      for (final path in samplePaths) {
+        await _learningPathService.createLearningPath(path);
+      }
+      
+      // Reload learning paths after creating sample data
+      await _loadLearningPaths();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sample learning paths created successfully!'),
+            backgroundColor: Color(0xFF34C759),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating sample learning paths: $e'),
+            backgroundColor: Color(0xFFFF3B30),
+          ),
+        );
+      }
+    }
+  }
+
   List<LearningPath> get _filteredLearningPaths {
     List<LearningPath> filtered = _learningPaths;
     
@@ -150,6 +301,11 @@ class _LearningPathManagementScreenState extends State<LearningPathManagementScr
         actions: [
           if (!ConnectivityService().isConnected)
             const OfflineIndicator(),
+          IconButton(
+            icon: const Icon(Icons.add_chart_rounded, color: Color(0xFF34C759)),
+            onPressed: () => _createSampleLearningPaths(),
+            tooltip: 'Create Sample Learning Paths',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadLearningPaths,

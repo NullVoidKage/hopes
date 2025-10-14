@@ -162,6 +162,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
             'id': 'submission_${student.id}_${subject}_${DateTime.now().millisecondsSinceEpoch}',
             'studentId': student.id,
             'studentName': student.name,
+            'teacherId': teacherId,
             'assessmentId': assessmentKey.key,
             'assessmentTitle': 'Sample Assessment - $subject',
             'assessmentSubject': subject,

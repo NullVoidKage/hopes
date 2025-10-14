@@ -78,55 +78,186 @@ class ProgressService {
     }
   }
 
-  // Get progress for a specific student
+  // Get progress for a specific student by calculating from existing collections
   Future<StudentProgress?> getStudentProgressById(String studentId) async {
     try {
-      final DatabaseReference ref = _database.ref('student_progress/$studentId');
-      final DatabaseEvent event = await ref.once();
-      final DataSnapshot snapshot = event.snapshot;
+      // Get data from existing collections
+      final lessonsRef = _database.ref('lessons');
+      final submissionsRef = _database.ref('assessment_submissions');
       
-      if (snapshot.value == null) return null;
+      final lessonsSnapshot = await lessonsRef.once();
+      final submissionsSnapshot = await submissionsRef.once();
       
-      final data = snapshot.value as Map<dynamic, dynamic>?;
-      if (data == null) return null;
+      final lessonsData = lessonsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+      final submissionsData = submissionsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
       
-      try {
-        return StudentProgress.fromRealtimeDatabase(
-          Map<String, dynamic>.from(data),
-          studentId,
-        );
-      } catch (e) {
-        return null;
-      }
+      // Calculate progress from lessons and submissions
+      int lessonsCompleted = 0;
+      int totalLessons = 0;
+      int assessmentsTaken = 0;
+      int totalAssessments = 0;
+      double totalScore = 0.0;
+      int scoreCount = 0;
+      DateTime? lastActivity;
+      
+      // Count lessons
+      lessonsData.forEach((key, value) {
+        if (value is Map) {
+          totalLessons++;
+          if (value['isCompleted'] == true) {
+            lessonsCompleted++;
+          }
+          // Update last activity if lesson was completed recently
+          if (value['completedAt'] != null) {
+            final completedAt = DateTime.fromMillisecondsSinceEpoch(value['completedAt'] as int);
+            if (lastActivity == null || completedAt.isAfter(lastActivity!)) {
+              lastActivity = completedAt;
+            }
+          }
+        }
+      });
+      
+      // Count assessments and calculate scores
+      submissionsData.forEach((key, value) {
+        if (value is Map && value['studentId'] == studentId) {
+          assessmentsTaken++;
+          if (value['score'] != null) {
+            totalScore += (value['score'] as num).toDouble();
+            scoreCount++;
+          }
+          // Update last activity if submission was recent
+          if (value['submittedAt'] != null) {
+            final submittedAt = DateTime.fromMillisecondsSinceEpoch(value['submittedAt'] as int);
+            if (lastActivity == null || submittedAt.isAfter(lastActivity!)) {
+              lastActivity = submittedAt;
+            }
+          }
+        }
+      });
+      
+      // Count total assessments (all assessments, not just submitted ones)
+      totalAssessments = lessonsData.length; // Assuming each lesson has an assessment
+      
+      // Calculate averages
+      final double averageScore = scoreCount > 0 ? totalScore / scoreCount : 0.0;
+      final double completionRate = totalLessons > 0 ? (lessonsCompleted / totalLessons) * 100 : 0.0;
+      
+      // Create StudentProgress object
+      return StudentProgress(
+        id: 'calculated_$studentId',
+        studentId: studentId,
+        studentName: 'Student', // Will be updated with actual name
+        studentEmail: '',
+        subject: 'All', // Combined progress
+        lessonsCompleted: lessonsCompleted,
+        totalLessons: totalLessons,
+        assessmentsTaken: assessmentsTaken,
+        totalAssessments: totalAssessments,
+        averageScore: averageScore,
+        completionRate: completionRate,
+        lastActivity: lastActivity ?? DateTime.now(),
+        lessonProgress: [],
+        assessmentProgress: [],
+        metadata: {},
+      );
     } catch (e) {
       return null;
     }
   }
 
-  // Get progress by subject
+  // Get progress by subject (calculate from existing collections)
   Future<List<StudentProgress>> getProgressBySubject(String teacherId, String subject) async {
     try {
-      final DatabaseReference ref = _database.ref('student_progress');
-      final Query query = ref.orderByChild('teacherId').equalTo(teacherId);
+      // Get data from existing collections
+      final lessonsRef = _database.ref('lessons');
+      final submissionsRef = _database.ref('assessment_submissions');
       
-      final DatabaseEvent event = await query.once();
-      final DataSnapshot snapshot = event.snapshot;
+      final lessonsSnapshot = await lessonsRef.once();
+      final submissionsSnapshot = await submissionsRef.once();
       
-      if (snapshot.value == null) return [];
+      final lessonsData = lessonsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+      final submissionsData = submissionsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
       
-      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
-      return data.entries
-          .where((entry) {
-            final progress = Map<String, dynamic>.from(entry.value);
-            return progress['subject'] == subject;
-          })
-          .map((entry) {
-            return StudentProgress.fromRealtimeDatabase(
-              Map<String, dynamic>.from(entry.value),
-              entry.key.toString(),
-            );
-          })
-          .toList();
+      // Get unique student IDs from submissions
+      final Set<String> studentIds = {};
+      submissionsData.forEach((key, value) {
+        if (value is Map && value['studentId'] != null) {
+          studentIds.add(value['studentId'] as String);
+        }
+      });
+      
+      // Calculate progress for each student
+      final List<StudentProgress> progressList = [];
+      
+      for (final studentId in studentIds) {
+        // Filter lessons by subject
+        int subjectLessonsCompleted = 0;
+        int subjectTotalLessons = 0;
+        int subjectAssessmentsTaken = 0;
+        double subjectTotalScore = 0.0;
+        int subjectScoreCount = 0;
+        DateTime? subjectLastActivity;
+        
+        // Count lessons for this subject
+        lessonsData.forEach((key, value) {
+          if (value is Map && value['subject'] == subject) {
+            subjectTotalLessons++;
+            if (value['isCompleted'] == true) {
+              subjectLessonsCompleted++;
+            }
+            if (value['completedAt'] != null) {
+              final completedAt = DateTime.fromMillisecondsSinceEpoch(value['completedAt'] as int);
+              if (subjectLastActivity == null || completedAt.isAfter(subjectLastActivity!)) {
+                subjectLastActivity = completedAt;
+              }
+            }
+          }
+        });
+        
+        // Count submissions for this subject and student
+        submissionsData.forEach((key, value) {
+          if (value is Map && 
+              value['studentId'] == studentId && 
+              value['assessmentSubject'] == subject) {
+            subjectAssessmentsTaken++;
+            if (value['score'] != null) {
+              subjectTotalScore += (value['score'] as num).toDouble();
+              subjectScoreCount++;
+            }
+            if (value['submittedAt'] != null) {
+              final submittedAt = DateTime.fromMillisecondsSinceEpoch(value['submittedAt'] as int);
+              if (subjectLastActivity == null || submittedAt.isAfter(subjectLastActivity!)) {
+                subjectLastActivity = submittedAt;
+              }
+            }
+          }
+        });
+        
+        // Calculate averages
+        final double subjectAverageScore = subjectScoreCount > 0 ? subjectTotalScore / subjectScoreCount : 0.0;
+        final double subjectCompletionRate = subjectTotalLessons > 0 ? (subjectLessonsCompleted / subjectTotalLessons) * 100 : 0.0;
+        
+        // Create progress entry
+        progressList.add(StudentProgress(
+          id: 'calculated_${studentId}_$subject',
+          studentId: studentId,
+          studentName: 'Student', // Will be updated with actual name
+          studentEmail: '',
+          subject: subject,
+          lessonsCompleted: subjectLessonsCompleted,
+          totalLessons: subjectTotalLessons,
+          assessmentsTaken: subjectAssessmentsTaken,
+          totalAssessments: subjectTotalLessons, // Assuming each lesson has an assessment
+          averageScore: subjectAverageScore,
+          completionRate: subjectCompletionRate,
+          lastActivity: subjectLastActivity ?? DateTime.now(),
+          lessonProgress: [],
+          assessmentProgress: [],
+          metadata: {},
+        ));
+      }
+      
+      return progressList;
     } catch (e) {
       return [];
     }
