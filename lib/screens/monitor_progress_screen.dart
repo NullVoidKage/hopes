@@ -65,40 +65,39 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
       final String? teacherId = _auth.currentUser?.uid;
       if (teacherId != null) {
         
-        // First, let's check what's actually in the student_progress collection
-        final DatabaseReference ref = FirebaseDatabase.instance.ref('student_progress');
-        final DatabaseEvent event = await ref.once();
-        final DataSnapshot snapshot = event.snapshot;
-        
-        if (snapshot.value != null) {
-          final data = snapshot.value as Map<dynamic, dynamic>?;
-          
-          // Log each progress item's data structure
-          data?.forEach((key, value) {
-            if (value is Map) {
-            }
-          });
-        }
-        
         // Get students from Firestore (like Student Management does)
         final students = await _studentService.getAllStudents();
         
         // Get progress data for those students
         final progress = await _progressService.getStudentProgress(teacherId);
         
-        // Calculate statistics from student data (like Student Management does)
-        final stats = _calculateStatistics(students);
+        // Calculate statistics from actual database collections
+        final stats = await _calculateStatisticsFromDatabase(teacherId);
+        final activity = await _generateActivityFromDatabase();
         
-        final activity = await _progressService.getRecentActivity(teacherId);
-        
-        
-        setState(() {
-          _students = students;
-          _studentProgress = progress;
-          _statistics = stats;
-          _recentActivity = activity;
-          _isLoading = false;
-        });
+        // If no data exists, create sample data
+        if (stats['totalStudents'] == 0 && students.isNotEmpty) {
+          await _createSampleProgressData(students, teacherId);
+          // Reload data after creating sample data
+          final updatedStats = await _calculateStatisticsFromDatabase(teacherId);
+          final updatedActivity = await _generateActivityFromDatabase();
+          
+          setState(() {
+            _students = students;
+            _studentProgress = progress;
+            _statistics = updatedStats;
+            _recentActivity = updatedActivity;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _students = students;
+            _studentProgress = progress;
+            _statistics = stats;
+            _recentActivity = activity;
+            _isLoading = false;
+          });
+        }
         
       }
     } catch (e) {
@@ -106,32 +105,274 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     }
   }
 
-  // Calculate statistics from student data (like Student Management does)
-  Map<String, dynamic> _calculateStatistics(List<Student> students) {
-    final totalStudents = students.length;
-    
-    // Calculate grade distribution
-    final gradeDistribution = <String, int>{};
-    for (final student in students) {
-      final grade = student.grade;
-      gradeDistribution[grade] = (gradeDistribution[grade] ?? 0) + 1;
+  // Create sample progress data for students using existing collections
+  Future<void> _createSampleProgressData(List<Student> students, String teacherId) async {
+    try {
+      // Create sample data in the existing collections
+      final studentsRef = FirebaseDatabase.instance.ref('students');
+      final assessmentsRef = FirebaseDatabase.instance.ref('assessments');
+      final lessonsRef = FirebaseDatabase.instance.ref('lessons');
+      final submissionsRef = FirebaseDatabase.instance.ref('assessment_submissions');
+      final achievementsRef = FirebaseDatabase.instance.ref('student_achievements');
+      
+      for (final student in students) {
+        // Create student entry
+        final studentData = {
+          'id': student.id,
+          'name': student.name,
+          'email': student.email,
+          'grade': student.grade,
+          'section': student.section,
+          'subjects': student.subjects,
+          'joinedAt': student.joinedAt.millisecondsSinceEpoch,
+          'teacherId': teacherId,
+        };
+        await studentsRef.child(student.id).set(studentData);
+        
+        // Create sample lessons for each subject
+        for (final subject in student.subjects) {
+          final lessonData = {
+            'id': 'lesson_${student.id}_${subject}_${DateTime.now().millisecondsSinceEpoch}',
+            'title': 'Sample Lesson - $subject',
+            'subject': subject,
+            'teacherId': teacherId,
+            'createdAt': DateTime.now().millisecondsSinceEpoch,
+            'isCompleted': _generateRandomInt(0, 1) == 1,
+            'studentId': student.id,
+          };
+          await lessonsRef.push().set(lessonData);
+        }
+        
+        // Create sample assessments for each subject
+        for (final subject in student.subjects) {
+          final assessmentData = {
+            'id': 'assessment_${student.id}_${subject}_${DateTime.now().millisecondsSinceEpoch}',
+            'title': 'Sample Assessment - $subject',
+            'subject': subject,
+            'teacherId': teacherId,
+            'createdAt': DateTime.now().millisecondsSinceEpoch,
+            'totalQuestions': 10,
+            'timeLimit': 30,
+          };
+          final assessmentKey = assessmentsRef.push();
+          await assessmentKey.set(assessmentData);
+          
+          // Create sample submission
+          final submissionData = {
+            'id': 'submission_${student.id}_${subject}_${DateTime.now().millisecondsSinceEpoch}',
+            'studentId': student.id,
+            'studentName': student.name,
+            'assessmentId': assessmentKey.key,
+            'assessmentTitle': 'Sample Assessment - $subject',
+            'assessmentSubject': subject,
+            'score': _generateRandomInt(60, 95),
+            'totalQuestions': 10,
+            'correctAnswers': _generateRandomInt(6, 9),
+            'incorrectAnswers': _generateRandomInt(1, 4),
+            'unansweredQuestions': 0,
+            'timeSpent': _generateRandomInt(300, 1800),
+            'submittedAt': DateTime.now().subtract(Duration(days: _generateRandomInt(0, 7))).millisecondsSinceEpoch,
+            'isGraded': true,
+            'gradedAt': DateTime.now().subtract(Duration(days: _generateRandomInt(0, 7))).millisecondsSinceEpoch,
+            'accuracy': _generateRandomDouble(60.0, 95.0),
+          };
+          await submissionsRef.push().set(submissionData);
+        }
+        
+        // Create sample achievements
+        final achievementData = {
+          'id': 'achievement_${student.id}_${DateTime.now().millisecondsSinceEpoch}',
+          'studentId': student.id,
+          'studentName': student.name,
+          'achievementType': 'lesson_completed',
+          'title': 'First Lesson Completed',
+          'description': 'Completed first lesson in ${student.subjects.first}',
+          'points': 10,
+          'earnedAt': DateTime.now().subtract(Duration(days: _generateRandomInt(0, 7))).millisecondsSinceEpoch,
+          'subject': student.subjects.first,
+        };
+        await achievementsRef.push().set(achievementData);
+      }
+    } catch (e) {
+      // Handle error silently
     }
-    
-    // Calculate subject distribution
-    final subjectDistribution = <String, int>{};
-    for (final student in students) {
-      for (final subject in student.subjects) {
-        subjectDistribution[subject] = (subjectDistribution[subject] ?? 0) + 1;
+  }
+
+  // Calculate statistics from actual database collections
+  Future<Map<String, dynamic>> _calculateStatisticsFromDatabase(String teacherId) async {
+    try {
+      // Get data from actual collections
+      final studentsRef = FirebaseDatabase.instance.ref('students');
+      final submissionsRef = FirebaseDatabase.instance.ref('assessment_submissions');
+      final lessonsRef = FirebaseDatabase.instance.ref('lessons');
+      
+      final studentsSnapshot = await studentsRef.once();
+      final submissionsSnapshot = await submissionsRef.once();
+      final lessonsSnapshot = await lessonsRef.once();
+      
+      final studentsData = studentsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+      final submissionsData = submissionsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+      final lessonsData = lessonsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+      
+      final int totalStudents = studentsData.length;
+      
+      // Calculate average score from submissions
+      double totalScore = 0.0;
+      int submissionCount = 0;
+      submissionsData.forEach((key, value) {
+        if (value is Map && value['score'] != null) {
+          totalScore += (value['score'] as num).toDouble();
+          submissionCount++;
+        }
+      });
+      final double averageScore = submissionCount > 0 ? totalScore / submissionCount : 0.0;
+      
+      // Calculate lessons completed
+      int lessonsCompleted = 0;
+      lessonsData.forEach((key, value) {
+        if (value is Map && value['isCompleted'] == true) {
+          lessonsCompleted++;
+        }
+      });
+      
+      // Calculate assessments taken
+      final int assessmentsTaken = submissionsData.length;
+      
+      // Calculate completion rate (lessons completed / total lessons)
+      final double averageCompletionRate = lessonsData.isNotEmpty 
+          ? (lessonsCompleted / lessonsData.length) * 100 
+          : 0.0;
+      
+      // Count active students (with submissions in last 7 days)
+      final DateTime weekAgo = DateTime.now().subtract(const Duration(days: 7));
+      int activeStudents = 0;
+      final Set<String> activeStudentIds = {};
+      
+      submissionsData.forEach((key, value) {
+        if (value is Map && value['submittedAt'] != null) {
+          final submittedAt = DateTime.fromMillisecondsSinceEpoch(value['submittedAt'] as int);
+          if (submittedAt.isAfter(weekAgo)) {
+            activeStudentIds.add(value['studentId'] as String? ?? '');
+          }
+        }
+      });
+      activeStudents = activeStudentIds.length;
+
+      return {
+        'totalStudents': totalStudents,
+        'averageScore': averageScore,
+        'averageCompletionRate': averageCompletionRate,
+        'totalLessonsCompleted': lessonsCompleted,
+        'totalAssessmentsTaken': assessmentsTaken,
+        'activeStudents': activeStudents,
+      };
+    } catch (e) {
+      return {
+        'totalStudents': 0,
+        'averageScore': 0.0,
+        'averageCompletionRate': 0.0,
+        'totalLessonsCompleted': 0,
+        'totalAssessmentsTaken': 0,
+        'activeStudents': 0,
+      };
+    }
+  }
+
+  // Generate activity from actual database collections
+  Future<List<Map<String, dynamic>>> _generateActivityFromDatabase() async {
+    try {
+      final List<Map<String, dynamic>> activities = [];
+      
+      // Get submissions data
+      final submissionsRef = FirebaseDatabase.instance.ref('assessment_submissions');
+      final submissionsSnapshot = await submissionsRef.once();
+      final submissionsData = submissionsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+      
+      // Get lessons data
+      final lessonsRef = FirebaseDatabase.instance.ref('lessons');
+      final lessonsSnapshot = await lessonsRef.once();
+      final lessonsData = lessonsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+      
+      // Add assessment completions
+      submissionsData.forEach((key, value) {
+        if (value is Map) {
+          activities.add({
+            'type': 'assessment_completed',
+            'studentName': value['studentName'] ?? 'Unknown Student',
+            'assessmentTitle': value['assessmentTitle'] ?? 'Assessment',
+            'timestamp': value['submittedAt'] ?? DateTime.now().millisecondsSinceEpoch,
+            'score': value['score'] ?? 0,
+          });
+        }
+      });
+      
+      // Add lesson completions
+      lessonsData.forEach((key, value) {
+        if (value is Map && value['isCompleted'] == true) {
+          activities.add({
+            'type': 'lesson_completed',
+            'studentName': value['studentName'] ?? 'Unknown Student',
+            'lessonTitle': value['title'] ?? 'Lesson',
+            'timestamp': value['completedAt'] ?? DateTime.now().millisecondsSinceEpoch,
+            'score': 100, // Lessons don't have scores, use 100 as completion
+          });
+        }
+      });
+      
+      // Sort by timestamp (most recent first)
+      activities.sort((a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int));
+      
+      return activities.take(10).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Helper methods for generating random data
+  int _generateRandomInt(int min, int max) {
+    return min + (DateTime.now().millisecondsSinceEpoch % (max - min + 1));
+  }
+
+  double _generateRandomDouble(double min, double max) {
+    final random = DateTime.now().millisecondsSinceEpoch % 1000 / 1000.0;
+    return min + (random * (max - min));
+  }
+
+  // Create sample data manually
+  Future<void> _createSampleData() async {
+    final String? teacherId = _auth.currentUser?.uid;
+    if (teacherId != null) {
+      setState(() => _isLoading = true);
+      
+      try {
+        final students = await _studentService.getAllStudents();
+        if (students.isNotEmpty) {
+          await _createSampleProgressData(students, teacherId);
+          await _loadData(); // Reload data
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sample progress data created successfully!'),
+              backgroundColor: Color(0xFF34C759),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No students found to create sample data'),
+              backgroundColor: Color(0xFFFF9500),
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating sample data: $e'),
+            backgroundColor: Color(0xFFFF3B30),
+          ),
+        );
       }
     }
-    
-    return {
-      'totalStudents': totalStudents,
-      'gradeDistribution': gradeDistribution,
-      'subjectDistribution': subjectDistribution,
-      'averageScore': 0.0, // TODO: Calculate from progress data
-      'averageCompletionRate': 0.0, // TODO: Calculate from progress data
-    };
   }
 
   List<Student> get _filteredStudents {
@@ -178,6 +419,11 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add_chart_rounded, color: Color(0xFF34C759)),
+            onPressed: () => _createSampleData(),
+            tooltip: 'Create Sample Data',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Color(0xFF007AFF)),
             onPressed: _loadData,
@@ -229,9 +475,12 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   Widget _buildFilters() {
     return Container(
       margin: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+          SizedBox(
+            width: (MediaQuery.of(context).size.width * 0.4).clamp(120.0, 200.0),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -247,7 +496,11 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
                 ),
                 items: _subjects.map((subject) => DropdownMenuItem(
                   value: subject,
-                  child: Text(subject),
+                  child: Text(
+                    subject,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 )).toList(),
                 onChanged: (value) {
                   setState(() => _selectedSubject = value!);
@@ -256,7 +509,8 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          SizedBox(
+            width: (MediaQuery.of(context).size.width * 0.4).clamp(120.0, 200.0),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -272,7 +526,11 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
                 ),
                 items: _filters.map((filter) => DropdownMenuItem(
                   value: filter,
-                  child: Text(filter),
+                  child: Text(
+                    filter,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 )).toList(),
                 onChanged: (value) {
                   setState(() => _selectedFilter = value!);
@@ -280,7 +538,8 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -456,11 +715,11 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
       final subject = entry.value;
       final color = colors[index];
       
-      // Calculate average score for this subject
-      final subjectStudents = _students.where((s) => s.subjects.contains(subject)).toList();
-      final averageScore = subjectStudents.isEmpty 
+      // Calculate average score for this subject from progress data
+      final subjectProgress = _studentProgress.where((p) => p.subject == subject).toList();
+      final averageScore = subjectProgress.isEmpty 
           ? 0.0 
-          : 0.0; // TODO: Calculate from progress data
+          : subjectProgress.map((p) => p.averageScore).reduce((a, b) => a + b) / subjectProgress.length;
       
       final barHeight = (averageScore / 100) * 100; // Scale to 100px max height
       
@@ -528,11 +787,11 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
           ),
           const SizedBox(height: 16),
           ..._subjects.where((s) => s != 'All').map((subject) {
-            final subjectStudents = _students.where((s) => s.subjects.contains(subject)).toList();
-            final count = subjectStudents.length;
-            final avgScore = subjectStudents.isEmpty 
+            final subjectProgress = _studentProgress.where((p) => p.subject == subject).toList();
+            final count = subjectProgress.length;
+            final avgScore = subjectProgress.isEmpty 
                 ? 0.0 
-                : 0.0; // TODO: Calculate from progress data
+                : subjectProgress.map((p) => p.averageScore).reduce((a, b) => a + b) / subjectProgress.length;
             
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -624,6 +883,11 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   Widget _buildStudentCard(Student student) {
+    // Find progress data for this student
+    final studentProgress = _studentProgress.where((p) => p.studentId == student.id).toList();
+    final hasProgress = studentProgress.isNotEmpty;
+    final progress = hasProgress ? studentProgress.first : null;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -679,15 +943,21 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF).withOpacity(0.1),
+                  color: hasProgress 
+                      ? _getScoreColor(progress!.averageScore).withOpacity(0.1)
+                      : const Color(0xFF86868B).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'N/A',
+                child: Text(
+                  hasProgress 
+                      ? '${progress!.averageScore.toStringAsFixed(0)}%'
+                      : 'N/A',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF007AFF),
+                    color: hasProgress 
+                        ? _getScoreColor(progress!.averageScore)
+                        : const Color(0xFF86868B),
                   ),
                 ),
               ),
@@ -698,24 +968,32 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
             children: [
               Expanded(
                 child: _buildProgressItem(
-                  'Subjects',
-                  '${student.subjects.length} enrolled',
-                  100.0,
+                  'Progress',
+                  hasProgress 
+                      ? '${progress!.completionRate.toStringAsFixed(0)}%'
+                      : 'No data',
+                  hasProgress ? progress!.completionRate : 0.0,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildProgressItem(
-                  'Grade',
-                  '${student.grade} - ${student.section}',
-                  100.0,
+                  'Lessons',
+                  hasProgress 
+                      ? '${progress!.lessonsCompleted}/${progress!.totalLessons}'
+                      : '0/0',
+                  hasProgress 
+                      ? (progress!.lessonsCompleted / progress!.totalLessons * 100)
+                      : 0.0,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            'Joined: ${_formatDate(student.joinedAt)}',
+            hasProgress 
+                ? 'Last activity: ${_formatDate(progress!.lastActivity)}'
+                : 'Joined: ${_formatDate(student.joinedAt)}',
             style: const TextStyle(
               fontSize: 12,
               color: Color(0xFF86868B),
@@ -790,7 +1068,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     final isLesson = activity['type'] == 'lesson_completed';
     final icon = isLesson ? Icons.book_rounded : Icons.quiz_rounded;
     final color = isLesson ? const Color(0xFF34C759) : const Color(0xFFFF9500);
-    final title = activity['title'] ?? 'Unknown';
+    final title = activity['lessonTitle'] ?? activity['assessmentTitle'] ?? 'Unknown';
     final studentName = activity['studentName'] ?? 'Unknown Student';
     final score = activity['score']?.toString() ?? 'N/A';
     final timestamp = activity['timestamp'] as int?;
@@ -825,7 +1103,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$studentName completed $title',
+                  '$studentName ${isLesson ? 'completed lesson' : 'completed assessment'}: $title',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

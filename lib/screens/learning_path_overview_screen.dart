@@ -336,9 +336,12 @@ class _LearningPathOverviewScreenState extends State<LearningPathOverviewScreen>
   Widget _buildFilters() {
     return Container(
       margin: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+          SizedBox(
+            width: (MediaQuery.of(context).size.width * 0.4).clamp(120.0, 200.0),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -354,7 +357,11 @@ class _LearningPathOverviewScreenState extends State<LearningPathOverviewScreen>
                 ),
                 items: _statusOptions.map((status) => DropdownMenuItem(
                   value: status,
-                  child: Text(status == 'All' ? 'All Status' : status.replaceAll('_', ' ').toUpperCase()),
+                  child: Text(
+                    status == 'All' ? 'All Status' : status.replaceAll('_', ' ').toUpperCase(),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 )).toList(),
                 onChanged: (value) {
                   setState(() => _selectedStatus = value!);
@@ -363,7 +370,8 @@ class _LearningPathOverviewScreenState extends State<LearningPathOverviewScreen>
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          SizedBox(
+            width: (MediaQuery.of(context).size.width * 0.4).clamp(120.0, 200.0),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -379,7 +387,11 @@ class _LearningPathOverviewScreenState extends State<LearningPathOverviewScreen>
                 ),
                 items: _subjects.map((subject) => DropdownMenuItem(
                   value: subject,
-                  child: Text(subject),
+                  child: Text(
+                    subject,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 )).toList(),
                 onChanged: (value) {
                   setState(() => _selectedSubject = value!);
@@ -387,7 +399,8 @@ class _LearningPathOverviewScreenState extends State<LearningPathOverviewScreen>
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
