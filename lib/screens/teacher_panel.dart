@@ -404,7 +404,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
         // Responsive sizing for web vs mobile
         final isWeb = constraints.maxWidth > 600;
         final crossAxisCount = isWeb ? 3 : 2; // 3 columns on web, 2 on mobile
-        final childAspectRatio = isWeb ? 1.4 : 1.3; // Wider cards on web
+        final childAspectRatio = isWeb ? 0.9 : 0.7; // Further increased height for better text display
         
         return GridView.count(
           shrinkWrap: true,
@@ -459,7 +459,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16), // Further reduced padding
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -477,24 +477,25 @@ class _TeacherPanelState extends State<TeacherPanel> {
           children: [
             // Icon container
             Container(
-              padding: const EdgeInsets.all(8), // Further reduced padding
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                size: 20, // Further reduced icon size
+                size: 24,
                 color: color,
               ),
             ),
-            const SizedBox(height: 10), // Reduced spacing
+            const SizedBox(height: 14),
             // Title with strict overflow control
-            Flexible(
+            Expanded(
+              flex: 2,
               child: Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 14, // Further reduced font size
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1D1D1F),
                   letterSpacing: -0.2,
@@ -503,18 +504,19 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             // Description with strict overflow control
-            Flexible(
+            Expanded(
+              flex: 3,
               child: Text(
                 description,
                 style: TextStyle(
-                  fontSize: 10, // Further reduced font size
+                  fontSize: 11,
                   color: const Color(0xFF86868B),
-                  height: 1.1, // Reduced line height
+                  height: 1.3,
                   letterSpacing: 0.1,
                 ),
-                maxLines: 2,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
             ),

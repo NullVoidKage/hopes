@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import '../services/file_download_service.dart';
 
 // Conditional import for web vs mobile
 import 'file_preview_web.dart' if (dart.library.io) 'file_preview_mobile.dart' as platform;
@@ -222,22 +223,16 @@ class FilePreviewScreen extends StatelessWidget {
     );
   }
 
-  void _downloadFile(BuildContext context, String url, String fileName) {
-    try {
-      if (kIsWeb) {
-        // Web platform: use web-specific implementation
-        platform.downloadFile(url, fileName);
-      } else {
-        // Mobile platform: show a dialog with options
-        _showMobileDownloadOptions(context, url, fileName);
-      }
-    } catch (e) {
-      if (kIsWeb) {
-        // Fallback: open in new tab
-        platform.openInNewTab(url);
-      } else {
-        // Mobile fallback
-        _showMobileDownloadOptions(context, url, fileName);
+  void _downloadFile(BuildContext context, String url, String fileName) async {
+    if (kIsWeb) {
+      // Web platform: use web-specific implementation
+      platform.downloadFile(url, fileName);
+    } else {
+      // Mobile platform: use the new file download service
+      final bool success = await FileDownloadService.downloadFile(url, fileName, context);
+      if (!success) {
+        // If download fails, show options dialog
+        FileDownloadService.showDownloadOptions(context, url, fileName);
       }
     }
   }
@@ -251,109 +246,9 @@ class FilePreviewScreen extends StatelessWidget {
     }
   }
 
-  void _showMobileDownloadOptions(BuildContext context, String url, String fileName) {
-    // Show a dialog with mobile-specific options
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('File Options'),
-          content: Text('Choose how you want to handle: $fileName'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _copyLinkToClipboard(context, url);
-              },
-              child: const Text('Copy Link'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _openInBrowser(context, url);
-              },
-              child: const Text('Open in Browser'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _showMobilePdfOptions(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('PDF Options'),
-          content: const Text('Choose how you want to handle this PDF file.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _openInBrowser(context, fileUrl);
-              },
-              child: const Text('Open in Browser'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _downloadFile(context, fileUrl, fileName);
-              },
-              child: const Text('Download'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _copyLinkToClipboard(BuildContext context, String url) {
-    // Copy URL to clipboard
-    if (kIsWeb) {
-      // Web clipboard API
-      try {
-        // Use the platform-specific implementation
-        platform.copyToClipboard(url);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Link copied to clipboard')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to copy link')),
-        );
-      }
-    } else {
-      // Mobile clipboard (would need clipboard plugin)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Link copied to clipboard')),
-      );
-    }
-  }
-
-  void _openInBrowser(BuildContext context, String url) {
-    try {
-      if (kIsWeb) {
-        platform.openInNewTab(url);
-      } else {
-        // On mobile, show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Opening in browser...')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to open in browser')),
-      );
-    }
+    // Use the new file download service for PDF options
+    FileDownloadService.showDownloadOptions(context, fileUrl, fileName);
   }
 
   String _getFileExtension(String fileName) {

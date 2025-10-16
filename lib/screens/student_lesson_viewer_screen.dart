@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/lesson.dart';
 import '../services/lesson_service_realtime.dart';
 import '../services/connectivity_service.dart';
 import '../services/offline_service.dart';
-import '../widgets/safe_network_image.dart';
 import '../screens/lesson_detail_screen.dart'; // Added import for LessonDetailScreen
 
 class StudentLessonViewerScreen extends StatefulWidget {
@@ -19,7 +16,6 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
     with TickerProviderStateMixin {
   final LessonServiceRealtime _lessonService = LessonServiceRealtime();
   final ConnectivityService _connectivityService = ConnectivityService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   
   List<Lesson> _lessons = [];
   List<Lesson> _filteredLessons = [];
@@ -402,32 +398,28 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
           const SizedBox(height: 20),
           
           // Filters
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: _buildFilterDropdown(
-                  value: _selectedSubject,
-                  items: _subjects,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedSubject = value!;
-                    });
-                    _filterLessons();
-                  },
-                  label: 'Subject',
-                ),
+              _buildFilterDropdown(
+                value: _selectedSubject,
+                items: _subjects,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedSubject = value!;
+                  });
+                  _filterLessons();
+                },
+                label: 'Subject',
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildFilterDropdown(
-                  value: _selectedGrade,
-                  items: _grades,
-                  onChanged: (value) {
-                    // No change needed since only Grade 7 is available
-                  },
-                  label: 'Grade',
-                  enabled: false,
-                ),
+              const SizedBox(height: 12),
+              _buildFilterDropdown(
+                value: _selectedGrade,
+                items: _grades,
+                onChanged: (value) {
+                  // No change needed since only Grade 7 is available
+                },
+                label: 'Grade',
+                enabled: false,
               ),
             ],
           ),
@@ -635,35 +627,6 @@ class _StudentLessonViewerScreenState extends State<StudentLessonViewerScreen>
     );
   }
 
-  Color _getFileTypeColor(String fileExtension) {
-    switch (fileExtension.toLowerCase()) {
-      case 'pdf':
-        return const Color(0xFFFF3B30);
-      case 'docx':
-      case 'doc':
-        return const Color(0xFF007AFF);
-      case 'pptx':
-      case 'ppt':
-        return const Color(0xFFFF9500);
-      default:
-        return const Color(0xFF86868B);
-    }
-  }
-
-  IconData _getFileTypeIcon(String fileExtension) {
-    switch (fileExtension.toLowerCase()) {
-      case 'pdf':
-        return Icons.picture_as_pdf_rounded;
-      case 'docx':
-      case 'doc':
-        return Icons.description_rounded;
-      case 'pptx':
-      case 'ppt':
-        return Icons.slideshow_rounded;
-      default:
-        return Icons.insert_drive_file_rounded;
-    }
-  }
 
   Widget _buildEmptyState() {
     return Container(

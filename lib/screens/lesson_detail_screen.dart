@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/lesson.dart';
+import '../services/file_download_service.dart';
 import 'file_preview_screen.dart';
 
 class LessonDetailScreen extends StatelessWidget {
@@ -98,19 +99,22 @@ class LessonDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           
           // Tags Row
-          Row(
-            children: [
-              _buildTag(lesson.subject, const Color(0xFF007AFF)),
-              const SizedBox(width: 12),
-              _buildTag('Grade 7', const Color(0xFF34C759)),
-              if (lesson.isPublished) ...[
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTag(lesson.subject, const Color(0xFF007AFF)),
                 const SizedBox(width: 12),
-                _buildTag('Published', const Color(0xFF34C759)),
-              ] else ...[
-                const SizedBox(width: 12),
-                _buildTag('Draft', const Color(0xFFFF9500)),
+                _buildTag('Grade 7', const Color(0xFF34C759)),
+                if (lesson.isPublished) ...[
+                  const SizedBox(width: 12),
+                  _buildTag('Published', const Color(0xFF34C759)),
+                ] else ...[
+                  const SizedBox(width: 12),
+                  _buildTag('Draft', const Color(0xFFFF9500)),
+                ],
               ],
-            ],
+            ),
           ),
         ],
       ),
@@ -702,17 +706,7 @@ class LessonDetailScreen extends StatelessWidget {
     );
   }
 
-  void _downloadFile(BuildContext context, String url, String fileName) {
-    // Show a message that the file is being prepared
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Preparing $fileName for download...'),
-        backgroundColor: const Color(0xFF007AFF),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    
-    // In a real implementation, you would handle the actual download
-    // For now, we'll just show the message
+  void _downloadFile(BuildContext context, String url, String fileName) async {
+    await FileDownloadService.downloadFile(url, fileName, context);
   }
 }

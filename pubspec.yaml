@@ -43,6 +43,8 @@ dependencies:
 
   # File handling
   file_picker: ^8.0.0
+  dio: ^5.4.0
+  path_provider: ^2.1.2
 
   # URL handling for mobile
   url_launcher: ^6.2.2
