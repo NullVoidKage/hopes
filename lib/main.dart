@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/auth_wrapper.dart';
+import 'screens/welcome_screen.dart';
 import 'services/connectivity_service.dart';
-import 'services/offline_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,8 +68,52 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const AuthWrapper(),
+      home: const AuthWrapper(), // Test Lottie animations
       debugShowCheckedModeBanner: false,
     );
+  }
+}
+
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
+
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  bool _isInitialized = false;
+  bool _showWelcome = true; // Always show welcome screen first
+
+  @override
+  void initState() {
+    super.initState();
+    // Immediately set as initialized to show welcome screen
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    print('Building AppInitializer - isInitialized: $_isInitialized, showWelcome: $_showWelcome');
+    
+    if (!_isInitialized) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
+          ),
+        ),
+      );
+    }
+
+    if (_showWelcome) {
+      print('Showing WelcomeScreen');
+      return const WelcomeScreen();
+    } else {
+      print('Showing AuthWrapper');
+      return const AuthWrapper();
+    }
   }
 }

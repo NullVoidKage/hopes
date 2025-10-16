@@ -67,48 +67,18 @@ class _StudentDashboardState extends State<StudentDashboard> {
     try {
       final user = _authService.currentUser;
       if (user != null) {
+        // Load user profile first (critical data)
         final profile = await _authService.getUserProfile(user.uid);
-        
-        // Load recent submissions
-        List<AssessmentSubmission> recentSubs = [];
-        try {
-          recentSubs = await _submissionService.getStudentSubmissions(user.uid);
-          // Get only the 3 most recent submissions
-          recentSubs.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
-          recentSubs = recentSubs.take(3).toList();
-        } catch (e) {
-        }
-        
-        // Load upcoming lessons
-        List<Lesson> upcomingLessons = [];
-        try {
-          upcomingLessons = await _lessonService.getAllPublishedLessons();
-          // Get only the 3 most recent lessons
-          upcomingLessons.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          upcomingLessons = upcomingLessons.take(3).toList();
-        } catch (e) {
-        }
-        
-        // Load leaderboard data
-        List<LeaderboardEntry> leaderboard = [];
-        LeaderboardEntry? currentUserPosition;
-        try {
-          leaderboard = await _achievementsService.getLeaderboard(limit: 10);
-          currentUserPosition = await _achievementsService.getStudentLeaderboardPosition(user.uid);
-        } catch (e) {
-          // Leaderboard data is optional, continue without it
-        }
         
         if (mounted) {
           setState(() {
             _userProfile = profile;
-            _recentSubmissions = recentSubs;
-            _upcomingLessons = upcomingLessons;
-            _leaderboard = leaderboard;
-            _currentUserPosition = currentUserPosition;
-            _isLoading = false;
+            _isLoading = false; // Show UI immediately with profile
           });
         }
+        
+        // Load non-critical data in background
+        _loadBackgroundData(user.uid);
       }
     } catch (e) {
       if (mounted) {
@@ -119,16 +89,186 @@ class _StudentDashboardState extends State<StudentDashboard> {
     }
   }
 
+  Future<void> _loadBackgroundData(String userId) async {
+    try {
+      // Load recent submissions
+      List<AssessmentSubmission> recentSubs = [];
+      try {
+        recentSubs = await _submissionService.getStudentSubmissions(userId);
+        recentSubs.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+        recentSubs = recentSubs.take(3).toList();
+      } catch (e) {
+        // Continue without submissions
+      }
+      
+      // Load upcoming lessons
+      List<Lesson> upcomingLessons = [];
+      try {
+        upcomingLessons = await _lessonService.getAllPublishedLessons();
+        upcomingLessons.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        upcomingLessons = upcomingLessons.take(3).toList();
+      } catch (e) {
+        // Continue without lessons
+      }
+      
+      if (mounted) {
+        setState(() {
+          _recentSubmissions = recentSubs;
+          _upcomingLessons = upcomingLessons;
+        });
+      }
+      
+      // Load leaderboard data (least critical)
+      _loadLeaderboardData(userId);
+      
+    } catch (e) {
+      // Background data loading failed, continue
+    }
+  }
+
+  Future<void> _loadLeaderboardData(String userId) async {
+    try {
+      final leaderboard = await _achievementsService.getLeaderboard(limit: 10);
+      final currentUserPosition = await _achievementsService.getStudentLeaderboardPosition(userId);
+      
+      if (mounted) {
+        setState(() {
+          _leaderboard = leaderboard;
+          _currentUserPosition = currentUserPosition;
+        });
+      }
+    } catch (e) {
+      // Leaderboard data is optional, continue without it
+    }
+  }
+
+  Widget _buildSkeletonLoadingScreen() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Student Dashboard'),
+        backgroundColor: const Color(0xFF00D4FF),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile skeleton
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 20,
+                          width: 150,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 16,
+                          width: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Stats skeleton
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Recent submissions skeleton
+            Container(
+              height: 20,
+              width: 150,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...List.generate(3, (index) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4FF)),
-          ),
-        ),
-      );
+      return _buildSkeletonLoadingScreen();
     }
 
     return Scaffold(
@@ -264,19 +404,19 @@ class _StudentDashboardState extends State<StudentDashboard> {
         const Text(
           'Quick Actions',
           style: TextStyle(
-            fontSize: 22,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1D1D1F),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 1.3,
+          childAspectRatio: 1.1, // Reduced from 1.3 to give more height
           children: [
             _buildActionCard(
               'Take Assessment',
@@ -318,7 +458,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -336,35 +476,31 @@ class _StudentDashboardState extends State<StudentDashboard> {
           children: [
             Icon(
               icon,
-              size: 32,
+              size: 28,
               color: const Color(0xFF00D4FF),
             ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF333333),
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF333333),
               ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
-            Flexible(
-              child: Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 4),
+            Text(
+              description,
+              style: const TextStyle(
+                fontSize: 10,
+                color: Colors.grey,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

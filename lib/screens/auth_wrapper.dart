@@ -6,6 +6,7 @@ import 'signin_screen.dart';
 import 'role_selection_screen.dart';
 import 'student_dashboard.dart';
 import 'teacher_panel.dart';
+import 'welcome_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -79,14 +80,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Widget _buildLoadingScreen() {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(
-            Color(0xFF667eea),
-          ),
-        ),
-      ),
-    );
+    return const WelcomeScreen(autoNavigate: false);
   }
 }
