@@ -88,6 +88,26 @@
         ".read": "auth != null",
         ".write": "auth != null"
       }
+    },
+    "learning_paths": {
+      ".indexOn": ["teacherId", "subject", "createdAt", "isPublished"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$pathId": {
+        ".read": "auth != null && (data.child('teacherId').val() == auth.uid || data.child('isPublished').val() == true)",
+        ".write": "auth != null && data.child('teacherId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['title', 'description', 'teacherId', 'teacherName', 'subjects', 'steps', 'isPublished'])"
+      }
+    },
+    "student_learning_paths": {
+      ".indexOn": ["studentId", "teacherId", "learningPathId", "assignedAt", "status"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$assignmentId": {
+        ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
+        ".write": "auth != null && data.child('teacherId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['studentId', 'studentName', 'learningPathId', 'learningPathTitle', 'teacherId', 'assignedAt', 'status'])"
+      }
     }
   }
 }
