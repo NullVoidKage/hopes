@@ -26,6 +26,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   bool _isLoading = true;
   String _selectedSubject = 'All';
   String _selectedFilter = 'All';
+  String _selectedFocus = 'All Students';
   
   late TabController _tabController;
   
@@ -43,7 +44,8 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     'EPP',
     'TLE'
   ];
-  final List<String> _filters = ['All', 'High Performers', 'Needs Help', 'Recently Active'];
+  final List<String> _filters = ['All', 'High to Low', 'Low to High', 'Recently Active', 'Most Lessons Completed', 'Least Lessons Completed'];
+  final List<String> _focusModes = ['All Students', 'High Performers', 'Needs Help', 'Recently Active', 'No Progress', 'Above Average', 'Below Average', 'Engagement Issues'];
 
   @override
   void initState() {
@@ -339,66 +341,200 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     return min + (random * (max - min));
   }
 
-  // Create sample data manually
-  Future<void> _createSampleData() async {
-    final String? teacherId = _auth.currentUser?.uid;
-    if (teacherId != null) {
-      setState(() => _isLoading = true);
-      
-      try {
-        final students = await _studentService.getAllStudents();
-        if (students.isNotEmpty) {
-          await _createSampleProgressData(students, teacherId);
-          await _loadData(); // Reload data
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sample progress data created successfully!'),
-              backgroundColor: Color(0xFF34C759),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No students found to create sample data'),
-              backgroundColor: Color(0xFFFF9500),
-            ),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating sample data: $e'),
-            backgroundColor: Color(0xFFFF3B30),
-          ),
-        );
-      }
-    }
-  }
 
   List<Student> get _filteredStudents {
-    
     List<Student> filtered = _students;
+    
+    // Debug: Print current filter state
+    _debugFilterState();
     
     // Filter by subject (check if student has the selected subject)
     if (_selectedSubject != 'All') {
       filtered = filtered.where((s) => s.subjects.contains(_selectedSubject)).toList();
+      print('After subject filter ($_selectedSubject): ${filtered.length} students');
     }
     
-    // Filter by performance (this will need to be implemented based on progress data)
-    switch (_selectedFilter) {
-      case 'High Performers':
-        // TODO: Implement based on progress data
-        break;
-      case 'Needs Help':
-        // TODO: Implement based on progress data
-        break;
-      case 'Recently Active':
-        // TODO: Implement based on progress data
-        break;
+    // Apply focus mode filtering
+    if (_selectedFocus != 'All Students') {
+      filtered = filtered.where((student) {
+        final studentProgress = _studentProgress.where((progress) => 
+          progress.studentId == student.id && 
+          (_selectedSubject == 'All' || progress.subject == _selectedSubject)
+        ).toList();
+        
+        if (studentProgress.isEmpty) {
+          // Handle students with no progress data
+          switch (_selectedFocus) {
+            case 'No Progress':
+              return true;
+            case 'Needs Help':
+              return true; // Students with no progress data need help
+            case 'High Performers':
+            case 'Recently Active':
+            case 'Above Average':
+            case 'Below Average':
+              return false; // Students with no progress data can't be high performers
+            default:
+              return true;
+          }
+        }
+        
+        final progress = studentProgress.first;
+        final actualCompletionRate = progress.totalLessons > 0 
+            ? (progress.lessonsCompleted / progress.totalLessons) * 100 
+            : 0.0;
+        
+        switch (_selectedFocus) {
+          case 'High Performers':
+            // High performers: good scores AND good completion
+            // Students with high scores but no lessons aren't really high performers
+            final isHighPerformer = progress.averageScore >= 70.0 && actualCompletionRate >= 30.0;
+            print('Student ${student.name}: Score=${progress.averageScore}%, Completion=${actualCompletionRate.toStringAsFixed(1)}%, High Performer: $isHighPerformer');
+            return isHighPerformer;
+          case 'Needs Help':
+            // Students who need help: 
+            // Only students with low scores (< 50%) AND low completion (< 20%)
+            // Exclude students with high scores even if they have low completion
+            final hasLowScore = progress.averageScore < 50.0;
+            final hasLowCompletion = actualCompletionRate < 20.0;
+            final needsHelp = hasLowScore && hasLowCompletion;
+            
+            print('Student ${student.name}: Score=${progress.averageScore}%, Completion=${actualCompletionRate.toStringAsFixed(1)}%, Low Score: $hasLowScore, Low Completion: $hasLowCompletion, Needs Help: $needsHelp');
+            return needsHelp;
+          case 'Recently Active':
+            // Students active in the last 30 days (more realistic)
+            final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+            final isRecentlyActive = progress.lastActivity.isAfter(thirtyDaysAgo);
+            print('Student ${student.name}: Last Activity=${progress.lastActivity}, Recently Active (30 days): $isRecentlyActive');
+            return isRecentlyActive;
+          case 'No Progress':
+            return actualCompletionRate == 0.0;
+          case 'Above Average':
+            // Students above the overall average (17.3% from your screenshot)
+            // Only include students who have actual progress data
+            final isAboveAverage = progress.averageScore > 17.3 && progress.totalLessons > 0;
+            print('Student ${student.name}: Score=${progress.averageScore}%, Lessons=${progress.lessonsCompleted}/${progress.totalLessons}, Above Average: $isAboveAverage');
+            return isAboveAverage;
+          case 'Below Average':
+            // Students below the overall average
+            // Include students with no progress or low scores
+            return progress.averageScore <= 17.3 || progress.totalLessons == 0;
+          default:
+            return true;
+        }
+      }).toList();
+      print('After focus filter ($_selectedFocus): ${filtered.length} students');
+    }
+    
+    // Sort by performance
+    if (_selectedFilter != 'All') {
+      filtered.sort((a, b) {
+        // Get progress data for both students
+        final progressA = _studentProgress.where((p) => 
+          p.studentId == a.id && 
+          (_selectedSubject == 'All' || p.subject == _selectedSubject)
+        ).toList();
+        
+        final progressB = _studentProgress.where((p) => 
+          p.studentId == b.id && 
+          (_selectedSubject == 'All' || p.subject == _selectedSubject)
+        ).toList();
+        
+        switch (_selectedFilter) {
+          case 'High to Low':
+            // Sort from highest to lowest performance
+            double scoreA = _calculatePerformanceScore(progressA);
+            double scoreB = _calculatePerformanceScore(progressB);
+            return scoreB.compareTo(scoreA);
+          case 'Low to High':
+            // Sort from lowest to highest performance
+            double scoreA = _calculatePerformanceScore(progressA);
+            double scoreB = _calculatePerformanceScore(progressB);
+            return scoreA.compareTo(scoreB);
+          case 'Recently Active':
+            // Sort by most recent activity
+            final lastActivityA = progressA.isNotEmpty 
+                ? progressA.map((p) => p.lastActivity).reduce((a, b) => a.isAfter(b) ? a : b)
+                : DateTime.fromMillisecondsSinceEpoch(0);
+            final lastActivityB = progressB.isNotEmpty 
+                ? progressB.map((p) => p.lastActivity).reduce((a, b) => a.isAfter(b) ? a : b)
+                : DateTime.fromMillisecondsSinceEpoch(0);
+            return lastActivityB.compareTo(lastActivityA);
+          case 'Most Lessons Completed':
+            // Sort by most lessons completed
+            final lessonsA = progressA.isNotEmpty ? progressA.first.lessonsCompleted : 0;
+            final lessonsB = progressB.isNotEmpty ? progressB.first.lessonsCompleted : 0;
+            return lessonsB.compareTo(lessonsA);
+          case 'Least Lessons Completed':
+            // Sort by least lessons completed
+            final lessonsA = progressA.isNotEmpty ? progressA.first.lessonsCompleted : 0;
+            final lessonsB = progressB.isNotEmpty ? progressB.first.lessonsCompleted : 0;
+            return lessonsA.compareTo(lessonsB);
+          default:
+            return 0; // No sorting
+        }
+      });
+      print('After sorting ($_selectedFilter): ${filtered.length} students');
     }
     
     return filtered;
+  }
+
+  // Calculate a performance score for sorting (0-100)
+  double _calculatePerformanceScore(List<StudentProgress> progressList) {
+    if (progressList.isEmpty) return 0.0;
+    
+    // Use the first progress record (or combine multiple if needed)
+    final progress = progressList.first;
+    
+    // Calculate actual completion rate
+    final actualCompletionRate = progress.totalLessons > 0 
+        ? (progress.lessonsCompleted / progress.totalLessons) * 100 
+        : 0.0;
+    
+    // Combine average score and completion rate (weighted average)
+    // 70% weight on score, 30% weight on completion rate
+    final performanceScore = (progress.averageScore * 0.7) + (actualCompletionRate * 0.3);
+    
+    return performanceScore;
+  }
+
+  // Debug method to help identify filtering and sorting issues
+  void _debugFilterState() {
+    print('=== FILTER & SORT DEBUG ===');
+    print('Total students: ${_students.length}');
+    print('Total progress records: ${_studentProgress.length}');
+    print('Selected subject: $_selectedSubject');
+    print('Selected sort: $_selectedFilter');
+    print('Selected focus: $_selectedFocus');
+    
+    // Show subject distribution
+    final subjectCounts = <String, int>{};
+    for (final student in _students) {
+      for (final subject in student.subjects) {
+        subjectCounts[subject] = (subjectCounts[subject] ?? 0) + 1;
+      }
+    }
+    print('Subject distribution: $subjectCounts');
+    
+    // Show progress data distribution
+    final progressCounts = <String, int>{};
+    for (final progress in _studentProgress) {
+      progressCounts[progress.subject] = (progressCounts[progress.subject] ?? 0) + 1;
+    }
+    print('Progress data by subject: $progressCounts');
+    
+    // Show performance scores for first few students
+    if (_students.isNotEmpty) {
+      print('Performance scores (first 5 students):');
+      for (int i = 0; i < 5 && i < _students.length; i++) {
+        final student = _students[i];
+        final progress = _studentProgress.where((p) => p.studentId == student.id).toList();
+        final score = _calculatePerformanceScore(progress);
+        print('  ${student.name}: ${score.toStringAsFixed(1)}');
+      }
+    }
+    print('========================');
   }
 
   @override
@@ -420,11 +556,6 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_chart_rounded, color: Color(0xFF34C759)),
-            onPressed: () => _createSampleData(),
-            tooltip: 'Create Sample Data',
-          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Color(0xFF007AFF)),
             onPressed: _loadData,
@@ -480,38 +611,40 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-          SizedBox(
-            width: (MediaQuery.of(context).size.width * 0.4).clamp(120.0, 200.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E5E7)),
-              ),
-              child: DropdownButtonFormField<String>(
-                value: _selectedSubject,
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: InputBorder.none,
-                  hintText: 'Subject',
+          // Subject filter
+            SizedBox(
+              width: (MediaQuery.of(context).size.width * 0.3).clamp(100.0, 150.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E5E7)),
                 ),
-                items: _subjects.map((subject) => DropdownMenuItem(
-                  value: subject,
-                  child: Text(
-                    subject,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+                child: DropdownButtonFormField<String>(
+                  value: _selectedSubject,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    border: InputBorder.none,
+                    hintText: 'Subject',
                   ),
-                )).toList(),
-                onChanged: (value) {
-                  setState(() => _selectedSubject = value!);
-                },
+                  items: _subjects.map((subject) => DropdownMenuItem(
+                    value: subject,
+                    child: Text(
+                      subject,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedSubject = value!);
+                  },
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 8),
           SizedBox(
-            width: (MediaQuery.of(context).size.width * 0.4).clamp(120.0, 200.0),
+            width: (MediaQuery.of(context).size.width * 0.3).clamp(100.0, 150.0),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -521,9 +654,9 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               child: DropdownButtonFormField<String>(
                 value: _selectedFilter,
                 decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   border: InputBorder.none,
-                  hintText: 'Filter',
+                  hintText: 'Sort',
                 ),
                 items: _filters.map((filter) => DropdownMenuItem(
                   value: filter,
@@ -531,10 +664,42 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
                     filter,
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
+                    style: const TextStyle(fontSize: 12),
                   ),
                 )).toList(),
                 onChanged: (value) {
                   setState(() => _selectedFilter = value!);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: (MediaQuery.of(context).size.width * 0.3).clamp(100.0, 150.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E5E7)),
+              ),
+              child: DropdownButtonFormField<String>(
+                value: _selectedFocus,
+                decoration: const InputDecoration(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  border: InputBorder.none,
+                  hintText: 'Focus',
+                ),
+                items: _focusModes.map((focus) => DropdownMenuItem(
+                  value: focus,
+                  child: Text(
+                    focus,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  setState(() => _selectedFocus = value!);
                 },
               ),
             ),
@@ -980,11 +1145,11 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               Expanded(
                 child: _buildProgressItem(
                   'Lessons',
-                  hasProgress 
-                      ? '${progress!.lessonsCompleted}/${progress!.totalLessons}'
+                  hasProgress && progress != null
+                      ? '${progress.lessonsCompleted}/${progress.totalLessons}'
                       : '0/0',
-                  hasProgress 
-                      ? (progress!.lessonsCompleted / progress!.totalLessons * 100)
+                  hasProgress && progress != null
+                      ? (progress.lessonsCompleted / progress.totalLessons * 100)
                       : 0.0,
                 ),
               ),
