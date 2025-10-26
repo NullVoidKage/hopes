@@ -204,7 +204,7 @@ class OfflineService {
         'queuedAt': DateTime.now().millisecondsSinceEpoch,
         
         // Student information will be fetched from Firestore when submitting
-        'studentName': 'Unknown Student', // Will be updated from Firestore
+        'studentName': 'Student', // Will be updated from Firestore
         'studentEmail': '', // Will be updated from Firestore
         'studentGrade': 'Grade 7', // Will be updated from Firestore
         'studentSection': 'Section A', // Will be updated from Firestore

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/lesson.dart';
@@ -360,6 +361,17 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
                 color: Color(0xFF86868B),
               ),
             ),
+            if (kIsWeb) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Web: Click to browse files',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF007AFF),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -709,10 +721,13 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
 
   Future<void> _pickFile() async {
     try {
+      // Web-specific file picker configuration
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: _supportedExtensions,
         allowMultiple: false,
+        withData: true, // Ensure data is loaded for web
+        withReadStream: false, // Disable read stream for web compatibility
       );
 
       if (result != null && result.files.isNotEmpty) {
@@ -724,6 +739,19 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('File size must be less than 50MB'),
+                backgroundColor: Color(0xFFFF3B30),
+              ),
+            );
+          }
+          return;
+        }
+
+        // Additional validation for web platform
+        if (file.bytes == null || file.bytes!.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to load file. Please try again.'),
                 backgroundColor: Color(0xFFFF3B30),
               ),
             );

@@ -43,7 +43,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 return RoleSelectionScreen(
                   uid: user.uid,
                   email: user.email ?? 'user@example.com',
-                  displayName: user.displayName ?? 'User',
+                  displayName: user.displayName ?? user.email?.split('@').first ?? 'User',
                   photoURL: user.photoURL,
                 );
               }
@@ -55,7 +55,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 return RoleSelectionScreen(
                   uid: user.uid,
                   email: user.email ?? 'user@example.com',
-                  displayName: user.displayName ?? 'User',
+                  displayName: user.displayName ?? user.email?.split('@').first ?? 'User',
                   photoURL: user.photoURL,
                 );
               } else {

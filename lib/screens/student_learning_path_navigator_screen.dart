@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/learning_path.dart';
 import '../services/learning_path_service.dart';
-import '../services/connectivity_service.dart';
-import '../widgets/offline_indicator.dart';
 
 class StudentLearningPathNavigatorScreen extends StatefulWidget {
   final String studentId;
@@ -21,7 +19,6 @@ class StudentLearningPathNavigatorScreen extends StatefulWidget {
 
 class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPathNavigatorScreen> {
   final LearningPathService _learningPathService = LearningPathService();
-  final ConnectivityService _connectivityService = ConnectivityService();
 
   List<StudentLearningPath> _assignedPaths = [];
   bool _isLoading = true;
@@ -151,20 +148,29 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
       body: CustomScrollView(
+        physics: _getScrollPhysics(),
         slivers: [
           _buildSliverAppBar(),
           SliverToBoxAdapter(
-            child: Column(
-              children: [
-                _buildSearchAndFilters(),
-                const SizedBox(height: 24),
-                _buildLearningPathsList(),
-              ],
-            ),
+            child: _buildSearchAndFilters(),
           ),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 24),
+          ),
+          _buildLearningPathsSliver(),
         ],
       ),
     );
+  }
+
+  ScrollPhysics _getScrollPhysics() {
+    if (kIsWeb) {
+      // Web platform: use BouncingScrollPhysics for better web experience
+      return const BouncingScrollPhysics();
+    } else {
+      // Mobile platforms: use ClampingScrollPhysics for native feel
+      return const ClampingScrollPhysics();
+    }
   }
 
   Widget _buildSliverAppBar() {
@@ -289,45 +295,62 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
     );
   }
 
-  Widget _buildLearningPathsList() {
+  Widget _buildLearningPathsSliver() {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(40),
-        child: Center(
-          child: Column(
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4FF)),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Loading your learning paths...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF86868B),
+      return SliverToBoxAdapter(
+        child: const Padding(
+          padding: EdgeInsets.all(40),
+          child: Center(
+            child: Column(
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4FF)),
                 ),
-              ),
-            ],
+                SizedBox(height: 16),
+                Text(
+                  'Loading your learning paths...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF86868B),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     if (_assignedPaths.isEmpty) {
-      return _buildEmptyState();
+      return SliverToBoxAdapter(
+        child: _buildEmptyState(),
+      );
     }
 
     if (_filteredPaths.isEmpty) {
-      return _buildNoResultsState();
+      return SliverToBoxAdapter(
+        child: _buildNoResultsState(),
+      );
     }
 
-    return Padding(
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: _filteredPaths.map((path) => _buildLearningPathCard(path)).toList(),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildLearningPathCard(_filteredPaths[index]),
+            );
+          },
+          childCount: _filteredPaths.length,
+          addAutomaticKeepAlives: true, // Keep cards alive for better performance
+          addRepaintBoundaries: true, // Add repaint boundaries for better performance
+        ),
       ),
     );
   }
+
 
   Widget _buildLearningPathCard(StudentLearningPath path) {
     final status = _getPathStatus(path);
@@ -336,7 +359,6 @@ class _StudentLearningPathNavigatorScreenState extends State<StudentLearningPath
     final completedSteps = path.stepProgress.where((step) => step.status == 'completed').length;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,

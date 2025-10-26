@@ -173,7 +173,7 @@ class AssessmentSubmission {
       teacherId: _safeString(data['teacherId']),
       
       // Enhanced Student Information
-      studentName: _safeString(data['studentName'] ?? 'Unknown Student'),
+      studentName: _safeString(data['studentName'] ?? 'Student'),
       studentEmail: _safeString(data['studentEmail'] ?? ''),
       studentGrade: _safeString(data['studentGrade'] ?? 'Grade 7'),
       studentSection: _safeString(data['studentSection'] ?? 'Section A'),

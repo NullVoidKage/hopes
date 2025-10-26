@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -1067,10 +1068,13 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
 
   Future<void> _pickFile() async {
     try {
+      // Web-specific file picker configuration
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: _supportedExtensions,
         allowMultiple: false,
+        withData: true, // Ensure data is loaded for web
+        withReadStream: false, // Disable read stream for web compatibility
       );
 
       if (result != null && result.files.isNotEmpty) {
@@ -1082,6 +1086,19 @@ class _EditLessonScreenState extends State<EditLessonScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('File size must be less than 50MB'),
+                backgroundColor: Color(0xFFFF3B30),
+              ),
+            );
+          }
+          return;
+        }
+
+        // Additional validation for web platform
+        if (file.bytes == null || file.bytes!.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to load file. Please try again.'),
                 backgroundColor: Color(0xFFFF3B30),
               ),
             );

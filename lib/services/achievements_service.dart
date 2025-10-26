@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/achievements.dart';
 import '../models/student.dart';
 import '../models/assessment.dart';
@@ -317,13 +318,28 @@ class AchievementsService {
         
         if (submission is Map) {
           final studentId = submission['studentId'] as String?;
-          final studentName = submission['studentName'] as String?;
+          final studentNameFromSubmission = submission['studentName'] as String?;
           final studentEmail = submission['studentEmail'] as String?;
           final score = (submission['score'] as num?)?.toInt() ?? 0;
           final submittedAt = submission['submittedAt'] as int?;
 
 
-          if (studentId != null && studentName != null && studentId.isNotEmpty && studentName.isNotEmpty) {
+    if (studentId != null && studentId.isNotEmpty) {
+      // Get a better student name - try multiple sources
+      String studentName = 'Student';
+
+      if (studentNameFromSubmission?.isNotEmpty == true) {
+        studentName = studentNameFromSubmission!;
+      } else {
+        // Try to get name from Firebase Auth user
+        final currentUser = FirebaseAuth.instance.currentUser;
+
+        if (currentUser?.displayName?.isNotEmpty == true) {
+          studentName = currentUser!.displayName!;
+        } else if (currentUser?.email?.isNotEmpty == true) {
+          studentName = currentUser!.email!.split('@').first;
+        }
+      }
             if (studentScores.containsKey(studentId)) {
               // Add to existing score
               final existing = studentScores[studentId]!;
@@ -333,14 +349,14 @@ class AchievementsService {
                     ? DateTime.fromMillisecondsSinceEpoch(submittedAt)
                     : existing.lastActivity,
                 stats: {
-                  'assessmentsCompleted': (existing.stats?['assessmentsCompleted'] ?? 0) + 1,
-                  'lessonsCompleted': existing.stats?['lessonsCompleted'] ?? 0,
-                  'streakDays': existing.stats?['streakDays'] ?? 0,
+                  'assessmentsCompleted': (existing.stats['assessmentsCompleted'] ?? 0) + 1,
+                  'lessonsCompleted': existing.stats['lessonsCompleted'] ?? 0,
+                  'streakDays': existing.stats['streakDays'] ?? 0,
                 },
               );
             } else {
-              // Create new entry
-              studentScores[studentId] = LeaderboardEntry(
+        // Create new entry
+        studentScores[studentId] = LeaderboardEntry(
                 studentId: studentId,
                 studentName: studentName,
                 studentEmail: studentEmail ?? '',
@@ -373,8 +389,6 @@ class AchievementsService {
         leaderboard[i] = leaderboard[i].copyWith(rank: i + 1);
       }
 
-      for (final entry in leaderboard.take(5)) {
-      }
 
       // Create leaderboard collection in Realtime Database
       await _createLeaderboardCollection(leaderboard);
@@ -864,6 +878,153 @@ class AchievementsService {
     try {
       final leaderboard = await _calculateLeaderboardFromSubmissions(50);
     } catch (e) {
+    }
+  }
+
+  // Update existing assessment submissions with better student names
+  Future<void> updateAssessmentSubmissionNames() async {
+    try {
+      // Clear leaderboard cache first
+      await _clearLeaderboardCache();
+      
+      // Get all assessment submissions
+      final submissionsSnapshot = await _database
+          .ref('assessment_submissions')
+          .get();
+
+      if (!submissionsSnapshot.exists) {
+        return;
+      }
+
+      final Map<dynamic, dynamic> submissionsData = submissionsSnapshot.value as Map<dynamic, dynamic>;
+      
+      // Process each submission
+      for (final entry in submissionsData.entries) {
+        final submissionId = entry.key;
+        final submission = entry.value;
+        
+        if (submission is Map) {
+          final submissionMap = Map<String, dynamic>.from(submission);
+          final studentId = submissionMap['studentId'] as String?;
+          final currentName = submissionMap['studentName'] as String?;
+          final studentEmail = submissionMap['studentEmail'] as String?;
+          
+          // Only update if current name is "User", "Nicko Zenin", or empty
+          if (studentId != null && 
+              studentId.isNotEmpty && 
+              (currentName == 'User' || currentName == 'Nicko Zenin' || currentName == null || currentName.isEmpty)) {
+            
+            // Try to get better name from Firestore for this specific student
+            String betterName = 'Student';
+            try {
+              // Get user profile from Firestore for this specific student ID
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(studentId)
+                  .get();
+              
+              if (userDoc.exists) {
+                final userData = userDoc.data()!;
+                final displayName = userData['displayName'] as String?;
+                final email = userData['email'] as String?;
+                
+                if (displayName?.isNotEmpty == true && displayName != 'User' && displayName != 'Nicko Zenin') {
+                  betterName = displayName!;
+                } else if (email?.isNotEmpty == true) {
+                  betterName = email!.split('@').first;
+                } else if (studentEmail?.isNotEmpty == true) {
+                  betterName = studentEmail!.split('@').first;
+                } else {
+                  continue; // Skip if no better name available
+                }
+              } else {
+                continue;
+              }
+              
+              // Update the submission
+              await _database
+                  .ref('assessment_submissions/$submissionId')
+                  .update({'studentName': betterName});
+              
+            } catch (e) {
+              // Handle error silently
+            }
+          }
+        }
+      }
+      
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  // Clear leaderboard cache
+  Future<void> _clearLeaderboardCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cached_leaderboard');
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  // Update existing leaderboard entries with better student names
+  Future<void> updateLeaderboardStudentNames() async {
+    try {
+      // Get all assessment submissions
+      final submissionsSnapshot = await _database
+          .ref('assessment_submissions')
+          .get();
+
+      if (!submissionsSnapshot.exists) {
+        return;
+      }
+
+      final Map<dynamic, dynamic> submissionsData = submissionsSnapshot.value as Map<dynamic, dynamic>;
+      final Map<String, String> studentNameMap = {};
+
+      // Build a map of student IDs to their best available names
+      for (final entry in submissionsData.values) {
+        if (entry is Map) {
+          final submission = Map<String, dynamic>.from(entry);
+          final studentId = submission['studentId'] as String?;
+          final studentName = submission['studentName'] as String?;
+
+          if (studentId != null && studentId.isNotEmpty) {
+            // Only update if we have a better name
+            if (studentName?.isNotEmpty == true &&
+                studentName != 'Unknown Student' &&
+                studentName != 'User' &&
+                studentName != 'Student') {
+              studentNameMap[studentId] = studentName!;
+            }
+          }
+        }
+      }
+
+      // Update leaderboard entries with better names
+      final leaderboardSnapshot = await _database
+          .ref('leaderboard')
+          .get();
+
+      if (leaderboardSnapshot.exists) {
+        final Map<dynamic, dynamic> leaderboardData = leaderboardSnapshot.value as Map<dynamic, dynamic>;
+
+        for (final entry in leaderboardData.entries) {
+          final studentId = entry.key;
+          final leaderboardEntry = entry.value;
+
+          if (leaderboardEntry is Map && studentNameMap.containsKey(studentId)) {
+            final newName = studentNameMap[studentId]!;
+
+            await _database
+                .ref('leaderboard/$studentId')
+                .update({'studentName': newName});
+          }
+        }
+      }
+    } catch (e) {
+      // Handle error silently
     }
   }
 

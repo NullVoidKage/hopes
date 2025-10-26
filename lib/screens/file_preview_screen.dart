@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/file_download_service.dart';
+import '../services/web_file_handler.dart';
 
 // Conditional import for web vs mobile
 import 'file_preview_web.dart' if (dart.library.io) 'file_preview_mobile.dart' as platform;
@@ -100,13 +101,26 @@ class FilePreviewScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'PDF files can be viewed in a new tab',
-            style: TextStyle(
+          Text(
+            kIsWeb 
+              ? 'PDF files will open in a new browser tab'
+              : 'PDF files can be viewed in a new tab',
+            style: const TextStyle(
               fontSize: 14,
               color: Color(0xFF86868B),
             ),
           ),
+          if (kIsWeb) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Using ${WebFileHandler.browserName} browser',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF007AFF),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -225,8 +239,34 @@ class FilePreviewScreen extends StatelessWidget {
 
   void _downloadFile(BuildContext context, String url, String fileName) async {
     if (kIsWeb) {
-      // Web platform: use web-specific implementation
-      platform.downloadFile(url, fileName);
+      // Web platform: use enhanced web file handler
+      try {
+        final success = await WebFileHandler.downloadFile(url, fileName);
+        if (success) {
+          // Show success message for web
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Downloading $fileName...'),
+                backgroundColor: const Color(0xFF34C759),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } else {
+          // Fallback to platform method
+          platform.downloadFile(url, fileName);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Download failed: ${e.toString()}'),
+              backgroundColor: const Color(0xFFFF3B30),
+            ),
+          );
+        }
+      }
     } else {
       // Mobile platform: use the new file download service
       final bool success = await FileDownloadService.downloadFile(url, fileName, context);
@@ -239,7 +279,13 @@ class FilePreviewScreen extends StatelessWidget {
 
   void _openPdfInNewTab(BuildContext context) {
     if (kIsWeb) {
-      platform.openPdfPreview(fileUrl);
+      // Use enhanced web file handler for PDF preview
+      WebFileHandler.openPdfPreview(fileUrl).then((success) {
+        if (!success) {
+          // Fallback to platform method
+          platform.openPdfPreview(fileUrl);
+        }
+      });
     } else {
       // On mobile, show a dialog with options
       _showMobilePdfOptions(context);

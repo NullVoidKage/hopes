@@ -337,7 +337,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
             ),
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           
           // Sign In Button
           SizedBox(
@@ -608,7 +608,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
             ),
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           
           // Sign Up Button
           SizedBox(
@@ -645,7 +645,7 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
             ),
           ),
         ],
-        ),
+        )
       ),
     );
   }
@@ -755,8 +755,8 @@ class _SignInScreenState extends State<SignInScreen> with TickerProviderStateMix
                 // Tab Content
                 Container(
                   constraints: const BoxConstraints(
-                    minHeight: 280,
-                    maxHeight: 350,
+                    minHeight: 320,
+                    maxHeight: 400,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,

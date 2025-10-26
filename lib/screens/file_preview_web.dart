@@ -3,12 +3,23 @@ import 'package:flutter/foundation.dart';
 
 void downloadFile(String url, String fileName) {
   try {
+    // Create a temporary anchor element for download
     final anchor = html.AnchorElement(href: url)
       ..setAttribute('download', fileName)
       ..setAttribute('target', '_blank')
-      ..click();
+      ..style.display = 'none';
+    
+    // Add to DOM temporarily
+    html.document.body?.append(anchor);
+    
+    // Trigger download
+    anchor.click();
+    
+    // Clean up
+    anchor.remove();
   } catch (e) {
     if (kDebugMode) {
+      print('Download failed: $e');
     }
     // Fallback: open in new tab
     openInNewTab(url);
@@ -27,10 +38,12 @@ void openInNewTab(String url) {
 // Web-specific PDF preview
 void openPdfPreview(String url) {
   try {
-    // Open PDF in a new tab - browser will handle PDF display
-    html.window.open(url, '_blank');
+    // Open PDF in a new tab with proper headers for PDF viewing
+    final newWindow = html.window.open('', '_blank');
+    newWindow.location.href = url;
   } catch (e) {
     if (kDebugMode) {
+      print('PDF preview failed: $e');
     }
     // Fallback: open in new tab
     openInNewTab(url);

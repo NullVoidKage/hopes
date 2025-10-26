@@ -108,6 +108,16 @@
         ".write": "auth != null && data.child('teacherId').val() == auth.uid",
         ".validate": "newData.hasChildren(['studentId', 'studentName', 'learningPathId', 'learningPathTitle', 'teacherId', 'assignedAt', 'status'])"
       }
+    },
+    "student_approvals": {
+      ".indexOn": ["studentId", "teacherId", "status", "gradeLevel", "createdAt"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$approvalId": {
+        ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
+        ".write": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
+        ".validate": "newData.hasChildren(['studentId', 'studentName', 'studentEmail', 'gradeLevel', 'status', 'createdAt'])"
+      }
     }
   }
 }

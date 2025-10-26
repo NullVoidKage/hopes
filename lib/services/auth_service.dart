@@ -242,6 +242,49 @@ class AuthService {
     }
   }
 
+  // Get all users from Firestore with their names, emails, and nicknames
+  Future<List<Map<String, dynamic>>> getAllUsersInfo() async {
+    try {
+      print('🔍 FIRESTORE DEBUG: Fetching all users from Firestore...');
+      
+      final snapshot = await firestore.FirebaseFirestore.instance
+          .collection('users')
+          .get();
+
+      final List<Map<String, dynamic>> usersInfo = [];
+      
+      print('🔍 FIRESTORE DEBUG: Found ${snapshot.docs.length} users in Firestore');
+      
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final userInfo = {
+          'uid': doc.id,
+          'email': data['email'] ?? 'No email',
+          'displayName': data['displayName'] ?? 'No display name',
+          'role': data['role'] ?? 'unknown',
+          'grade': data['grade'] ?? 'No grade',
+          'createdAt': data['createdAt'] != null 
+              ? (data['createdAt'] as firestore.Timestamp).toDate().toString()
+              : 'Unknown',
+          'lastLogin': data['lastLogin'] != null 
+              ? (data['lastLogin'] as firestore.Timestamp).toDate().toString()
+              : 'Unknown',
+        };
+        
+        usersInfo.add(userInfo);
+        
+        print('👤 FIRESTORE DEBUG: User - UID: ${doc.id}, Email: ${data['email']}, DisplayName: ${data['displayName']}, Role: ${data['role']}');
+      }
+      
+      print('✅ FIRESTORE DEBUG: Successfully retrieved ${usersInfo.length} users');
+      return usersInfo;
+      
+    } catch (e) {
+      print('❌ FIRESTORE DEBUG: Error fetching users: $e');
+      return [];
+    }
+  }
+
   // Cache user profile locally
   Future<void> _cacheUserProfileLocally(UserModel user) async {
     try {

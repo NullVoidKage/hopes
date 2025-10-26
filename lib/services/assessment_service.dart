@@ -1,4 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/assessment.dart';
 import '../models/assessment_submission.dart';
 import '../models/user_model.dart';
@@ -483,8 +484,28 @@ class AssessmentService {
       UserModel? studentProfile;
       try {
         studentProfile = await _authService.getUserProfile(currentStudentId);
+        print('📝 ASSESSMENT DEBUG: Student profile loaded - displayName: ${studentProfile?.displayName}');
       } catch (e) {
+        print('⚠️ ASSESSMENT DEBUG: Failed to load student profile: $e');
       }
+
+      // Determine student name with logging
+      String finalStudentName;
+      if (studentProfile?.displayName?.isNotEmpty == true) {
+        finalStudentName = studentProfile!.displayName;
+        print('✅ ASSESSMENT DEBUG: Using profile displayName: $finalStudentName');
+      } else if (FirebaseAuth.instance.currentUser?.displayName?.isNotEmpty == true) {
+        finalStudentName = FirebaseAuth.instance.currentUser!.displayName!;
+        print('✅ ASSESSMENT DEBUG: Using Firebase displayName: $finalStudentName');
+      } else if (FirebaseAuth.instance.currentUser?.email?.isNotEmpty == true) {
+        finalStudentName = FirebaseAuth.instance.currentUser!.email!.split('@').first;
+        print('✅ ASSESSMENT DEBUG: Using email prefix: $finalStudentName');
+      } else {
+        finalStudentName = 'Student';
+        print('⚠️ ASSESSMENT DEBUG: Using default name: $finalStudentName');
+      }
+
+      print('📝 ASSESSMENT DEBUG: Final student name for submission: $finalStudentName');
 
       final submissionData = {
         'assessmentId': assessmentId,
@@ -492,7 +513,7 @@ class AssessmentService {
         'teacherId': teacherId, // Include teacherId for security rules
         
         // Enhanced Student Information from Firestore
-        'studentName': studentProfile?.displayName ?? 'Unknown Student',
+        'studentName': finalStudentName,
         'studentEmail': studentProfile?.email ?? '',
         'studentGrade': studentProfile?.grade ?? 'Grade 7',
         'studentSection': 'Section A', // Default section since UserModel doesn't have this field

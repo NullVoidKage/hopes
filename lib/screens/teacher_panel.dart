@@ -3,17 +3,13 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/teacher_dashboard_service.dart';
-import '../services/offline_service.dart';
-import '../widgets/offline_indicator.dart';
 import '../widgets/safe_network_image.dart';
 import 'lesson_upload_screen.dart';
 import 'lesson_library_screen.dart';
-import 'assessment_creation_screen.dart';
 import 'assessment_management_screen.dart';
 import 'monitor_progress_screen.dart';
 import 'student_management_screen.dart';
 import 'offline_settings_screen.dart';
-import 'learning_path_creation_screen.dart';
 import 'learning_path_management_screen.dart';
 import 'learning_path_assignment_screen.dart';
 import 'learning_path_overview_screen.dart';
@@ -1323,6 +1319,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
       ),
     );
   }
+
 
   void _navigateToLeaderboard() {
     Navigator.push(

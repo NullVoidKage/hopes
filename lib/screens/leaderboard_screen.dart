@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/achievements.dart';
 import '../services/achievements_service.dart';
-import '../services/student_service.dart';
-import '../services/offline_service.dart';
 import '../widgets/enhanced_badge_card.dart';
 
 class LeaderboardScreen extends StatefulWidget {
@@ -15,7 +13,6 @@ class LeaderboardScreen extends StatefulWidget {
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final AchievementsService _achievementsService = AchievementsService();
-  final StudentService _studentService = StudentService();
   
   List<LeaderboardEntry> _leaderboard = [];
   List<Achievement> _achievements = [];
@@ -58,6 +55,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           _hasTriedCreatingSampleData = true;
           try {
             await _achievementsService.updateLeaderboardForExistingSubmissions();
+            await _achievementsService.updateLeaderboardStudentNames(); // Update names
             final updatedLeaderboard = await _achievementsService.getLeaderboard(limit: 100);
             setState(() {
               _leaderboard = updatedLeaderboard;
@@ -100,11 +98,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Leaderboard'),
-        backgroundColor: const Color(0xFF007AFF),
-        foregroundColor: Colors.white,
-      ),
+        appBar: AppBar(
+          title: const Text('Leaderboard'),
+          backgroundColor: const Color(0xFF007AFF),
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _refreshLeaderboard,
+              tooltip: 'Refresh Leaderboard',
+            ),
+          ],
+        ),
       body: _buildLeaderboardTab(),
     );
   }
@@ -809,6 +814,43 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _refreshLeaderboard() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // First update the assessment submissions with better names
+      await _achievementsService.updateAssessmentSubmissionNames();
+      
+      // Force update leaderboard and names
+      await _achievementsService.updateLeaderboardForExistingSubmissions();
+      
+      await _achievementsService.updateLeaderboardStudentNames();
+      
+      // Reload data
+      await _loadData();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Leaderboard refreshed successfully!'),
+            backgroundColor: Color(0xFF34C759),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh leaderboard: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
 }
