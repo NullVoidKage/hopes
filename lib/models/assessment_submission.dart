@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DetailedAnswer {
   final String answer;
@@ -159,11 +158,23 @@ class AssessmentSubmission {
     // Parse detailed answers if available
     final detailedAnswers = _parseDetailedAnswers(data['detailedAnswers']);
     
-    // Calculate performance metrics
-    final totalQuestions = detailedAnswers.length;
-    final correctAnswers = detailedAnswers.values.where((a) => a.isCorrect).length;
-    final incorrectAnswers = detailedAnswers.values.where((a) => !a.isCorrect).length;
-    final accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0.0;
+    // Get totalQuestions from stored data, fallback to detailedAnswers length
+    final storedTotalQuestions = _safeInt(data['totalQuestions']);
+    final totalQuestions = storedTotalQuestions > 0 ? storedTotalQuestions : detailedAnswers.length;
+    
+    // Get stored counts if available, otherwise calculate from detailedAnswers
+    final storedCorrectAnswers = _safeInt(data['correctAnswers']);
+    final storedIncorrectAnswers = _safeInt(data['incorrectAnswers']);
+    final storedUnansweredQuestions = _safeInt(data['unansweredQuestions']);
+    
+    final correctAnswers = storedCorrectAnswers > 0 ? storedCorrectAnswers : detailedAnswers.values.where((a) => a.isCorrect).length;
+    final incorrectAnswers = storedIncorrectAnswers > 0 ? storedIncorrectAnswers : detailedAnswers.values.where((a) => !a.isCorrect).length;
+    final unansweredQuestions = storedUnansweredQuestions > 0 ? storedUnansweredQuestions : (totalQuestions - correctAnswers - incorrectAnswers);
+    
+    // Use stored accuracy if available, otherwise calculate from detailedAnswers
+    final storedAccuracy = _safeDouble(data['accuracy']);
+    final accuracy = storedAccuracy > 0 ? storedAccuracy : (totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0.0);
+    
     final averageTimePerQuestion = totalQuestions > 0 ? (_safeInt(data['timeSpent']) / totalQuestions) : 0.0;
     
     return AssessmentSubmission(
@@ -195,7 +206,7 @@ class AssessmentSubmission {
       accuracy: accuracy,
       correctAnswers: correctAnswers,
       incorrectAnswers: incorrectAnswers,
-      unansweredQuestions: 0, // Will be calculated if needed
+      unansweredQuestions: unansweredQuestions,
       
       // Timing and Context
       submittedAt: DateTime.fromMillisecondsSinceEpoch(_safeInt(data['submittedAt'])),
@@ -235,6 +246,14 @@ class AssessmentSubmission {
     if (value is String) return value.toLowerCase() == 'true';
     if (value is int) return value != 0;
     return false;
+  }
+
+  static double _safeDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   // Parse answers from Firebase data (handles both Map and List structures)

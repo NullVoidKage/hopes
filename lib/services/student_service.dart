@@ -46,6 +46,15 @@ class StudentService {
             entryData,
             entry.key.toString(),
           );
+          
+          // Apply the same name correction logic for Realtime Database students
+          if (student.name == 'User' || student.name == 'Nicko Zenin' || student.name.isEmpty) {
+            final emailPrefix = student.email.split('@').first;
+            if (emailPrefix.isNotEmpty) {
+              return student.copyWith(name: emailPrefix);
+            }
+          }
+          
           return student;
         } catch (e) {
           return null;
@@ -86,10 +95,21 @@ class StudentService {
           // Convert Firestore data to Student model
           final subjects = (data['subjects'] as List<dynamic>?)?.cast<String>() ?? [];
           
+          // Get better student name - try multiple sources
+          String studentName = 'Student';
+          final displayName = data['displayName'] as String?;
+          final email = data['email'] as String?;
+          
+          if (displayName?.isNotEmpty == true && displayName != 'User' && displayName != 'Nicko Zenin') {
+            studentName = displayName!;
+          } else if (email?.isNotEmpty == true) {
+            studentName = email!.split('@').first;
+          }
+
           final student = Student(
             id: doc.id,
-            name: data['displayName'] ?? 'Unknown',
-            email: data['email'] ?? '',
+            name: studentName,
+            email: email ?? '',
             grade: data['grade'] ?? 'Grade 7',
             section: 'A', // Default section
             subjects: subjects,
@@ -189,10 +209,20 @@ class StudentService {
       if (data == null) return null;
       
       try {
-        return Student.fromRealtimeDatabase(
+        final student = Student.fromRealtimeDatabase(
           Map<String, dynamic>.from(data),
           studentId,
         );
+        
+        // Apply the same name correction logic
+        if (student.name == 'User' || student.name == 'Nicko Zenin' || student.name.isEmpty) {
+          final emailPrefix = student.email.split('@').first;
+          if (emailPrefix.isNotEmpty) {
+            return student.copyWith(name: emailPrefix);
+          }
+        }
+        
+        return student;
       } catch (e) {
         return null;
       }

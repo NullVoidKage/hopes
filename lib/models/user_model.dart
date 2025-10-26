@@ -61,10 +61,21 @@ class UserModel {
 
   // Create from Firestore document
   factory UserModel.fromFirestore(Map<String, dynamic> data, String uid) {
+    // Get better display name - try multiple sources
+    String displayName = 'User';
+    final rawDisplayName = data['displayName'] as String?;
+    final email = data['email'] as String?;
+    
+    if (rawDisplayName?.isNotEmpty == true && rawDisplayName != 'User' && rawDisplayName != 'Nicko Zenin') {
+      displayName = rawDisplayName!;
+    } else if (email?.isNotEmpty == true) {
+      displayName = email!.split('@').first;
+    }
+
     return UserModel(
       uid: uid,
-      email: data['email'] ?? '',
-      displayName: data['displayName'] ?? '',
+      email: email ?? '',
+      displayName: displayName,
       photoURL: data['photoURL'],
       role: UserRole.values.firstWhere(
         (e) => e.toString().split('.').last == data['role'],

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/student_progress.dart';
 import '../models/assessment_submission.dart';
 import '../services/progress_service.dart';
 import '../services/submission_service.dart';
-import '../services/connectivity_service.dart';
 import '../widgets/offline_indicator.dart';
 
 class StudentProgressDetailScreen extends StatefulWidget {
@@ -26,7 +24,6 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
     with TickerProviderStateMixin {
   final ProgressService _progressService = ProgressService();
   final SubmissionService _submissionService = SubmissionService();
-  final ConnectivityService _connectivityService = ConnectivityService();
 
   late TabController _tabController;
   
@@ -800,7 +797,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Completed ${submission.assessmentTitle ?? 'Assessment'}',
+                  'Completed ${submission.assessmentTitle}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -808,7 +805,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
                   ),
                 ),
                 Text(
-                  'Score: ${submission.score}% • ${submission.assessmentSubject ?? 'Subject'}',
+                  'Score: ${submission.score}% • ${submission.assessmentSubject}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF86868B),
@@ -1036,7 +1033,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      submission.assessmentTitle ?? 'Assessment',
+                      submission.assessmentTitle,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -1045,7 +1042,7 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      submission.assessmentSubject ?? 'Subject',
+                      submission.assessmentSubject,
                       style: TextStyle(
                         fontSize: 14,
                         color: const Color(0xFF86868B),
@@ -1074,11 +1071,11 @@ class _StudentProgressDetailScreenState extends State<StudentProgressDetailScree
           const SizedBox(height: 20),
           Row(
             children: [
-              _buildAssessmentMetric('Questions', '${submission.totalQuestions ?? 0}'),
+              _buildAssessmentMetric('Questions', '${submission.totalQuestions > 0 ? submission.totalQuestions : submission.detailedAnswers.length}'),
               const SizedBox(width: 32),
               _buildAssessmentMetric('Time Spent', '${submission.timeSpent}s'),
               const SizedBox(width: 32),
-              _buildAssessmentMetric('Accuracy', '${submission.accuracy?.round() ?? 0}%'),
+              _buildAssessmentMetric('Accuracy', '${submission.accuracy > 0 ? submission.accuracy.round() : 0}%'),
             ],
           ),
           const SizedBox(height: 16),

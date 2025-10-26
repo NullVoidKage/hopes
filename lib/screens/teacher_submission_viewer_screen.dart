@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
 import '../models/assessment_submission.dart';
 import '../models/assessment.dart';
 import '../services/submission_service.dart';
@@ -91,100 +90,6 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
     });
   }
 
-  // Create sample submissions for testing
-  Future<void> _createSampleSubmissions() async {
-    try {
-      setState(() => _isLoading = true);
-      
-      // Create sample submissions in the assessment_submissions collection
-      final submissionsRef = FirebaseDatabase.instance.ref('assessment_submissions');
-      
-      final sampleSubmissions = [
-        {
-          'id': 'sample_submission_1',
-          'studentId': 'student_1',
-          'studentName': 'John Doe',
-          'teacherId': widget.teacherId,
-          'assessmentId': 'assessment_1',
-          'assessmentTitle': 'Mathematics Quiz - Algebra',
-          'assessmentSubject': 'Mathematics',
-          'score': 85,
-          'totalQuestions': 10,
-          'correctAnswers': 8,
-          'incorrectAnswers': 2,
-          'unansweredQuestions': 0,
-          'timeSpent': 1200,
-          'submittedAt': DateTime.now().subtract(const Duration(hours: 2)).millisecondsSinceEpoch,
-          'isGraded': true,
-          'gradedAt': DateTime.now().subtract(const Duration(hours: 1)).millisecondsSinceEpoch,
-          'accuracy': 85.0,
-        },
-        {
-          'id': 'sample_submission_2',
-          'studentId': 'student_2',
-          'studentName': 'Jane Smith',
-          'teacherId': widget.teacherId,
-          'assessmentId': 'assessment_2',
-          'assessmentTitle': 'Science Test - Biology',
-          'assessmentSubject': 'Science',
-          'score': 92,
-          'totalQuestions': 15,
-          'correctAnswers': 14,
-          'incorrectAnswers': 1,
-          'unansweredQuestions': 0,
-          'timeSpent': 1800,
-          'submittedAt': DateTime.now().subtract(const Duration(hours: 4)).millisecondsSinceEpoch,
-          'isGraded': true,
-          'gradedAt': DateTime.now().subtract(const Duration(hours: 3)).millisecondsSinceEpoch,
-          'accuracy': 92.0,
-        },
-        {
-          'id': 'sample_submission_3',
-          'studentId': 'student_3',
-          'studentName': 'Mike Johnson',
-          'teacherId': widget.teacherId,
-          'assessmentId': 'assessment_3',
-          'assessmentTitle': 'English Grammar Quiz',
-          'assessmentSubject': 'English',
-          'score': 78,
-          'totalQuestions': 12,
-          'correctAnswers': 9,
-          'incorrectAnswers': 3,
-          'unansweredQuestions': 0,
-          'timeSpent': 900,
-          'submittedAt': DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
-          'isGraded': false,
-          'gradedAt': null,
-          'accuracy': 78.0,
-        },
-      ];
-      
-      for (final submission in sampleSubmissions) {
-        await submissionsRef.push().set(submission);
-      }
-      
-      // Reload submissions after creating sample data
-      await _loadSubmissions();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sample submissions created successfully!'),
-            backgroundColor: Color(0xFF34C759),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating sample submissions: $e'),
-            backgroundColor: Color(0xFFFF3B30),
-          ),
-        );
-      }
-    }
-  }
 
   List<AssessmentSubmission> get _filteredSubmissions {
     List<AssessmentSubmission> filtered = _submissions;
@@ -251,11 +156,6 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.add_chart_rounded, color: const Color(0xFF34C759)),
-            onPressed: () => _createSampleSubmissions(),
-            tooltip: 'Create Sample Submissions',
-          ),
           IconButton(
             icon: Icon(Icons.refresh, color: const Color(0xFF007AFF)),
             onPressed: _isRefreshing ? null : _refreshSubmissions,

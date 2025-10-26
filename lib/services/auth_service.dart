@@ -20,7 +20,6 @@ class AuthService {
     ],
   );
   final ConnectivityService _connectivityService = ConnectivityService();
-  final OfflineService _offlineService = OfflineService();
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -245,15 +244,11 @@ class AuthService {
   // Get all users from Firestore with their names, emails, and nicknames
   Future<List<Map<String, dynamic>>> getAllUsersInfo() async {
     try {
-      print('🔍 FIRESTORE DEBUG: Fetching all users from Firestore...');
-      
       final snapshot = await firestore.FirebaseFirestore.instance
           .collection('users')
           .get();
 
       final List<Map<String, dynamic>> usersInfo = [];
-      
-      print('🔍 FIRESTORE DEBUG: Found ${snapshot.docs.length} users in Firestore');
       
       for (final doc in snapshot.docs) {
         final data = doc.data();
@@ -272,15 +267,10 @@ class AuthService {
         };
         
         usersInfo.add(userInfo);
-        
-        print('👤 FIRESTORE DEBUG: User - UID: ${doc.id}, Email: ${data['email']}, DisplayName: ${data['displayName']}, Role: ${data['role']}');
       }
       
-      print('✅ FIRESTORE DEBUG: Successfully retrieved ${usersInfo.length} users');
       return usersInfo;
-      
     } catch (e) {
-      print('❌ FIRESTORE DEBUG: Error fetching users: $e');
       return [];
     }
   }
