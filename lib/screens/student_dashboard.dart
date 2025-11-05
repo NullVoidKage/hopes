@@ -22,6 +22,7 @@ import 'student_profile_edit_screen.dart';
 import 'student_settings_screen.dart';
 import 'badges_screen.dart';
 import 'leaderboard_screen.dart';
+import 'student_feedback_view.dart';
 
 // Helper class to track assessment submission status
 class AssessmentWithSubmissionStatus {
@@ -312,6 +313,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 
                 const SizedBox(height: 30),
                 
+                // Subjects Section
+                _buildSubjectsSection(),
+                
+                const SizedBox(height: 30),
+                
                 // Recent Progress
                 _buildRecentProgress(),
                 
@@ -447,6 +453,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
               Icons.workspace_premium,
               'View your achievements',
               () => _navigateToBadges(),
+            ),
+            _buildActionCard(
+              'Feedback',
+              Icons.feedback,
+              'View teacher feedback',
+              () => _navigateToFeedback(),
             ),
           ],
         ),
@@ -612,6 +624,133 @@ class _StudentDashboardState extends State<StudentDashboard> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubjectsSection() {
+    final subjects = _userProfile?.subjects ?? [];
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFFE5E5E7),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.subject_rounded,
+                color: Color(0xFF00D4FF),
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'My Subjects',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (subjects.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.subject_outlined,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No subjects enrolled',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Column(
+              children: subjects.asMap().entries.map((entry) {
+                final index = entry.key;
+                final subject = entry.value;
+                final isLast = index == subjects.length - 1;
+                
+                return Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00D4FF).withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF00D4FF).withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.book_outlined,
+                              color: Color(0xFF00D4FF),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              subject,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1D1D1F),
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Color(0xFF86868B),
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!isLast) const SizedBox(height: 12),
+                  ],
+                );
+              }).toList(),
+            ),
         ],
       ),
     );
@@ -1537,6 +1676,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
       context,
       MaterialPageRoute(
         builder: (context) => const BadgesScreen(),
+      ),
+    );
+  }
+
+  void _navigateToFeedback() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const StudentFeedbackView(),
       ),
     );
   }

@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/assessment.dart';
 import '../models/assessment_submission.dart';
 import '../services/assessment_service.dart';
@@ -8,6 +13,7 @@ import '../services/submission_service.dart';
 import '../services/auth_service.dart';
 import '../services/achievements_service.dart';
 import '../widgets/badge_celebration.dart';
+import 'assessment_result_screen.dart';
 
 class StudentAssessmentTakerScreen extends StatefulWidget {
   final Assessment assessment;
@@ -46,22 +52,48 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   
   List<AssessmentQuestion> _questions = [];
   Map<int, String> _answers = {};
+  Map<int, String?> _answerImages = {}; // Image URLs for answers
+  Map<int, XFile?> _selectedImageFiles = {}; // Selected image files
   bool _isLoading = true;
   bool _isSubmitting = false;
   int _currentQuestionIndex = 0;
   late DateTime _startTime;
+  Timer? _durationTimer;
+  Duration _elapsedTime = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     _loadAssessment();
     _startTime = DateTime.now();
+    _startDurationTimer();
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Timer removed - no time limit for assessments
+  void dispose() {
+    _durationTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startDurationTimer() {
+    _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _elapsedTime = DateTime.now().difference(_startTime);
+        });
+      }
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    if (duration.inHours > 0) {
+      return '$hours:$minutes:$seconds';
+    }
+    return '$minutes:$seconds';
   }
 
   Future<void> _loadAssessment() async {
@@ -317,20 +349,39 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
               case QuestionType.trueFalse:
                 correctAnswer = question.correctAnswer ?? 'True';
                 isCorrect = answer.toLowerCase() == correctAnswer.toLowerCase();
-                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
+                // Use optionPoints if available, otherwise default to 10 for correct, 2 for incorrect
+                if (question.optionPoints.isNotEmpty) {
+                  final answerKey = answer.toLowerCase();
+                  points = question.optionPoints[answerKey] ?? 
+                           question.optionPoints[answer] ?? 
+                           (isCorrect ? question.points : 2);
+                } else {
+                  points = isCorrect ? question.points : 2; // Give 2 points for attempting
+                }
                 break;
               case QuestionType.multipleChoice:
                 correctAnswer = question.correctAnswer ?? 'A';
                 isCorrect = answer == correctAnswer;
-                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
+                // Use optionPoints if available, otherwise default to points for correct, 2 for incorrect
+                if (question.optionPoints.isNotEmpty) {
+                  points = question.optionPoints[answer] ?? 
+                           (isCorrect ? question.points : 2);
+                } else {
+                  points = isCorrect ? question.points : 2; // Give 2 points for attempting
+                }
                 break;
               case QuestionType.shortAnswer:
-              case QuestionType.essay:
               case QuestionType.fillInTheBlank:
                 // For subjective questions, give partial credit
-                points = 5; // Base points for attempting
+                points = question.points ~/ 2; // Base points for attempting (half of question points)
                 isCorrect = true; // Will be reviewed by teacher
                 correctAnswer = 'Teacher Review Required';
+                break;
+              case QuestionType.essay:
+                // Essay questions are EXCLUDED from auto-grading and require manual teacher review
+                points = 0; // No automatic points - teacher will assign manually
+                isCorrect = false; // Mark as needing review
+                correctAnswer = 'Essay - Manual Grading Required';
                 break;
             }
             
@@ -366,7 +417,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           assessmentType: 'Quiz', // TODO: Get from assessment
           assessmentGradeLevel: 'Grade 7', // TODO: Get from assessment
           totalQuestions: _questions.length,
-          maxPossibleScore: _questions.length * 10, // Assuming 10 points per question
+          maxPossibleScore: _questions.fold<int>(0, (sum, q) => sum + q.points), // Sum of all question points
           accuracy: accuracy,
           correctAnswers: correctAnswers,
           incorrectAnswers: incorrectAnswers,
@@ -398,20 +449,39 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
               case QuestionType.trueFalse:
                 correctAnswer = question.correctAnswer ?? 'True';
                 isCorrect = answer.toLowerCase() == correctAnswer.toLowerCase();
-                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
+                // Use optionPoints if available, otherwise default to 10 for correct, 2 for incorrect
+                if (question.optionPoints.isNotEmpty) {
+                  final answerKey = answer.toLowerCase();
+                  points = question.optionPoints[answerKey] ?? 
+                           question.optionPoints[answer] ?? 
+                           (isCorrect ? question.points : 2);
+                } else {
+                  points = isCorrect ? question.points : 2; // Give 2 points for attempting
+                }
                 break;
               case QuestionType.multipleChoice:
                 correctAnswer = question.correctAnswer ?? 'A';
                 isCorrect = answer == correctAnswer;
-                points = isCorrect ? 10 : 2; // Give 2 points for attempting, 10 for correct
+                // Use optionPoints if available, otherwise default to points for correct, 2 for incorrect
+                if (question.optionPoints.isNotEmpty) {
+                  points = question.optionPoints[answer] ?? 
+                           (isCorrect ? question.points : 2);
+                } else {
+                  points = isCorrect ? question.points : 2; // Give 2 points for attempting
+                }
                 break;
               case QuestionType.shortAnswer:
-              case QuestionType.essay:
               case QuestionType.fillInTheBlank:
                 // For subjective questions, give partial credit
-                points = 5; // Base points for attempting
+                points = question.points ~/ 2; // Base points for attempting (half of question points)
                 isCorrect = true; // Will be reviewed by teacher
                 correctAnswer = 'Teacher Review Required';
+                break;
+              case QuestionType.essay:
+                // Essay questions are EXCLUDED from auto-grading and require manual teacher review
+                points = 0; // No automatic points - teacher will assign manually
+                isCorrect = false; // Mark as needing review
+                correctAnswer = 'Essay - Manual Grading Required';
                 break;
             }
             
@@ -419,7 +489,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
             if (isCorrect) correctAnswers++;
             else incorrectAnswers++;
 
-            // Create detailed answer
+            // Create detailed answer with image URL if available
             detailedAnswers[i] = DetailedAnswer(
               answer: answer,
               correctAnswer: correctAnswer,
@@ -428,6 +498,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
               questionType: _getQuestionTypeDisplayName(question.type),
               timeSpent: DateTime.now().difference(_startTime).inSeconds ~/ _questions.length,
               explanation: question.explanation,
+              imageUrl: _answerImages[i],
             );
           }
         }
@@ -459,14 +530,37 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isOnline ? 'Assessment submitted successfully!' : 'Assessment saved for submission when online'),
-            backgroundColor: const Color(0xFF34C759),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        // Get the submitted submission to show results
+        final submissionService = SubmissionService();
+        final currentStudentId = _getCurrentStudentId();
+        
+        try {
+          // Get the latest submission
+          final submissions = await submissionService.getStudentSubmissions(currentStudentId);
+          final latestSubmission = submissions.firstWhere(
+            (s) => s.assessmentId == widget.assessment.id,
+            orElse: () => submissions.isNotEmpty ? submissions.first : throw Exception('Submission not found'),
+          );
+          
+          // Navigate to result page
+          _durationTimer?.cancel();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => AssessmentResultScreen(submission: latestSubmission),
+            ),
+          );
+        } catch (e) {
+          // If we can't get submission, just pop and show success
+          _durationTimer?.cancel();
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isOnline ? 'Assessment submitted successfully!' : 'Assessment saved for submission when online'),
+              backgroundColor: const Color(0xFF34C759),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
         
         // Check for new achievements and show celebration
         await _checkAndShowCelebration();
@@ -593,7 +687,37 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           ),
         ) : null,
         actions: [
-          // Timer removed - no time limit for assessments
+          // Duration display at top right
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF007AFF).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF007AFF).withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.access_time,
+                  size: 16,
+                  color: Color(0xFF007AFF),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _formatDuration(_elapsedTime),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF007AFF),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
       body: Column(
@@ -1149,59 +1273,217 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   }
 
   Widget _buildShortAnswerInput() {
-    return TextFormField(
-      maxLines: 3,
-      decoration: InputDecoration(
-        hintText: 'Type your answer here...',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE5E5E7)),
+    return Column(
+      children: [
+        TextFormField(
+          maxLines: 3,
+          controller: TextEditingController(text: _answers[_currentQuestionIndex] ?? ''),
+          decoration: InputDecoration(
+            hintText: 'Type your answer here...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E5E7)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF007AFF), width: 2),
+            ),
+            contentPadding: const EdgeInsets.all(16),
+          ),
+          onChanged: (value) => _selectAnswer(_currentQuestionIndex, value),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF007AFF), width: 2),
-        ),
-        contentPadding: const EdgeInsets.all(16),
-      ),
-      onChanged: (value) => _selectAnswer(_currentQuestionIndex, value),
+        const SizedBox(height: 12),
+        _buildImageUploadSection(),
+      ],
     );
   }
 
   Widget _buildEssayInput() {
-    return TextFormField(
-      maxLines: 8,
-      decoration: InputDecoration(
-        hintText: 'Write your essay here...',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE5E5E7)),
+    return Column(
+      children: [
+        TextFormField(
+          maxLines: 8,
+          controller: TextEditingController(text: _answers[_currentQuestionIndex] ?? ''),
+          decoration: InputDecoration(
+            hintText: 'Write your essay here...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E5E7)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF007AFF), width: 2),
+            ),
+            contentPadding: const EdgeInsets.all(16),
+          ),
+          onChanged: (value) => _selectAnswer(_currentQuestionIndex, value),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF007AFF), width: 2),
-        ),
-        contentPadding: const EdgeInsets.all(16),
-      ),
-      onChanged: (value) => _selectAnswer(_currentQuestionIndex, value),
+        const SizedBox(height: 12),
+        _buildImageUploadSection(),
+      ],
     );
   }
 
   Widget _buildFillInTheBlankInput() {
-    return TextFormField(
-      decoration: InputDecoration(
-        hintText: 'Fill in the blank...',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE5E5E7)),
+    return Column(
+      children: [
+        TextFormField(
+          controller: TextEditingController(text: _answers[_currentQuestionIndex] ?? ''),
+          decoration: InputDecoration(
+            hintText: 'Fill in the blank...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E5E7)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF007AFF), width: 2),
+            ),
+            contentPadding: const EdgeInsets.all(16),
+          ),
+          onChanged: (value) => _selectAnswer(_currentQuestionIndex, value),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF007AFF), width: 2),
-        ),
-        contentPadding: const EdgeInsets.all(16),
-      ),
-      onChanged: (value) => _selectAnswer(_currentQuestionIndex, value),
+        const SizedBox(height: 12),
+        _buildImageUploadSection(),
+      ],
     );
+  }
+
+  Widget _buildImageUploadSection() {
+    final hasImage = _answerImages[_currentQuestionIndex] != null;
+    final selectedFile = _selectedImageFiles[_currentQuestionIndex];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.image, size: 20),
+                label: const Text('Upload Image'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF007AFF),
+                  side: const BorderSide(color: Color(0xFF007AFF)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            if (hasImage || selectedFile != null) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _removeImage,
+                icon: const Icon(Icons.delete, color: Color(0xFFFF3B30)),
+                tooltip: 'Remove image',
+              ),
+            ],
+          ],
+        ),
+        if (hasImage && _answerImages[_currentQuestionIndex] != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E5E7)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: kIsWeb
+                  ? Image.network(_answerImages[_currentQuestionIndex]!)
+                  : Image.network(_answerImages[_currentQuestionIndex]!),
+            ),
+          ),
+        ] else if (selectedFile != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E5E7)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: FutureBuilder<Uint8List>(
+                future: selectedFile.readAsBytes(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+                    return Image.memory(snapshot.data!);
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                },
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image != null && mounted) {
+        setState(() {
+          _selectedImageFiles[_currentQuestionIndex] = image;
+        });
+        // Upload image immediately
+        await _uploadAnswerImage(image);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: ${e.toString()}'),
+            backgroundColor: const Color(0xFFFF3B30),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadAnswerImage(XFile imageFile) async {
+    try {
+      final storage = FirebaseStorage.instance;
+      final studentId = _getCurrentStudentId();
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
+      final ref = storage.ref().child('assessment_answers/$studentId/$fileName');
+
+      // Read image data - works on all platforms
+      final Uint8List imageData = await imageFile.readAsBytes();
+
+      final uploadTask = ref.putData(imageData);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      if (mounted) {
+        setState(() {
+          _answerImages[_currentQuestionIndex] = downloadUrl;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading image: ${e.toString()}'),
+            backgroundColor: const Color(0xFFFF3B30),
+          ),
+        );
+      }
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selectedImageFiles.remove(_currentQuestionIndex);
+      _answerImages.remove(_currentQuestionIndex);
+    });
   }
 
   Widget _buildAnswerOption(String option, int index) {

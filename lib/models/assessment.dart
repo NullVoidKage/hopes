@@ -14,6 +14,8 @@ class Assessment {
   final List<AssessmentQuestion> questions;
   final DateTime? dueDate;
   final String? instructions;
+  final String assessmentType; // Quiz, Activity, Test, Assignment
+  final String? schoolYear; // School year (e.g., "2024-2025")
 
   Assessment({
     required this.id,
@@ -31,6 +33,8 @@ class Assessment {
     this.questions = const [],
     this.dueDate,
     this.instructions,
+    this.assessmentType = 'Quiz',
+    this.schoolYear,
   });
 
   // Create from Realtime Database
@@ -62,6 +66,8 @@ class Assessment {
           ? DateTime.fromMillisecondsSinceEpoch(data['dueDate'] as int)
           : null,
       instructions: data['instructions']?.toString(),
+      assessmentType: data['assessmentType']?.toString() ?? 'Quiz',
+      schoolYear: data['schoolYear']?.toString(),
     );
     
     return assessment;
@@ -118,6 +124,8 @@ class Assessment {
       'questions': questions.map((q) => q.toMap()).toList(),
       'dueDate': dueDate?.millisecondsSinceEpoch,
       'instructions': instructions,
+      'assessmentType': assessmentType,
+      'schoolYear': schoolYear,
     };
   }
 
@@ -138,6 +146,8 @@ class Assessment {
     List<AssessmentQuestion>? questions,
     DateTime? dueDate,
     String? instructions,
+    String? assessmentType,
+    String? schoolYear,
   }) {
     return Assessment(
       id: id ?? this.id,
@@ -155,6 +165,8 @@ class Assessment {
       questions: questions ?? this.questions,
       dueDate: dueDate ?? this.dueDate,
       instructions: instructions ?? this.instructions,
+      assessmentType: assessmentType ?? this.assessmentType,
+      schoolYear: schoolYear ?? this.schoolYear,
     );
   }
 }
@@ -167,6 +179,7 @@ class AssessmentQuestion {
   final List<String> correctAnswers; // For multiple choice/true-false
   final String? correctAnswer; // For single answer questions
   final int points;
+  final Map<String, int> optionPoints; // Points for each option (e.g., {"A": 10, "B": 5, "C": 0})
   final String? explanation;
   final bool showCorrectAnswer; // Whether to show correct answer to students
 
@@ -178,6 +191,7 @@ class AssessmentQuestion {
     this.correctAnswers = const [],
     this.correctAnswer,
     this.points = 10,
+    this.optionPoints = const {}, // Points for each option
     this.explanation,
     this.showCorrectAnswer = false, // Default to hidden
   });
@@ -197,6 +211,17 @@ class AssessmentQuestion {
       parsedType = QuestionType.multipleChoice;
     }
     
+    // Parse option points if available
+    Map<String, int> parsedOptionPoints = {};
+    if (data['optionPoints'] != null && data['optionPoints'] is Map) {
+      (data['optionPoints'] as Map).forEach((key, value) {
+        if (key != null && value != null) {
+          final intValue = value is int ? value : (int.tryParse(value.toString()) ?? 0);
+          parsedOptionPoints[key.toString()] = intValue;
+        }
+      });
+    }
+    
     final question = AssessmentQuestion(
       id: data['id']?.toString() ?? '',
       question: data['question']?.toString() ?? '',
@@ -209,6 +234,7 @@ class AssessmentQuestion {
           : [],
       correctAnswer: data['correctAnswer']?.toString(),
       points: data['points'] as int? ?? 10,
+      optionPoints: parsedOptionPoints,
       explanation: data['explanation']?.toString(),
       showCorrectAnswer: data['showCorrectAnswer'] as bool? ?? false,
     );
@@ -226,6 +252,7 @@ class AssessmentQuestion {
       'correctAnswers': correctAnswers,
       'correctAnswer': correctAnswer,
       'points': points,
+      'optionPoints': optionPoints,
       'explanation': explanation,
       'showCorrectAnswer': showCorrectAnswer,
     };
@@ -240,6 +267,7 @@ class AssessmentQuestion {
     List<String>? correctAnswers,
     String? correctAnswer,
     int? points,
+    Map<String, int>? optionPoints,
     String? explanation,
     bool? showCorrectAnswer,
   }) {
@@ -251,6 +279,7 @@ class AssessmentQuestion {
       correctAnswers: correctAnswers ?? this.correctAnswers,
       correctAnswer: correctAnswer ?? this.correctAnswer,
       points: points ?? this.points,
+      optionPoints: optionPoints ?? this.optionPoints,
       explanation: explanation ?? this.explanation,
       showCorrectAnswer: showCorrectAnswer ?? this.showCorrectAnswer,
     );

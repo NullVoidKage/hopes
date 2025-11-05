@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../services/file_download_service.dart';
 import '../services/web_file_handler.dart';
 
 // Conditional import for web vs mobile
 import 'file_preview_web.dart' if (dart.library.io) 'file_preview_mobile.dart' as platform;
+import 'pdf_iframe_viewer_web.dart' if (dart.library.io) 'pdf_iframe_viewer_mobile.dart' as pdf_viewer;
 
 class FilePreviewScreen extends StatelessWidget {
   final String fileUrl;
@@ -80,76 +82,108 @@ class FilePreviewScreen extends StatelessWidget {
   }
 
   Widget _buildPdfPreview(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.picture_as_pdf_rounded,
-            size: 64,
-            color: Color(0xFFFF3B30),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'PDF Preview',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1D1D1F),
+    if (kIsWeb) {
+      // Use embedded iframe for web
+      return _buildWebPdfPreview();
+    } else {
+      // Mobile: show button to open PDF
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.picture_as_pdf_rounded,
+              size: 64,
+              color: Color(0xFFFF3B30),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            kIsWeb 
-              ? 'PDF files will open in a new browser tab'
-              : 'PDF files can be viewed in a new tab',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF86868B),
+            const SizedBox(height: 16),
+            const Text(
+              'PDF Preview',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1D1D1F),
+              ),
             ),
-          ),
-          if (kIsWeb) ...[
             const SizedBox(height: 8),
-            Text(
-              'Using ${WebFileHandler.browserName} browser',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF007AFF),
-                fontStyle: FontStyle.italic,
+            const Text(
+              'PDF files can be viewed in a new tab',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF86868B),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _openPdfInNewTab(context),
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: const Text('Open PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF3B30),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                OutlinedButton.icon(
+                  onPressed: () => _downloadFile(context, fileUrl, fileName),
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text('Download'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF007AFF),
+                    side: const BorderSide(color: Color(0xFF007AFF)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildWebPdfPreview() {
+    return Builder(
+      builder: (context) {
+        // Use embedded iframe for web
+        return Stack(
+          children: [
+            // Embedded PDF iframe
+            SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: kIsWeb
+                  ? pdf_viewer.PdfIframeViewer(
+                      pdfUrl: fileUrl,
+                      fileName: fileName,
+                    )
+                  : const Center(
+                      child: Text('PDF preview only available on web'),
+                    ),
+            ),
+            // Floating action button for download
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: () {
+                  // Download file
+                  _downloadFile(context, fileUrl, fileName);
+                },
+                backgroundColor: const Color(0xFF007AFF),
+                child: const Icon(Icons.download_rounded, color: Colors.white),
+                tooltip: 'Download PDF',
               ),
             ),
           ],
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () => _openPdfInNewTab(context),
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: const Text('Open PDF'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF3B30),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-              ),
-              const SizedBox(width: 16),
-              OutlinedButton.icon(
-                onPressed: () => _downloadFile(context, fileUrl, fileName),
-                icon: const Icon(Icons.download_rounded),
-                label: const Text('Download'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF007AFF),
-                  side: const BorderSide(color: Color(0xFF007AFF)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

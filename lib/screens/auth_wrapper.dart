@@ -6,6 +6,7 @@ import 'signin_screen.dart';
 import 'role_selection_screen.dart';
 import 'student_dashboard.dart';
 import 'teacher_panel.dart';
+import 'admin_dashboard.dart';
 import 'welcome_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
@@ -64,6 +65,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   return const StudentDashboard();
                 } else if (userProfile.isTeacher) {
                   return const TeacherPanel();
+                } else if (userProfile.isAdministrator) {
+                  return const AdminDashboard();
                 } else {
                   // Fallback to sign in for unknown roles
                   return const SignInScreen();

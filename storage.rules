@@ -1,0 +1,35 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Lesson files - teachers can upload, everyone can read if published
+    // Supports PDF, DOCX, DOC, and video files (MP4, MOV, AVI, WEBM)
+    match /lesson_files/{teacherId}/{fileName} {
+      // Teachers can upload their own lesson files (including videos)
+      allow write: if request.auth != null && request.auth.uid == teacherId;
+      // Authenticated users can read lesson files
+      allow read: if request.auth != null;
+    }
+    
+    // Video files for lessons (alternative path)
+    match /lesson_videos/{teacherId}/{fileName} {
+      // Teachers can upload their own video files
+      allow write: if request.auth != null && request.auth.uid == teacherId;
+      // Authenticated users can read video files
+      allow read: if request.auth != null;
+    }
+    
+    // Assessment answer images - students can upload their own, teachers can read
+    match /assessment_answers/{studentId}/{fileName} {
+      // Students can upload images for their own answers
+      allow write: if request.auth != null && request.auth.uid == studentId;
+      // Students can read their own images, teachers can read for grading
+      allow read: if request.auth != null;
+    }
+    
+    // Default: deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

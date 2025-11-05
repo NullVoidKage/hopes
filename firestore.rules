@@ -34,5 +34,70 @@ service cloud.firestore {
     match /teacher_recommendations/{recommendationId} {
       allow read, write: if request.auth != null;
     }
+    
+    // Student feedback collection
+    match /student_feedback/{feedbackId} {
+      // Students can read their own feedback, teachers can read/write
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.studentId || 
+                      request.auth.uid == resource.data.teacherId);
+      allow write: if request.auth != null && 
+                      (request.auth.uid == resource.data.teacherId || 
+                       request.auth.uid == request.resource.data.teacherId);
+    }
+    
+    // Student recommendations collection
+    match /student_recommendations/{recommendationId} {
+      // Students can read their own recommendations, teachers can read/write
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.studentId || 
+                      request.auth.uid == resource.data.teacherId);
+      allow write: if request.auth != null && 
+                      (request.auth.uid == resource.data.teacherId || 
+                       request.auth.uid == request.resource.data.teacherId);
+    }
+    
+    // Classes collection (for section/class management)
+    match /classes/{classId} {
+      // Teachers can read/write their own classes, students can read classes they're enrolled in
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.teacherId || 
+                      resource.data.enrolledStudentIds.hasAny([request.auth.uid]));
+      allow write: if request.auth != null && 
+                      (request.auth.uid == resource.data.teacherId || 
+                       request.auth.uid == request.resource.data.teacherId);
+    }
+    
+    // Class enrollments collection
+    match /class_enrollments/{enrollmentId} {
+      // Students can read their own enrollments, teachers can read/write
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.studentId || 
+                      request.auth.uid == resource.data.teacherId);
+      allow write: if request.auth != null && 
+                      (request.auth.uid == resource.data.teacherId || 
+                       request.auth.uid == request.resource.data.teacherId);
+    }
+    
+    // Lesson progress collection (individual tracking)
+    match /lesson_progress/{progressId} {
+      // Students can read/write their own progress, teachers can read
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.studentId || 
+                      request.auth.uid == resource.data.teacherId);
+      allow write: if request.auth != null && 
+                      request.auth.uid == resource.data.studentId;
+    }
+    
+    // Student ratings collection
+    match /student_ratings/{ratingId} {
+      // Students can read their own ratings, teachers can read/write
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.studentId || 
+                      request.auth.uid == resource.data.teacherId);
+      allow write: if request.auth != null && 
+                      (request.auth.uid == resource.data.teacherId || 
+                       request.auth.uid == request.resource.data.teacherId);
+    }
   }
 }

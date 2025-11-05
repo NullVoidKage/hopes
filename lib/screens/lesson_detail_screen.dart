@@ -1,15 +1,87 @@
 import 'package:flutter/material.dart';
 import '../models/lesson.dart';
 import '../services/file_download_service.dart';
+import '../services/lesson_progress_service.dart';
+import '../services/auth_service.dart';
 import 'file_preview_screen.dart';
 
-class LessonDetailScreen extends StatelessWidget {
+class LessonDetailScreen extends StatefulWidget {
   final Lesson lesson;
 
   const LessonDetailScreen({
     super.key,
     required this.lesson,
   });
+
+  @override
+  State<LessonDetailScreen> createState() => _LessonDetailScreenState();
+}
+
+class _LessonDetailScreenState extends State<LessonDetailScreen> {
+  final LessonProgressService _progressService = LessonProgressService();
+  final AuthService _authService = AuthService();
+  DateTime? _startTime;
+  bool _isTracking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTime = DateTime.now();
+    _trackLessonStart();
+  }
+
+  Future<void> _trackLessonStart() async {
+    if (_isTracking) return;
+    _isTracking = true;
+
+    try {
+      final user = _authService.currentUser;
+      if (user != null) {
+        final userProfile = await _authService.getUserProfile(user.uid);
+        if (userProfile != null && userProfile.role == 'student') {
+          await _progressService.trackLessonStart(
+            studentId: user.uid,
+            studentName: userProfile.displayName ?? 'Student',
+            lessonId: widget.lesson.id,
+            lessonTitle: widget.lesson.title,
+            subject: widget.lesson.subject,
+            teacherId: widget.lesson.teacherId,
+            teacherName: widget.lesson.teacherName,
+          );
+        }
+      }
+    } catch (e) {
+      // Silently fail tracking
+    }
+  }
+
+  Future<void> _updateProgress(double progress) async {
+    try {
+      final user = _authService.currentUser;
+      if (user != null && _startTime != null) {
+        final timeSpent = DateTime.now().difference(_startTime!).inSeconds;
+        
+        await _progressService.updateLessonProgress(
+          studentId: user.uid,
+          lessonId: widget.lesson.id,
+          progressPercentage: progress,
+          timeSpent: timeSpent,
+          isCompleted: progress >= 1.0,
+        );
+      }
+    } catch (e) {
+      // Silently fail tracking
+    }
+  }
+
+  @override
+  void dispose() {
+    // Update progress when leaving
+    if (_startTime != null) {
+      _updateProgress(0.5); // Assume 50% progress if not completed
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +95,13 @@ class LessonDetailScreen extends StatelessWidget {
             Icons.arrow_back_ios_rounded,
             color: Color(0xFF1D1D1F),
           ),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            _updateProgress(1.0); // Mark as completed when leaving
+            Navigator.of(context).pop();
+          },
         ),
         title: Text(
-          lesson.title,
+          widget.lesson.title,
           style: const TextStyle(
             color: Color(0xFF1D1D1F),
             fontWeight: FontWeight.w600,
@@ -60,10 +135,74 @@ class LessonDetailScreen extends StatelessWidget {
               
               // Lesson Metadata Card
               _buildLessonMetadata(),
+              
+              const SizedBox(height: 24),
+              
+              // Complete Lesson Button (for students)
+              _buildCompleteButton(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCompleteButton() {
+    // Only show for students
+    final user = _authService.currentUser;
+    if (user == null) return const SizedBox.shrink();
+    
+    return FutureBuilder(
+      future: _authService.getUserProfile(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data?.role == 'student') {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () async {
+                await _updateProgress(1.0);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Lesson completed!'),
+                      backgroundColor: Color(0xFF34C759),
+                    ),
+                  );
+                  Navigator.of(context).pop();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF34C759),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Mark as Complete',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 
@@ -87,7 +226,7 @@ class LessonDetailScreen extends StatelessWidget {
         children: [
           // Title
           Text(
-            lesson.title,
+            widget.lesson.title,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
@@ -103,10 +242,10 @@ class LessonDetailScreen extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildTag(lesson.subject, const Color(0xFF007AFF)),
+                _buildTag(widget.lesson.subject, const Color(0xFF007AFF)),
                 const SizedBox(width: 12),
                 _buildTag('Grade 7', const Color(0xFF34C759)),
-                if (lesson.isPublished) ...[
+                if (widget.lesson.isPublished) ...[
                   const SizedBox(width: 12),
                   _buildTag('Published', const Color(0xFF34C759)),
                 ] else ...[
@@ -169,13 +308,13 @@ class LessonDetailScreen extends StatelessWidget {
           const SizedBox(height: 20),
           
           // File Information (if available)
-          if (lesson.fileUrl != null && lesson.fileUrl!.isNotEmpty) ...[
+          if (widget.lesson.fileUrl != null && widget.lesson.fileUrl!.isNotEmpty) ...[
             _buildFileSection(),
             const SizedBox(height: 20),
           ],
           
           // Description or Content
-          if (lesson.description != null && lesson.description!.isNotEmpty) ...[
+          if (widget.lesson.description != null && widget.lesson.description!.isNotEmpty) ...[
             const Text(
               'Description',
               style: TextStyle(
@@ -187,7 +326,7 @@ class LessonDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              lesson.description!,
+              widget.lesson.description!,
               style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF1D1D1F),
@@ -208,7 +347,7 @@ class LessonDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            lesson.content,
+            widget.lesson.content,
             style: const TextStyle(
               fontSize: 16,
               color: Color(0xFF1D1D1F),
@@ -221,7 +360,7 @@ class LessonDetailScreen extends StatelessWidget {
   }
 
   Widget _buildFileSection() {
-    final fileName = _getFileNameFromUrl(lesson.fileUrl!);
+    final fileName = _getFileNameFromUrl(widget.lesson.fileUrl!);
     final fileExtension = _getFileExtension(fileName);
     
     return Container(
@@ -299,7 +438,7 @@ class LessonDetailScreen extends StatelessWidget {
               Expanded(
                 child: Builder(
                   builder: (context) => ElevatedButton.icon(
-                    onPressed: () => _openFile(context, lesson.fileUrl!),
+                    onPressed: () => _openFile(context, widget.lesson.fileUrl!),
                     icon: const Icon(Icons.open_in_new_rounded, size: 18),
                     label: const Text('Open File'),
                     style: ElevatedButton.styleFrom(
@@ -318,7 +457,7 @@ class LessonDetailScreen extends StatelessWidget {
               Expanded(
                 child: Builder(
                   builder: (context) => OutlinedButton.icon(
-                    onPressed: () => _downloadFile(context, lesson.fileUrl!, fileName),
+                    onPressed: () => _downloadFile(context, widget.lesson.fileUrl!, fileName),
                     icon: const Icon(Icons.download_rounded, size: 18),
                     label: const Text('Download'),
                     style: OutlinedButton.styleFrom(
@@ -408,7 +547,7 @@ class LessonDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      lesson.teacherName,
+                      widget.lesson.teacherName,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -484,7 +623,7 @@ class LessonDetailScreen extends StatelessWidget {
           // Metadata Items
           _buildMetadataItem(
             'Subject',
-            lesson.subject,
+            widget.lesson.subject,
             Icons.subject_rounded,
             const Color(0xFF007AFF),
           ),
@@ -498,22 +637,22 @@ class LessonDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _buildMetadataItem(
             'Created',
-            _formatDate(lesson.createdAt),
+            _formatDate(widget.lesson.createdAt),
             Icons.calendar_today_rounded,
             const Color(0xFFFF9500),
           ),
           const SizedBox(height: 16),
           _buildMetadataItem(
             'Last Updated',
-            _formatDate(lesson.updatedAt),
+            _formatDate(widget.lesson.updatedAt),
             Icons.update_rounded,
             const Color(0xFFAF52DE),
           ),
-          if (lesson.tags.isNotEmpty) ...[
+          if (widget.lesson.tags.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildMetadataItem(
               'Tags',
-              lesson.tags.join(', '),
+              widget.lesson.tags.join(', '),
               Icons.tag_rounded,
               const Color(0xFF86868B),
             ),

@@ -25,9 +25,9 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   String? _selectedSubject;
   bool _isPublished = false;
   List<String> _selectedTags = [];
+  // Removed Beginner, Intermediate, Advanced tags as requested
   List<String> _availableTags = [
     'Quiz', 'Test', 'Assignment', 'Homework', 'Exam',
-    'Beginner', 'Intermediate', 'Advanced',
     'Theory', 'Practice', 'Review'
   ];
   
@@ -275,21 +275,63 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   }
 
   Widget _buildSubjectDropdown() {
-    // Use the full list of 11 subjects instead of teacher profile subjects
-    final List<String> subjects = [
-      'Mathematics',
-      'GMRC',
-      'Values Education',
-      'Araling Panlipunan',
-      'English',
-      'Filipino',
-      'Music & Arts',
-      'Science',
-      'Physical Education & Health',
-      'EPP',
-      'TLE'
-    ];
-
+    // Only show subjects assigned to this teacher
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final List<String> subjects = teacherSubjects.isEmpty 
+        ? [
+            'Mathematics',
+            'GMRC',
+            'Values Education',
+            'Araling Panlipunan',
+            'English',
+            'Filipino',
+            'Music & Arts',
+            'Science',
+            'Physical Education & Health',
+            'EPP',
+            'TLE'
+          ]
+        : teacherSubjects;
+    
+    // Show warning if no subjects assigned
+    if (teacherSubjects.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9500).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFF9500)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning, color: Color(0xFFFF9500), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'No subjects assigned. Please contact administrator to assign subjects.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange[900],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSubjectDropdownWidget(subjects),
+        ],
+      );
+    }
+    
+    return _buildSubjectDropdownWidget(subjects);
+  }
+  
+  Widget _buildSubjectDropdownWidget(List<String> subjects) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -653,27 +695,14 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Text(
-                'Questions',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1D1D1F),
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: _addQuestion,
-                icon: const Icon(Icons.add_circle_rounded),
-                label: const Text('Add Question'),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF007AFF),
-                ),
-              ),
-            ],
+          const Text(
+            'Questions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1D1D1F),
+              letterSpacing: -0.3,
+            ),
           ),
           const SizedBox(height: 20),
           
@@ -716,18 +745,51 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
               ),
             )
           else
-            ..._questions.asMap().entries.map((entry) {
-              final index = entry.key;
-              final question = entry.value;
-              return _buildQuestionCard(index, question);
-            }).toList(),
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _questions.length,
+              onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) {
+                    newIndex -= 1;
+                  }
+                  final item = _questions.removeAt(oldIndex);
+                  _questions.insert(newIndex, item);
+                });
+              },
+              itemBuilder: (context, index) {
+                final question = _questions[index];
+                return _buildQuestionCard(index, question, key: ValueKey('question_${question.id}_$index'));
+              },
+            ),
+          
+          // Add Question button moved to bottom as requested
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _addQuestion,
+              icon: const Icon(Icons.add_circle_rounded),
+              label: const Text('Add Question'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF007AFF),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildQuestionCard(int index, AssessmentQuestion question) {
+  Widget _buildQuestionCard(int index, AssessmentQuestion question, {Key? key}) {
     return Container(
+      key: key,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -743,6 +805,13 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         children: [
           Row(
             children: [
+              // Drag handle for reordering
+              const Icon(
+                Icons.drag_handle,
+                color: Color(0xFF86868B),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -790,15 +859,55 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           
           const SizedBox(height: 16),
           
-          // Points
+          // Points - For essay, show manual grading note
           Row(
             children: [
-              const Text(
-                'Points: ',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1D1D1F),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Points: ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1D1D1F),
+                          ),
+                        ),
+                        if (question.type == QuestionType.essay)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF9500).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFFF9500)),
+                            ),
+                            child: const Text(
+                              'Manual Grading',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFFF9500),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (question.type == QuestionType.essay)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Essay questions require manual grading by teacher',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF86868B),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               SizedBox(
@@ -806,15 +915,20 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
                 child: TextFormField(
                   initialValue: question.points.toString(),
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(
+                  enabled: question.type != QuestionType.essay, // Disable for essay (manual grading)
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(8)),
                     ),
                     hintText: '10',
+                    filled: question.type == QuestionType.essay,
+                    fillColor: question.type == QuestionType.essay ? const Color(0xFFF5F5F7) : null,
                   ),
                   onChanged: (value) {
-                    _updateQuestionPoints(index, int.tryParse(value) ?? 10);
+                    if (question.type != QuestionType.essay) {
+                      _updateQuestionPoints(index, int.tryParse(value) ?? 10);
+                    }
                   },
                 ),
               ),
@@ -1319,6 +1433,19 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         const SnackBar(
           content: Text('Please select a subject'),
           backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    // Validate that teacher can only upload for assigned subjects
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    if (teacherSubjects.isNotEmpty && !teacherSubjects.contains(_selectedSubject)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You can only create assessments for your assigned subjects: ${teacherSubjects.join(", ")}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
         ),
       );
       return;

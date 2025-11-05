@@ -1,7 +1,7 @@
 {
   "rules": {
     "lessons": {
-      ".indexOn": ["teacherId", "subject", "createdAt"],
+      ".indexOn": ["teacherId", "subject", "createdAt", "schoolYear"],
       ".read": "auth != null",
       ".write": "auth != null",
       "$lessonId": {
@@ -117,6 +117,46 @@
         ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
         ".write": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
         ".validate": "newData.hasChildren(['studentId', 'studentName', 'studentEmail', 'gradeLevel', 'status', 'createdAt'])"
+      }
+    },
+    "classes": {
+      ".indexOn": ["teacherId", "subject", "section", "classCode", "schoolYear", "createdAt"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$classId": {
+        ".read": "auth != null && (data.child('teacherId').val() == auth.uid || data.child('enrolledStudentIds').hasChild(auth.uid))",
+        ".write": "auth != null && data.child('teacherId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['teacherId', 'teacherName', 'subject', 'section', 'classCode', 'schoolYear', 'createdAt', 'updatedAt'])"
+      }
+    },
+    "class_enrollments": {
+      ".indexOn": ["classId", "studentId", "teacherId", "enrolledAt"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$enrollmentId": {
+        ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
+        ".write": "auth != null && data.child('teacherId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['classId', 'studentId', 'studentName', 'teacherId', 'enrolledAt'])"
+      }
+    },
+    "lesson_progress": {
+      ".indexOn": ["studentId", "lessonId", "subject", "teacherId", "lastActivity"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$progressId": {
+        ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
+        ".write": "auth != null && data.child('studentId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['studentId', 'lessonId', 'subject', 'teacherId', 'createdAt'])"
+      }
+    },
+    "student_ratings": {
+      ".indexOn": ["studentId", "sectionId", "subjectId", "teacherId", "createdAt"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$ratingId": {
+        ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
+        ".write": "auth != null && data.child('teacherId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['studentId', 'sectionId', 'subjectId', 'teacherId', 'rating', 'createdAt'])"
       }
     }
   }

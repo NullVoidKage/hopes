@@ -31,6 +31,8 @@ class LessonServiceRealtime {
         'tags': lesson.tags,
         'description': lesson.description,
         'fileUrl': lesson.fileUrl,
+        'videoUrl': lesson.videoUrl,
+        'schoolYear': lesson.schoolYear,
       };
 
       await lessonRef.set(lessonData);
@@ -396,6 +398,8 @@ class LessonServiceRealtime {
         'tags': lesson.tags,
         'description': lesson.description,
         'fileUrl': lesson.fileUrl,
+        'videoUrl': lesson.videoUrl,
+        'schoolYear': lesson.schoolYear,
       }).toList();
       
       await OfflineService.cacheLessons(lessonsData);

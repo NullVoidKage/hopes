@@ -27,19 +27,25 @@ class TeacherDashboardService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final ConnectivityService _connectivityService = ConnectivityService();
 
-  // Get all dashboard data for a teacher
-  Future<TeacherDashboardData> getDashboardData(String teacherId, List<String> teacherSubjects) async {
+  // Get all dashboard data for a teacher with filters
+  Future<TeacherDashboardData> getDashboardData(
+    String teacherId,
+    List<String> teacherSubjects, {
+    String? studentId,
+    String? sectionId,
+    String? subjectId,
+  }) async {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        return await _getCachedDashboardData(teacherId, teacherSubjects);
+        return await _getCachedDashboardData(teacherId, teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
       }
 
       // If online, fetch from Firebase and cache
-      final studentProgress = await _getStudentProgress(teacherSubjects);
+      final studentProgress = await _getStudentProgress(teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
       final recentActivities = await _getRecentActivities(teacherId);
       final studentCount = await _getStudentCount();
-      final stats = _calculateStats(studentProgress, studentCount);
+      final stats = _calculateStats(studentProgress, studentCount, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
       
       final dashboardData = TeacherDashboardData(
         studentProgress: studentProgress,
@@ -56,12 +62,17 @@ class TeacherDashboardService {
       return dashboardData;
     } catch (e) {
       // If Firebase fails, try to return cached data
-      return await _getCachedDashboardData(teacherId, teacherSubjects);
+      return await _getCachedDashboardData(teacherId, teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
     }
   }
 
-  // Get student progress for teacher's subjects
-  Future<List<StudentProgress>> _getStudentProgress(List<String> subjects) async {
+  // Get student progress for teacher's subjects with filters
+  Future<List<StudentProgress>> _getStudentProgress(
+    List<String> subjects, {
+    String? studentId,
+    String? sectionId,
+    String? subjectId,
+  }) async {
     try {
       
       // First try to get from Firebase Realtime Database
@@ -78,10 +89,17 @@ class TeacherDashboardService {
             if (entryData == null) return null;
             
             try {
-              return StudentProgress.fromRealtimeDatabase(
+              final progress = StudentProgress.fromRealtimeDatabase(
                 Map<String, dynamic>.from(entryData),
                 entry.key.toString(),
               );
+              
+              // Apply filters
+              if (studentId != null && progress.studentId != studentId) return null;
+              if (subjectId != null && progress.subject != subjectId) return null;
+              // Note: sectionId filtering would need to be added to StudentProgress model
+              
+              return progress;
             } catch (e) {
               return null;
             }
@@ -293,8 +311,14 @@ class TeacherDashboardService {
     }
   }
 
-  // Calculate dashboard statistics
-  Map<String, dynamic> _calculateStats(List<StudentProgress> studentProgress, int totalStudents) {
+  // Calculate dashboard statistics with filters
+  Map<String, dynamic> _calculateStats(
+    List<StudentProgress> studentProgress,
+    int totalStudents, {
+    String? studentId,
+    String? sectionId,
+    String? subjectId,
+  }) {
     if (studentProgress.isEmpty) {
       return {
         'subjectStats': <String, int>{},
@@ -439,8 +463,14 @@ class TeacherDashboardService {
     }
   }
 
-  // Get cached dashboard data
-  Future<TeacherDashboardData> _getCachedDashboardData(String teacherId, List<String> teacherSubjects) async {
+  // Get cached dashboard data with filters
+  Future<TeacherDashboardData> _getCachedDashboardData(
+    String teacherId,
+    List<String> teacherSubjects, {
+    String? studentId,
+    String? sectionId,
+    String? subjectId,
+  }) async {
     try {
       final cachedProgress = await OfflineService.getCachedStudentProgress();
       final cachedActivities = await OfflineService.getCachedTeacherActivities();
@@ -454,10 +484,18 @@ class TeacherDashboardService {
         TeacherActivity.fromRealtimeDatabase(data['id'] ?? '', data)
       ).toList();
       
-      final stats = _calculateStats(studentProgress, studentProgress.length);
+      // Apply filters to cached data
+      final filteredProgress = studentProgress.where((progress) {
+        if (studentId != null && progress.studentId != studentId) return false;
+        if (subjectId != null && progress.subject != subjectId) return false;
+        // Note: sectionId filtering would need section field in StudentProgress
+        return true;
+      }).toList();
+      
+      final stats = _calculateStats(filteredProgress, filteredProgress.length, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
       
       return TeacherDashboardData(
-        studentProgress: studentProgress,
+        studentProgress: filteredProgress,
         recentActivities: recentActivities,
         subjectStats: stats['subjectStats'],
         totalStudents: stats['totalStudents'],

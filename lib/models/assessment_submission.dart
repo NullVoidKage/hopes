@@ -7,6 +7,7 @@ class DetailedAnswer {
   final String questionType;
   final int timeSpent; // in seconds
   final String? explanation;
+  final String? imageUrl; // Image URL for image-based answers
 
   DetailedAnswer({
     required this.answer,
@@ -16,6 +17,7 @@ class DetailedAnswer {
     required this.questionType,
     required this.timeSpent,
     this.explanation,
+    this.imageUrl,
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +29,7 @@ class DetailedAnswer {
       'questionType': questionType,
       'timeSpent': timeSpent,
       'explanation': explanation,
+      'imageUrl': imageUrl,
     };
   }
 
@@ -39,6 +42,7 @@ class DetailedAnswer {
       questionType: _safeString(data['questionType']),
       timeSpent: _safeInt(data['timeSpent']),
       explanation: _safeString(data['explanation']),
+      imageUrl: _safeString(data['imageUrl']),
     );
   }
 

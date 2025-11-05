@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum UserRole {
   student,
   teacher,
+  administrator,
 }
 
 class UserModel {
@@ -13,6 +14,7 @@ class UserModel {
   final UserRole role;
   final String? grade; // For students
   final List<String>? subjects; // For teachers
+  final String? schoolYear; // School year for all users
   final DateTime createdAt;
   final DateTime lastLogin;
   final Map<String, dynamic>? assessmentResults; // For students
@@ -26,6 +28,7 @@ class UserModel {
     required this.role,
     this.grade,
     this.subjects,
+    this.schoolYear,
     required this.createdAt,
     required this.lastLogin,
     this.assessmentResults,
@@ -41,6 +44,7 @@ class UserModel {
     UserRole role, {
     String? grade,
     List<String>? subjects,
+    String? schoolYear,
     Map<String, dynamic>? assessmentResults,
     Map<String, dynamic>? lessonProgress,
   }) {
@@ -52,6 +56,7 @@ class UserModel {
       role: role,
       grade: grade,
       subjects: subjects,
+      schoolYear: schoolYear,
       createdAt: DateTime.now(),
       lastLogin: DateTime.now(),
       assessmentResults: assessmentResults,
@@ -85,6 +90,7 @@ class UserModel {
       subjects: data['subjects'] != null
           ? List<String>.from(data['subjects'])
           : null,
+      schoolYear: data['schoolYear'],
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       lastLogin: (data['lastLogin'] as Timestamp).toDate(),
       assessmentResults: data['assessmentResults'],
@@ -101,6 +107,7 @@ class UserModel {
       'role': role.toString().split('.').last,
       'grade': grade,
       'subjects': subjects,
+      'schoolYear': schoolYear,
       'createdAt': createdAt,
       'lastLogin': lastLogin,
       'assessmentResults': assessmentResults,
@@ -117,6 +124,7 @@ class UserModel {
     UserRole? role,
     String? grade,
     List<String>? subjects,
+    String? schoolYear,
     DateTime? createdAt,
     DateTime? lastLogin,
     Map<String, dynamic>? assessmentResults,
@@ -130,6 +138,7 @@ class UserModel {
       role: role ?? this.role,
       grade: grade ?? this.grade,
       subjects: subjects ?? this.subjects,
+      schoolYear: schoolYear ?? this.schoolYear,
       createdAt: createdAt ?? this.createdAt,
       lastLogin: lastLogin ?? this.lastLogin,
       assessmentResults: assessmentResults ?? this.assessmentResults,
@@ -143,6 +152,9 @@ class UserModel {
   // Check if user is a teacher
   bool get isTeacher => role == UserRole.teacher;
 
+  // Check if user is an administrator
+  bool get isAdministrator => role == UserRole.administrator;
+
   // Get role display name
   String get roleDisplayName {
     switch (role) {
@@ -150,6 +162,8 @@ class UserModel {
         return 'Student';
       case UserRole.teacher:
         return 'Teacher';
+      case UserRole.administrator:
+        return 'Administrator';
     }
   }
 }

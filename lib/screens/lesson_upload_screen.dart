@@ -26,6 +26,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _contentController = TextEditingController();
+  final _videoUrlController = TextEditingController(); // Video URL/link controller
   
   String? _selectedSubject;
   bool _isPublished = false;
@@ -38,15 +39,15 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   String? _uploadedFileUrl;
   String? _uploadedFileName;
   
+  // Removed Beginner, Intermediate, Advanced tags as requested
   final List<String> _availableTags = [
-    'Beginner', 'Intermediate', 'Advanced',
     'Theory', 'Practice', 'Assessment',
     'Video', 'Interactive', 'Reading',
     'Problem Solving', 'Critical Thinking'
   ];
 
-  // Supported file types
-  final List<String> _supportedExtensions = ['pdf', 'docx', 'doc'];
+  // Supported file types - now includes video
+  final List<String> _supportedExtensions = ['pdf', 'docx', 'doc', 'mp4', 'mov', 'avi', 'webm'];
 
   @override
   void initState() {
@@ -60,6 +61,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _contentController.dispose();
+    _videoUrlController.dispose();
     super.dispose();
   }
 
@@ -107,6 +109,10 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
                   
                   // File Upload Section
                   _buildFileUploadSection(),
+                  const SizedBox(height: 32),
+                  
+                  // Video URL Section (for video lessons)
+                  _buildVideoUrlSection(),
                   const SizedBox(height: 32),
                   
                   // Tags Selection
@@ -355,7 +361,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Supports PDF, DOCX, and DOC files',
+              'Supports PDF, DOCX, DOC, and video files (MP4, MOV, AVI, WEBM)',
               style: TextStyle(
                 fontSize: 14,
                 color: Color(0xFF86868B),
@@ -867,20 +873,63 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   }
 
   Widget _buildSubjectDropdown() {
-    // Use the full list of 11 subjects instead of teacher profile subjects
-    final List<String> subjects = [
-      'Mathematics',
-      'GMRC',
-      'Values Education',
-      'Araling Panlipunan',
-      'English',
-      'Filipino',
-      'Music & Arts',
-      'Science',
-      'Physical Education & Health',
-      'EPP',
-      'TLE'
-    ];
+    // Only show subjects assigned to this teacher
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final List<String> subjects = teacherSubjects.isEmpty 
+        ? [
+            'Mathematics',
+            'GMRC',
+            'Values Education',
+            'Araling Panlipunan',
+            'English',
+            'Filipino',
+            'Music & Arts',
+            'Science',
+            'Physical Education & Health',
+            'EPP',
+            'TLE'
+          ]
+        : teacherSubjects;
+    
+    // Show warning if no subjects assigned
+    if (teacherSubjects.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9500).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFF9500)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning, color: Color(0xFFFF9500), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'No subjects assigned. Please contact administrator to assign subjects.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange[900],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSubjectDropdownWidget(subjects),
+        ],
+      );
+    }
+    
+    return _buildSubjectDropdownWidget(subjects);
+  }
+  
+  Widget _buildSubjectDropdownWidget(List<String> subjects) {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1096,6 +1145,82 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
     );
   }
 
+  Widget _buildVideoUrlSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.video_library_rounded,
+                color: Color(0xFF00D4FF),
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Video URL (Optional)',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Add a video link (YouTube, Vimeo, etc.) or upload a video file above',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF86868B),
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: _videoUrlController,
+            decoration: InputDecoration(
+              hintText: 'https://youtube.com/watch?v=... or https://vimeo.com/...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E5E7)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF007AFF), width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              prefixIcon: const Icon(Icons.link, color: Color(0xFF007AFF)),
+            ),
+            keyboardType: TextInputType.url,
+            validator: (value) {
+              if (value != null && value.trim().isNotEmpty) {
+                final url = value.trim();
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                  return 'Please enter a valid URL starting with http:// or https://';
+                }
+              }
+              return null;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPublishToggle() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1178,6 +1303,38 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
       );
       return;
     }
+    
+    // Validate that teacher can only upload for assigned subjects
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    if (teacherSubjects.isNotEmpty && !teacherSubjects.contains(_selectedSubject)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You can only upload lessons for your assigned subjects: ${teacherSubjects.join(", ")}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+    
+    // Validate video tag requires video file/link
+    final hasVideoFile = _uploadedFileUrl != null && 
+                         (_uploadedFileUrl!.contains('.mp4') || 
+                          _uploadedFileUrl!.contains('.mov') || 
+                          _uploadedFileUrl!.contains('.avi') || 
+                          _uploadedFileUrl!.contains('.webm'));
+    final hasVideoUrl = _videoUrlController.text.trim().isNotEmpty;
+    
+    if (_selectedTags.contains('Video') && !hasVideoFile && !hasVideoUrl) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lessons tagged as "Video" must include a video file upload or video URL link'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -1200,6 +1357,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             ? null 
             : _descriptionController.text.trim(),
         fileUrl: _uploadedFileUrl,
+        videoUrl: _videoUrlController.text.trim().isEmpty ? null : _videoUrlController.text.trim(),
       );
 
 

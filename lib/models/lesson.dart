@@ -13,6 +13,8 @@ class Lesson {
   final List<String> tags;
   final String? description;
   final String? fileUrl;
+  final String? videoUrl; // Video URL or link for video lessons
+  final String? schoolYear;
 
   Lesson({
     required this.id,
@@ -27,6 +29,8 @@ class Lesson {
     this.tags = const [],
     this.description,
     this.fileUrl,
+    this.videoUrl,
+    this.schoolYear,
   });
 
   // Create from Firestore document
@@ -44,6 +48,8 @@ class Lesson {
       tags: data['tags'] != null ? List<String>.from(data['tags']) : [],
       description: data['description'],
       fileUrl: data['fileUrl'],
+      videoUrl: data['videoUrl'],
+      schoolYear: data['schoolYear'],
     );
   }
 
@@ -68,6 +74,8 @@ class Lesson {
           : [],
       description: data['description']?.toString(),
       fileUrl: data['fileUrl']?.toString(),
+      videoUrl: data['videoUrl']?.toString(),
+      schoolYear: data['schoolYear']?.toString(),
     );
   }
 
@@ -85,6 +93,8 @@ class Lesson {
       'tags': tags,
       'description': description,
       'fileUrl': fileUrl,
+      'videoUrl': videoUrl,
+      'schoolYear': schoolYear,
     };
   }
 
@@ -102,6 +112,8 @@ class Lesson {
       'tags': tags,
       'description': description,
       'fileUrl': fileUrl,
+      'videoUrl': videoUrl,
+      'schoolYear': schoolYear,
     };
   }
 
@@ -119,6 +131,8 @@ class Lesson {
     List<String>? tags,
     String? description,
     String? fileUrl,
+    String? videoUrl,
+    String? schoolYear,
   }) {
     return Lesson(
       id: id ?? this.id,
@@ -133,6 +147,8 @@ class Lesson {
       tags: tags ?? this.tags,
       description: description ?? this.description,
       fileUrl: fileUrl ?? this.fileUrl,
+      videoUrl: videoUrl ?? this.videoUrl,
+      schoolYear: schoolYear ?? this.schoolYear,
     );
   }
 }

@@ -33,6 +33,14 @@ class _TeacherPanelState extends State<TeacherPanel> {
   UserModel? _userProfile;
   TeacherDashboardData? _dashboardData;
   bool _isLoading = true;
+  
+  // Filter state
+  String? _selectedStudentId;
+  String? _selectedSectionId;
+  String? _selectedSubjectId;
+  List<String> _availableStudents = [];
+  List<String> _availableSections = [];
+  List<String> _availableSubjects = [];
 
   @override
   void initState() {
@@ -50,8 +58,13 @@ class _TeacherPanelState extends State<TeacherPanel> {
           final dashboardData = await _dashboardService.getDashboardData(
             user.uid,
             profile.subjects ?? [],
+            studentId: _selectedStudentId,
+            sectionId: _selectedSectionId,
+            subjectId: _selectedSubjectId,
           );
           
+          // Update available options for filters
+          _updateFilterOptions(dashboardData);
           
           setState(() {
             _userProfile = profile;
@@ -276,6 +289,8 @@ class _TeacherPanelState extends State<TeacherPanel> {
                     
                     // Student Progress Section
                     _buildSectionHeader('Student Progress', Icons.trending_up_rounded),
+                    const SizedBox(height: 20),
+                    _buildFilters(),
                     const SizedBox(height: 20),
                     _buildStudentProgressCards(),
                     
@@ -2002,5 +2017,253 @@ class _TeacherPanelState extends State<TeacherPanel> {
         ],
       ),
     );
+  }
+
+  // Build filters section
+  Widget _buildFilters() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.filter_list_rounded,
+                color: Color(0xFF007AFF),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Filters',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              const Spacer(),
+              if (_selectedStudentId != null || _selectedSectionId != null || _selectedSubjectId != null)
+                TextButton(
+                  onPressed: _clearFilters,
+                  child: const Text(
+                    'Clear All',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFFFF3B30),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildFilterDropdown(
+                  'Student',
+                  _selectedStudentId,
+                  _availableStudents,
+                  (value) => _onStudentFilterChanged(value),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildFilterDropdown(
+                  'Section',
+                  _selectedSectionId,
+                  _availableSections,
+                  (value) => _onSectionFilterChanged(value),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildFilterDropdown(
+                  'Subject',
+                  _selectedSubjectId,
+                  _availableSubjects,
+                  (value) => _onSubjectFilterChanged(value),
+                ),
+              ),
+            ],
+          ),
+          if (_selectedStudentId == null && _selectedSectionId == null && _selectedSubjectId == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                'Showing: Overall view (all students, all sections, all subjects)',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: const Color(0xFF86868B),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterDropdown(
+    String label,
+    String? selectedValue,
+    List<String> options,
+    Function(String?) onChanged,
+  ) {
+    return DropdownButtonFormField<String>(
+      value: selectedValue,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(
+          fontSize: 13,
+          color: Color(0xFF86868B),
+          fontWeight: FontWeight.w500,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: const Color(0xFFE5E5EA),
+            width: 1,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: const Color(0xFFE5E5EA),
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFF007AFF),
+            width: 2,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      items: [
+        DropdownMenuItem<String>(
+          value: null,
+          child: Text(
+            'All $label' + (label == 'Student' ? 's' : 's'),
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF1D1D1F),
+            ),
+          ),
+        ),
+        ...options.map((option) => DropdownMenuItem<String>(
+          value: option,
+          child: Text(
+            option,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF1D1D1F),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        )),
+      ],
+      onChanged: onChanged,
+    );
+  }
+
+  void _onStudentFilterChanged(String? studentId) {
+    setState(() {
+      _selectedStudentId = studentId;
+    });
+    _reloadDashboard();
+  }
+
+  void _onSectionFilterChanged(String? sectionId) {
+    setState(() {
+      _selectedSectionId = sectionId;
+    });
+    _reloadDashboard();
+  }
+
+  void _onSubjectFilterChanged(String? subjectId) {
+    setState(() {
+      _selectedSubjectId = subjectId;
+    });
+    _reloadDashboard();
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _selectedStudentId = null;
+      _selectedSectionId = null;
+      _selectedSubjectId = null;
+    });
+    _reloadDashboard();
+  }
+
+  void _updateFilterOptions(TeacherDashboardData data) {
+    // Extract unique students, sections, and subjects from progress data
+    final students = <String>{};
+    final sections = <String>{};
+    final subjects = <String>{};
+
+    for (final progress in data.studentProgress) {
+      students.add(progress.studentName);
+      subjects.add(progress.subject);
+      // Note: Sections would need to be added to StudentProgress model
+    }
+
+    setState(() {
+      _availableStudents = students.toList()..sort();
+      _availableSections = sections.toList()..sort();
+      _availableSubjects = subjects.toList()..sort();
+    });
+  }
+
+  Future<void> _reloadDashboard() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = _authService.currentUser;
+      if (user != null && _userProfile != null) {
+        final dashboardData = await _dashboardService.getDashboardData(
+          user.uid,
+          _userProfile!.subjects ?? [],
+          studentId: _selectedStudentId,
+          sectionId: _selectedSectionId,
+          subjectId: _selectedSubjectId,
+        );
+
+        _updateFilterOptions(dashboardData);
+
+        setState(() {
+          _dashboardData = dashboardData;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 }
