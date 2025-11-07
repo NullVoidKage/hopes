@@ -24,7 +24,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   
   String? _selectedSubject;
   bool _isPublished = false;
-  List<String> _selectedTags = [];
+  String? _selectedTag; // Single tag selection only
   // Removed Beginner, Intermediate, Advanced tags as requested
   List<String> _availableTags = [
     'Quiz', 'Test', 'Assignment', 'Homework', 'Exam',
@@ -623,7 +623,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Add relevant tags to help students find your assessment',
+            'Select a tag to help students find your assessment',
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF86868B),
@@ -634,41 +634,38 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
             spacing: 8,
             runSpacing: 8,
             children: _availableTags.map((tag) {
-              final isSelected = _selectedTags.contains(tag);
-              return GestureDetector(
-                onTap: () {
+              final isSelected = _selectedTag == tag;
+              return FilterChip(
+                label: Text(tag),
+                selected: isSelected,
+                onSelected: (selected) {
                   setState(() {
-                    if (isSelected) {
-                      _selectedTags.remove(tag);
+                    if (selected) {
+                      // Only allow one tag to be selected at a time
+                      _selectedTag = tag;
                     } else {
-                      _selectedTags.add(tag);
+                      // Deselect if clicking the already selected tag
+                      if (_selectedTag == tag) {
+                        _selectedTag = null;
+                      }
                     }
                   });
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF007AFF)
-                        : const Color(0xFFF5F5F7),
-                    borderRadius: const BorderRadius.all(Radius.circular(20)),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF007AFF)
-                          : const Color(0xFFE5E5E7),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    tag,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF1D1D1F),
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                  ),
+                backgroundColor: const Color(0xFFF5F5F7),
+                selectedColor: const Color(0xFF007AFF),
+                checkmarkColor: Colors.white,
+                side: BorderSide(
+                  color: isSelected ? const Color(0xFF007AFF) : const Color(0xFFE5E5E7),
+                  width: 1,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF1D1D1F),
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               );
             }).toList(),
@@ -848,8 +845,8 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           _buildQuestionTextField(index),
           const SizedBox(height: 16),
           
-          // Question Options (for multiple choice)
-          if (question.type == QuestionType.multipleChoice)
+          // Question Options (for multiple choice and true/false)
+          if (question.type == QuestionType.multipleChoice || question.type == QuestionType.trueFalse)
             _buildQuestionOptions(index),
           
           const SizedBox(height: 16),
@@ -857,83 +854,38 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           // Correct Answer Section (Teacher Only)
           _buildCorrectAnswerSection(index),
           
-          const SizedBox(height: 16),
-          
-          // Points - For essay, show manual grading note
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Points: ',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1D1D1F),
-                          ),
-                        ),
-                        if (question.type == QuestionType.essay)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFF9500).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFFF9500)),
-                            ),
-                            child: const Text(
-                              'Manual Grading',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFFFF9500),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (question.type == QuestionType.essay)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Text(
-                          'Essay questions require manual grading by teacher',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF86868B),
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+          // For essay questions, show manual grading note
+          if (question.type == QuestionType.essay) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF9500).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFF9500)),
               ),
-              SizedBox(
-                width: 80,
-                child: TextFormField(
-                  initialValue: question.points.toString(),
-                  keyboardType: TextInputType.number,
-                  enabled: question.type != QuestionType.essay, // Disable for essay (manual grading)
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                    ),
-                    hintText: '10',
-                    filled: question.type == QuestionType.essay,
-                    fillColor: question.type == QuestionType.essay ? const Color(0xFFF5F5F7) : null,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFFFF9500),
+                    size: 20,
                   ),
-                  onChanged: (value) {
-                    if (question.type != QuestionType.essay) {
-                      _updateQuestionPoints(index, int.tryParse(value) ?? 10);
-                    }
-                  },
-                ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Essay questions require manual grading by teacher. Points will be assigned during grading.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFFF9500),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
@@ -1032,39 +984,80 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         ...question.options.asMap().entries.map((entry) {
           final optionIndex = entry.key;
           final option = entry.value;
-          return Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: option,
-                  decoration: InputDecoration(
-                    hintText: 'Option ${optionIndex + 1}',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  onChanged: (value) {
-                    _updateQuestionOption(index, optionIndex, value);
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: () => _removeQuestionOption(index, optionIndex),
-                icon: const Icon(
-                  Icons.remove_circle_outline_rounded,
-                  color: Color(0xFFFF3B30),
+          final optionPoints = question.optionPoints[option] ?? 0;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                // Drag handle icon
+                Icon(
+                  Icons.drag_handle,
+                  color: const Color(0xFF86868B),
                   size: 20,
                 ),
-                constraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
+                const SizedBox(width: 8),
+                // Option text field
+                Expanded(
+                  child: TextFormField(
+                    initialValue: option,
+                    decoration: InputDecoration(
+                      hintText: 'Option ${optionIndex + 1}',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    onChanged: (value) {
+                      _updateQuestionOption(index, optionIndex, value);
+                    },
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                // Points input field
+                SizedBox(
+                  width: 80,
+                  child: TextFormField(
+                    initialValue: optionPoints.toString(),
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Points',
+                      labelText: 'Points',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      labelStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF86868B),
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 14),
+                    onChanged: (value) {
+                      final points = int.tryParse(value) ?? 0;
+                      _updateOptionPoints(index, option, points);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Remove button
+                IconButton(
+                  onPressed: () => _removeQuestionOption(index, optionIndex),
+                  icon: const Icon(
+                    Icons.remove_circle_outline_rounded,
+                    color: Color(0xFFFF3B30),
+                    size: 20,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                ),
+              ],
+            ),
           );
         }).toList(),
         const SizedBox(height: 8),
@@ -1294,13 +1287,25 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   // Helper methods
   void _addQuestion() {
     setState(() {
+      // Initialize option points for default options
+      final defaultOptionPoints = <String, int>{
+        'Option 1': 0,
+        'Option 2': 0,
+      };
+      
+      // Calculate initial points from max option points (or default to 0)
+      final initialPoints = defaultOptionPoints.values.isNotEmpty 
+          ? defaultOptionPoints.values.reduce((a, b) => a > b ? a : b)
+          : 0;
+      
       _questions.add(AssessmentQuestion(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         question: '',
         type: QuestionType.multipleChoice,
         options: ['Option 1', 'Option 2'], // Initialize with default options
         correctAnswer: 'Option 1', // Set a default correct answer
-        points: 10,
+        points: initialPoints, // Points will be calculated from option points
+        optionPoints: defaultOptionPoints,
       ));
     });
   }
@@ -1316,21 +1321,31 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
       final question = _questions[index];
       List<String> newOptions = [];
       String? newCorrectAnswer = '';
+      Map<String, int> newOptionPoints = {};
       
       switch (type) {
         case QuestionType.multipleChoice:
           newOptions = ['Option 1', 'Option 2'];
           newCorrectAnswer = 'Option 1';
+          newOptionPoints = {
+            'Option 1': 0,
+            'Option 2': 0,
+          };
           break;
         case QuestionType.trueFalse:
           newOptions = ['True', 'False'];
           newCorrectAnswer = 'True';
+          newOptionPoints = {
+            'True': 0,
+            'False': 0,
+          };
           break;
         case QuestionType.shortAnswer:
         case QuestionType.essay:
         case QuestionType.fillInTheBlank:
           newOptions = [];
           newCorrectAnswer = null;
+          newOptionPoints = {};
           break;
       }
       
@@ -1338,6 +1353,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         type: type,
         options: newOptions,
         correctAnswer: newCorrectAnswer,
+        optionPoints: newOptionPoints,
       );
     });
   }
@@ -1349,24 +1365,29 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
     });
   }
 
-  void _updateQuestionPoints(int index, int points) {
-    setState(() {
-      final question = _questions[index];
-      _questions[index] = question.copyWith(points: points);
-    });
-  }
 
   void _addQuestionOption(int questionIndex) {
     setState(() {
-      final currentOptions = _questions[questionIndex].options;
+      final question = _questions[questionIndex];
+      final currentOptions = question.options;
       final newOptionNumber = currentOptions.length + 1;
-      _questions[questionIndex].options.add('Option $newOptionNumber');
+      final newOption = 'Option $newOptionNumber';
+      
+      question.options.add(newOption);
+      
+      // Initialize option points for the new option (default 0)
+      final newOptionPoints = Map<String, int>.from(question.optionPoints);
+      newOptionPoints[newOption] = 0;
       
       // If this is the first option added and no correct answer is set, set it as default
-      if (_questions[questionIndex].correctAnswer == null || 
-          _questions[questionIndex].correctAnswer!.isEmpty) {
-        _questions[questionIndex] = _questions[questionIndex].copyWith(
-          correctAnswer: 'Option $newOptionNumber',
+      if (question.correctAnswer == null || question.correctAnswer!.isEmpty) {
+        _questions[questionIndex] = question.copyWith(
+          correctAnswer: newOption,
+          optionPoints: newOptionPoints,
+        );
+      } else {
+        _questions[questionIndex] = question.copyWith(
+          optionPoints: newOptionPoints,
         );
       }
     });
@@ -1376,14 +1397,69 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
     setState(() {
       final question = _questions[questionIndex];
       if (question.options.length > 2) {
+        final removedOption = question.options[optionIndex];
         question.options.removeAt(optionIndex);
+        
+        // Remove option points for the removed option
+        final newOptionPoints = Map<String, int>.from(question.optionPoints);
+        newOptionPoints.remove(removedOption);
+        
+        // If the removed option was the correct answer, set a new default
+        if (question.correctAnswer == removedOption && question.options.isNotEmpty) {
+          _questions[questionIndex] = question.copyWith(
+            correctAnswer: question.options.first,
+            optionPoints: newOptionPoints,
+          );
+        } else {
+          _questions[questionIndex] = question.copyWith(
+            optionPoints: newOptionPoints,
+          );
+        }
       }
     });
   }
 
   void _updateQuestionOption(int questionIndex, int optionIndex, String value) {
     setState(() {
-      _questions[questionIndex].options[optionIndex] = value;
+      final question = _questions[questionIndex];
+      final oldOption = question.options[optionIndex];
+      
+      // Update option text
+      question.options[optionIndex] = value;
+      
+      // Update optionPoints map if the option text changed
+      if (oldOption != value && question.optionPoints.containsKey(oldOption)) {
+        final points = question.optionPoints[oldOption] ?? 0;
+        final newOptionPoints = Map<String, int>.from(question.optionPoints);
+        newOptionPoints.remove(oldOption);
+        newOptionPoints[value] = points;
+        _questions[questionIndex] = question.copyWith(optionPoints: newOptionPoints);
+      }
+    });
+  }
+
+  void _updateOptionPoints(int questionIndex, String option, int points) {
+    setState(() {
+      final question = _questions[questionIndex];
+      final newOptionPoints = Map<String, int>.from(question.optionPoints);
+      newOptionPoints[option] = points;
+      
+      // Calculate question points from max option points (for multiple choice/true false)
+      int calculatedPoints = 0;
+      if (question.type == QuestionType.multipleChoice || question.type == QuestionType.trueFalse) {
+        if (newOptionPoints.values.isNotEmpty) {
+          calculatedPoints = newOptionPoints.values.reduce((a, b) => a > b ? a : b);
+        }
+      } else if (question.type == QuestionType.essay) {
+        calculatedPoints = 0; // Essay questions are manually graded
+      } else {
+        calculatedPoints = question.points; // Keep existing points for other types
+      }
+      
+      _questions[questionIndex] = question.copyWith(
+        optionPoints: newOptionPoints,
+        points: calculatedPoints,
+      );
     });
   }
 
@@ -1476,7 +1552,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         isPublished: _isPublished,
-        tags: _selectedTags,
+        tags: _selectedTag != null ? [_selectedTag!] : [],
         timeLimit: 0, // No time limit
         totalPoints: _totalPoints,
         questions: _questions,

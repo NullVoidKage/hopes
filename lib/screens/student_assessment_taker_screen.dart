@@ -1392,7 +1392,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
               borderRadius: BorderRadius.circular(12),
               child: kIsWeb
                   ? Image.network(_answerImages[_currentQuestionIndex]!)
-                  : Image.network(_answerImages[_currentQuestionIndex]!),
+                  : Image.network(_answerImages[_currentQuestionIndex]!)
             ),
           ),
         ] else if (selectedFile != null) ...[

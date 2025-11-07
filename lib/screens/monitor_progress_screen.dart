@@ -4,6 +4,7 @@ import '../services/progress_service.dart';
 import '../models/student_progress.dart';
 import '../models/student.dart';
 import '../services/student_service.dart';
+import '../services/auth_service.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class MonitorProgressScreen extends StatefulWidget {
@@ -17,21 +18,23 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     with TickerProviderStateMixin {
   final ProgressService _progressService = ProgressService();
   final StudentService _studentService = StudentService();
+  final AuthService _authService = AuthService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   
+  bool _isAdmin = false;
+  List<String> _teacherSubjects = [];
   List<Student> _students = [];
   List<StudentProgress> _studentProgress = [];
   Map<String, dynamic> _statistics = {};
   List<Map<String, dynamic>> _recentActivity = [];
   bool _isLoading = true;
-  String _selectedSubject = 'All';
+  String? _selectedSubject;
   String _selectedFilter = 'All';
   String _selectedFocus = 'All Students';
   
   late TabController _tabController;
   
-  final List<String> _subjects = [
-    'All',
+  final List<String> _allSubjects = [
     'Mathematics',
     'GMRC',
     'Values Education',
@@ -46,6 +49,14 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   ];
   final List<String> _filters = ['All', 'High to Low', 'Low to High', 'Recently Active', 'Most Lessons Completed', 'Least Lessons Completed'];
   final List<String> _focusModes = ['All Students', 'High Performers', 'Needs Help', 'Recently Active', 'No Progress', 'Above Average', 'Below Average', 'Engagement Issues'];
+  
+  List<String> get _subjects {
+    if (_isAdmin) {
+      return ['All', ..._allSubjects];
+    } else {
+      return _teacherSubjects.isEmpty ? _allSubjects : _teacherSubjects;
+    }
+  }
 
   @override
   void initState() {
@@ -64,43 +75,80 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     setState(() => _isLoading = true);
     
     try {
-      final String? teacherId = _auth.currentUser?.uid;
-      if (teacherId != null) {
-        
-        // Get students from Firestore (like Student Management does)
-        final students = await _studentService.getAllStudents();
-        
-        // Get progress data for those students
-        final progress = await _progressService.getStudentProgress(teacherId);
-        
-        // Calculate statistics from actual database collections
-        final stats = await _calculateStatisticsFromDatabase(teacherId);
-        final activity = await _generateActivityFromDatabase();
-        
-        // If no data exists, create sample data
-        if (stats['totalStudents'] == 0 && students.isNotEmpty) {
-          await _createSampleProgressData(students, teacherId);
-          // Reload data after creating sample data
-          final updatedStats = await _calculateStatisticsFromDatabase(teacherId);
-          final updatedActivity = await _generateActivityFromDatabase();
+      final String? userId = _auth.currentUser?.uid;
+      if (userId != null) {
+        // Get user profile to check role and assigned subjects
+        final userProfile = await _authService.getUserProfile(userId);
+        if (userProfile != null) {
+          final isAdmin = userProfile.isAdministrator;
+          final teacherSubjects = userProfile.subjects ?? [];
           
-          setState(() {
-            _students = students;
-            _studentProgress = progress;
-            _statistics = updatedStats;
-            _recentActivity = updatedActivity;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _students = students;
-            _studentProgress = progress;
-            _statistics = stats;
-            _recentActivity = activity;
-            _isLoading = false;
-          });
+          // Get students from Firestore
+          List<Student> allStudents = await _studentService.getAllStudents();
+          
+          // Filter students based on teacher's assignments (if not admin)
+          List<Student> filteredStudents = allStudents;
+          if (!isAdmin && teacherSubjects.isNotEmpty) {
+            // Filter students by subjects they have that match teacher's subjects
+            filteredStudents = allStudents.where((student) {
+              // Check if student has any subject that matches teacher's assigned subjects
+              return student.subjects.any((subject) => teacherSubjects.contains(subject));
+            }).toList();
+          }
+          
+          // Get progress data for filtered students
+          final progress = await _progressService.getStudentProgress(userId);
+          
+          // Filter progress by teacher's subjects (if not admin)
+          List<StudentProgress> filteredProgress = progress;
+          if (!isAdmin && teacherSubjects.isNotEmpty) {
+            filteredProgress = progress.where((p) => teacherSubjects.contains(p.subject)).toList();
+          }
+          
+          // Calculate statistics from filtered data
+          final stats = await _calculateStatisticsFromDatabase(userId, filteredStudents, filteredProgress);
+          final activity = await _generateActivityFromDatabase(filteredStudents);
+          
+          // If no data exists, create sample data
+          if (stats['totalStudents'] == 0 && filteredStudents.isNotEmpty) {
+            await _createSampleProgressData(filteredStudents, userId);
+            // Reload data after creating sample data
+            final updatedStats = await _calculateStatisticsFromDatabase(userId, filteredStudents, filteredProgress);
+            final updatedActivity = await _generateActivityFromDatabase(filteredStudents);
+            
+            setState(() {
+              _isAdmin = isAdmin;
+              _teacherSubjects = teacherSubjects;
+              _students = filteredStudents;
+              _studentProgress = filteredProgress;
+              _statistics = updatedStats;
+              _recentActivity = updatedActivity;
+              // Set default subject selection
+              if (!isAdmin && teacherSubjects.isNotEmpty) {
+                _selectedSubject = teacherSubjects.first;
+              } else if (isAdmin) {
+                _selectedSubject = 'All';
+              }
+              _isLoading = false;
+            });
+          } else {
+            setState(() {
+              _isAdmin = isAdmin;
+              _teacherSubjects = teacherSubjects;
+              _students = filteredStudents;
+              _studentProgress = filteredProgress;
+              _statistics = stats;
+              _recentActivity = activity;
+              // Set default subject selection
+              if (!isAdmin && teacherSubjects.isNotEmpty) {
+                _selectedSubject = teacherSubjects.first;
+              } else if (isAdmin) {
+                _selectedSubject = 'All';
+              }
+              _isLoading = false;
+            });
+          }
         }
-        
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -202,22 +250,20 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   // Calculate statistics from actual database collections
-  Future<Map<String, dynamic>> _calculateStatisticsFromDatabase(String teacherId) async {
+  Future<Map<String, dynamic>> _calculateStatisticsFromDatabase(String teacherId, List<Student> students, List<StudentProgress> progress) async {
     try {
       // Get data from actual collections
-      final studentsRef = FirebaseDatabase.instance.ref('students');
       final submissionsRef = FirebaseDatabase.instance.ref('assessment_submissions');
       final lessonsRef = FirebaseDatabase.instance.ref('lessons');
       
-      final studentsSnapshot = await studentsRef.once();
       final submissionsSnapshot = await submissionsRef.once();
       final lessonsSnapshot = await lessonsRef.once();
       
-      final studentsData = studentsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
       final submissionsData = submissionsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
       final lessonsData = lessonsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
       
-      final int totalStudents = studentsData.length;
+      // Use filtered students count
+      final int totalStudents = students.length;
       
       // Calculate average score from submissions
       double totalScore = 0.0;
@@ -282,7 +328,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   // Generate activity from actual database collections
-  Future<List<Map<String, dynamic>>> _generateActivityFromDatabase() async {
+  Future<List<Map<String, dynamic>>> _generateActivityFromDatabase(List<Student> students) async {
     try {
       final List<Map<String, dynamic>> activities = [];
       
@@ -349,7 +395,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     _debugFilterState();
     
     // Filter by subject (check if student has the selected subject)
-    if (_selectedSubject != 'All') {
+    if (_selectedSubject != null && _selectedSubject != 'All') {
       filtered = filtered.where((s) => s.subjects.contains(_selectedSubject)).toList();
       print('After subject filter ($_selectedSubject): ${filtered.length} students');
     }
@@ -359,7 +405,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
       filtered = filtered.where((student) {
         final studentProgress = _studentProgress.where((progress) => 
           progress.studentId == student.id && 
-          (_selectedSubject == 'All' || progress.subject == _selectedSubject)
+          (_selectedSubject == null || _selectedSubject == 'All' || progress.subject == _selectedSubject)
         ).toList();
         
         if (studentProgress.isEmpty) {
@@ -432,12 +478,12 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
         // Get progress data for both students
         final progressA = _studentProgress.where((p) => 
           p.studentId == a.id && 
-          (_selectedSubject == 'All' || p.subject == _selectedSubject)
+          (_selectedSubject == null || _selectedSubject == 'All' || p.subject == _selectedSubject)
         ).toList();
         
         final progressB = _studentProgress.where((p) => 
           p.studentId == b.id && 
-          (_selectedSubject == 'All' || p.subject == _selectedSubject)
+          (_selectedSubject == null || _selectedSubject == 'All' || p.subject == _selectedSubject)
         ).toList();
         
         switch (_selectedFilter) {
@@ -637,7 +683,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
                     ),
                   )).toList(),
                   onChanged: (value) {
-                    setState(() => _selectedSubject = value!);
+                    setState(() => _selectedSubject = value);
                   },
                 ),
               ),
@@ -952,7 +998,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
             ),
           ),
           const SizedBox(height: 16),
-          ..._subjects.where((s) => s != 'All').map((subject) {
+          ..._subjects.where((s) => _isAdmin ? s != 'All' : true).map((subject) {
             final subjectProgress = _studentProgress.where((p) => p.subject == subject).toList();
             final count = subjectProgress.length;
             final avgScore = subjectProgress.isEmpty 

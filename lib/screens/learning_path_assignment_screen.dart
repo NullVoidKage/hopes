@@ -220,20 +220,22 @@ class _LearningPathAssignmentScreenState extends State<LearningPathAssignmentScr
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? _buildErrorState()
-              : Column(
-                  children: [
-                    // Learning Path Selection
-                    _buildLearningPathSection(),
-                    
-                    // Student Selection
-                    _buildStudentSelectionSection(),
-                    
-                    // Customization Options
-                    _buildCustomizationSection(),
-                    
-                    // Assignment Button
-                    _buildAssignmentButton(),
-                  ],
+              : SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Learning Path Selection
+                      _buildLearningPathSection(),
+                      
+                      // Student Selection
+                      _buildStudentSelectionSection(),
+                      
+                      // Customization Options
+                      _buildCustomizationSection(),
+                      
+                      // Assignment Button
+                      _buildAssignmentButton(),
+                    ],
+                  ),
                 ),
     );
   }
@@ -516,8 +518,8 @@ class _LearningPathAssignmentScreenState extends State<LearningPathAssignmentScr
           ),
 
           // Student List
-          Container(
-            constraints: const BoxConstraints(maxHeight: 300),
+          SizedBox(
+            height: 400,
             child: _filteredStudents.isEmpty
                 ? const Center(
                     child: Padding(
@@ -529,7 +531,7 @@ class _LearningPathAssignmentScreenState extends State<LearningPathAssignmentScr
                     ),
                   )
                 : ListView.builder(
-                    shrinkWrap: true,
+                    physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: _filteredStudents.length,
                     itemBuilder: (context, index) {
                       final student = _filteredStudents[index];
