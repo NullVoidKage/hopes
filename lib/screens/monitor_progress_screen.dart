@@ -31,6 +31,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   String? _selectedSubject;
   String _selectedFilter = 'All';
   String _selectedFocus = 'All Students';
+  String? _selectedSection;
   
   late TabController _tabController;
   
@@ -49,6 +50,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   ];
   final List<String> _filters = ['All', 'High to Low', 'Low to High', 'Recently Active', 'Most Lessons Completed', 'Least Lessons Completed'];
   final List<String> _focusModes = ['All Students', 'High Performers', 'Needs Help', 'Recently Active', 'No Progress', 'Above Average', 'Below Average', 'Engagement Issues'];
+  final List<String> _sections = ['All', 'A', 'B', 'C', 'D'];
   
   List<String> get _subjects {
     if (_isAdmin) {
@@ -107,14 +109,14 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
           
           // Calculate statistics from filtered data
           final stats = await _calculateStatisticsFromDatabase(userId, filteredStudents, filteredProgress);
-          final activity = await _generateActivityFromDatabase(filteredStudents);
+          final activity = await _generateActivityFromDatabase(filteredStudents, teacherSubjects, isAdmin);
           
           // If no data exists, create sample data
           if (stats['totalStudents'] == 0 && filteredStudents.isNotEmpty) {
             await _createSampleProgressData(filteredStudents, userId);
             // Reload data after creating sample data
             final updatedStats = await _calculateStatisticsFromDatabase(userId, filteredStudents, filteredProgress);
-            final updatedActivity = await _generateActivityFromDatabase(filteredStudents);
+            final updatedActivity = await _generateActivityFromDatabase(filteredStudents, teacherSubjects, isAdmin);
             
             setState(() {
               _isAdmin = isAdmin;
@@ -129,6 +131,8 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               } else if (isAdmin) {
                 _selectedSubject = 'All';
               }
+              // Set default section to 'All'
+              _selectedSection = null;
               _isLoading = false;
             });
           } else {
@@ -145,6 +149,8 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               } else if (isAdmin) {
                 _selectedSubject = 'All';
               }
+              // Set default section to 'All'
+              _selectedSection = null;
               _isLoading = false;
             });
           }
@@ -328,7 +334,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   // Generate activity from actual database collections
-  Future<List<Map<String, dynamic>>> _generateActivityFromDatabase(List<Student> students) async {
+  Future<List<Map<String, dynamic>>> _generateActivityFromDatabase(List<Student> students, List<String> teacherSubjects, bool isAdmin) async {
     try {
       final List<Map<String, dynamic>> activities = [];
       
@@ -342,29 +348,39 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
       final lessonsSnapshot = await lessonsRef.once();
       final lessonsData = lessonsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
       
-      // Add assessment completions
+      // Add assessment completions - filter by teacher's subjects
       submissionsData.forEach((key, value) {
         if (value is Map) {
-          activities.add({
-            'type': 'assessment_completed',
-            'studentName': value['studentName'] ?? 'Unknown Student',
-            'assessmentTitle': value['assessmentTitle'] ?? 'Assessment',
-            'timestamp': value['submittedAt'] ?? DateTime.now().millisecondsSinceEpoch,
-            'score': value['score'] ?? 0,
-          });
+          final assessmentSubject = value['assessmentSubject']?.toString() ?? '';
+          // Only include activities from teacher's subjects (unless admin)
+          if (isAdmin || teacherSubjects.isEmpty || teacherSubjects.contains(assessmentSubject)) {
+            activities.add({
+              'type': 'assessment_completed',
+              'studentName': value['studentName'] ?? 'Unknown Student',
+              'assessmentTitle': value['assessmentTitle'] ?? 'Assessment',
+              'timestamp': value['submittedAt'] ?? DateTime.now().millisecondsSinceEpoch,
+              'score': value['score'] ?? 0,
+              'subject': assessmentSubject,
+            });
+          }
         }
       });
       
-      // Add lesson completions
+      // Add lesson completions - filter by teacher's subjects
       lessonsData.forEach((key, value) {
         if (value is Map && value['isCompleted'] == true) {
-          activities.add({
-            'type': 'lesson_completed',
-            'studentName': value['studentName'] ?? 'Unknown Student',
-            'lessonTitle': value['title'] ?? 'Lesson',
-            'timestamp': value['completedAt'] ?? DateTime.now().millisecondsSinceEpoch,
-            'score': 100, // Lessons don't have scores, use 100 as completion
-          });
+          final lessonSubject = value['subject']?.toString() ?? '';
+          // Only include activities from teacher's subjects (unless admin)
+          if (isAdmin || teacherSubjects.isEmpty || teacherSubjects.contains(lessonSubject)) {
+            activities.add({
+              'type': 'lesson_completed',
+              'studentName': value['studentName'] ?? 'Unknown Student',
+              'lessonTitle': value['title'] ?? 'Lesson',
+              'timestamp': value['completedAt'] ?? DateTime.now().millisecondsSinceEpoch,
+              'score': 100, // Lessons don't have scores, use 100 as completion
+              'subject': lessonSubject,
+            });
+          }
         }
       });
       
@@ -393,6 +409,12 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     
     // Debug: Print current filter state
     _debugFilterState();
+    
+    // Filter by section
+    if (_selectedSection != null && _selectedSection != 'All') {
+      filtered = filtered.where((s) => s.section == _selectedSection).toList();
+      print('After section filter ($_selectedSection): ${filtered.length} students');
+    }
     
     // Filter by subject (check if student has the selected subject)
     if (_selectedSubject != null && _selectedSubject != 'All') {
@@ -719,7 +741,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
               ),
             ),
           ),
-          const SizedBox(width: 8),
+            const SizedBox(width: 8),
           SizedBox(
             width: (MediaQuery.of(context).size.width * 0.3).clamp(100.0, 150.0),
             child: Container(
@@ -746,6 +768,37 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
                 )).toList(),
                 onChanged: (value) {
                   setState(() => _selectedFocus = value!);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: (MediaQuery.of(context).size.width * 0.3).clamp(100.0, 150.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E5E7)),
+              ),
+              child: DropdownButtonFormField<String>(
+                value: _selectedSection ?? 'All',
+                decoration: const InputDecoration(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  border: InputBorder.none,
+                  hintText: 'Section',
+                ),
+                items: _sections.map((section) => DropdownMenuItem(
+                  value: section,
+                  child: Text(
+                    section,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  setState(() => _selectedSection = value == 'All' ? null : value);
                 },
               ),
             ),
@@ -895,7 +948,8 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
   }
 
   List<Widget> _buildChartBars() {
-    final subjects = [
+    // Only show subjects that the teacher teaches (or all if admin)
+    final subjects = _isAdmin ? [
       'Mathematics',
       'GMRC',
       'Values Education',
@@ -907,7 +961,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
       'Physical Education & Health',
       'EPP',
       'TLE'
-    ];
+    ] : _teacherSubjects;
     final colors = [
       const Color(0xFF007AFF),    // Blue
       const Color(0xFF34C759),    // Green
@@ -925,7 +979,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     return subjects.asMap().entries.map((entry) {
       final index = entry.key;
       final subject = entry.value;
-      final color = colors[index];
+      final color = colors[index % colors.length]; // Use modulo to prevent index out of bounds
       
       // Calculate average score for this subject from progress data
       final subjectProgress = _studentProgress.where((p) => p.subject == subject).toList();
@@ -1284,6 +1338,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     final studentName = activity['studentName'] ?? 'Unknown Student';
     final score = activity['score']?.toString() ?? 'N/A';
     final timestamp = activity['timestamp'] as int?;
+    final subject = activity['subject']?.toString() ?? 'General';
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1325,6 +1380,22 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
                 const SizedBox(height: 4),
                 Row(
                   children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007AFF).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        subject,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF007AFF),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Text(
                       'Score: $score',
                       style: const TextStyle(

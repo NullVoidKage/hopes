@@ -1,12 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import 'package:firebase_database/firebase_database.dart';
 import '../models/user_model.dart';
 import '../models/assessment.dart';
 import '../models/lesson.dart';
+import '../models/student_approval.dart';
 import 'connectivity_service.dart';
 import 'offline_service.dart';
 
 class AdminService {
   final firestore.FirebaseFirestore _firestore = firestore.FirebaseFirestore.instance;
+  final FirebaseDatabase _database = FirebaseDatabase.instance;
   final ConnectivityService _connectivityService = ConnectivityService();
 
   // Get all users with filtering
@@ -15,10 +18,7 @@ class AdminService {
     String? schoolYear,
   }) async {
     try {
-      if (_connectivityService.shouldUseCachedData) {
-        return await _getCachedUsers(role: role);
-      }
-
+      // Always try to fetch from Firestore first (don't rely on connectivity check for admin)
       firestore.Query query = _firestore.collection('users');
 
       if (role != null) {
@@ -29,9 +29,16 @@ class AdminService {
 
       final users = snapshot.docs
           .map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            return UserModel.fromFirestore(data, doc.id);
+            try {
+              final data = doc.data() as Map<String, dynamic>;
+              return UserModel.fromFirestore(data, doc.id);
+            } catch (e) {
+              // Skip invalid user documents
+              print('Error parsing user ${doc.id}: $e');
+              return null;
+            }
           })
+          .whereType<UserModel>()
           .toList();
 
       if (schoolYear != null) {
@@ -43,7 +50,14 @@ class AdminService {
 
       return users;
     } catch (e) {
-      return await _getCachedUsers(role: role);
+      print('Error fetching users from Firestore: $e');
+      // Try cached users as fallback
+      try {
+        return await _getCachedUsers(role: role);
+      } catch (cacheError) {
+        print('Error fetching cached users: $cacheError');
+        return [];
+      }
     }
   }
 
@@ -115,11 +129,8 @@ class AdminService {
         return await _getCachedStatistics();
       }
 
-      // Get counts
+      // Get users from Firestore
       final usersSnapshot = await _firestore.collection('users').get();
-      final assessmentsSnapshot = await _firestore.collection('assessments').get();
-      final lessonsSnapshot = await _firestore.collection('lessons').get();
-
       final totalUsers = usersSnapshot.docs.length;
       final students = usersSnapshot.docs
           .where((doc) => doc.data()['role'] == 'student')
@@ -131,13 +142,34 @@ class AdminService {
           .where((doc) => doc.data()['role'] == 'administrator')
           .length;
 
+      // Get assessments and lessons from Realtime Database
+      final assessmentsSnapshot = await _database.ref('assessments').get();
+      final lessonsSnapshot = await _database.ref('lessons').get();
+      
+      int totalAssessments = 0;
+      int totalLessons = 0;
+      
+      if (assessmentsSnapshot.exists) {
+        final assessmentsData = assessmentsSnapshot.value;
+        if (assessmentsData is Map) {
+          totalAssessments = assessmentsData.length;
+        }
+      }
+      
+      if (lessonsSnapshot.exists) {
+        final lessonsData = lessonsSnapshot.value;
+        if (lessonsData is Map) {
+          totalLessons = lessonsData.length;
+        }
+      }
+
       final statistics = {
         'totalUsers': totalUsers,
         'totalStudents': students,
         'totalTeachers': teachers,
         'totalAdministrators': administrators,
-        'totalAssessments': assessmentsSnapshot.docs.length,
-        'totalLessons': lessonsSnapshot.docs.length,
+        'totalAssessments': totalAssessments,
+        'totalLessons': totalLessons,
         'lastUpdated': DateTime.now().toIso8601String(),
       };
 
@@ -153,22 +185,35 @@ class AdminService {
   // Get content statistics (assessments and lessons by subject)
   Future<Map<String, dynamic>> getContentStatistics() async {
     try {
-      final assessmentsSnapshot = await _firestore.collection('assessments').get();
-      final lessonsSnapshot = await _firestore.collection('lessons').get();
+      // Get from Realtime Database
+      final assessmentsSnapshot = await _database.ref('assessments').get();
+      final lessonsSnapshot = await _database.ref('lessons').get();
 
       final assessmentBySubject = <String, int>{};
       final lessonBySubject = <String, int>{};
 
-      for (final doc in assessmentsSnapshot.docs) {
-        final data = doc.data();
-        final subject = data['subject'] as String? ?? 'Unknown';
-        assessmentBySubject[subject] = (assessmentBySubject[subject] ?? 0) + 1;
+      if (assessmentsSnapshot.exists) {
+        final assessmentsData = assessmentsSnapshot.value;
+        if (assessmentsData is Map) {
+          assessmentsData.forEach((key, value) {
+            if (value is Map) {
+              final subject = value['subject']?.toString() ?? 'Unknown';
+              assessmentBySubject[subject] = (assessmentBySubject[subject] ?? 0) + 1;
+            }
+          });
+        }
       }
 
-      for (final doc in lessonsSnapshot.docs) {
-        final data = doc.data();
-        final subject = data['subject'] as String? ?? 'Unknown';
-        lessonBySubject[subject] = (lessonBySubject[subject] ?? 0) + 1;
+      if (lessonsSnapshot.exists) {
+        final lessonsData = lessonsSnapshot.value;
+        if (lessonsData is Map) {
+          lessonsData.forEach((key, value) {
+            if (value is Map) {
+              final subject = value['subject']?.toString() ?? 'Unknown';
+              lessonBySubject[subject] = (lessonBySubject[subject] ?? 0) + 1;
+            }
+          });
+        }
       }
 
       return {
@@ -203,80 +248,203 @@ class AdminService {
     }
   }
 
-  // Get all assessments
+  // Get all assessments from Realtime Database
   Future<List<Assessment>> getAllAssessments() async {
     try {
-      final snapshot = await _firestore.collection('assessments').get();
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        // Convert Firestore data to Realtime Database format
-        final rtData = <String, dynamic>{
-          'title': data['title'] ?? '',
-          'description': data['description'] ?? '',
-          'subject': data['subject'] ?? '',
-          'teacherId': data['teacherId'] ?? '',
-          'teacherName': data['teacherName'] ?? '',
-          'createdAt': data['createdAt'] is firestore.Timestamp
-              ? (data['createdAt'] as firestore.Timestamp).millisecondsSinceEpoch
-              : DateTime.now().millisecondsSinceEpoch,
-          'updatedAt': data['updatedAt'] is firestore.Timestamp
-              ? (data['updatedAt'] as firestore.Timestamp).millisecondsSinceEpoch
-              : DateTime.now().millisecondsSinceEpoch,
-          'isPublished': data['isPublished'] ?? false,
-          'tags': data['tags'] ?? [],
-          'timeLimit': data['timeLimit'] ?? 0,
-          'totalPoints': data['totalPoints'] ?? 100,
-          'questions': data['questions'] ?? [],
-          'dueDate': data['dueDate'] is firestore.Timestamp
-              ? (data['dueDate'] as firestore.Timestamp).millisecondsSinceEpoch
-              : null,
-          'instructions': data['instructions'],
-          'assessmentType': data['assessmentType'] ?? 'Quiz',
-          'schoolYear': data['schoolYear'],
-        };
-        return Assessment.fromRealtimeDatabase(doc.id, rtData);
-      }).toList();
+      final snapshot = await _database.ref('assessments').get();
+      
+      if (!snapshot.exists) {
+        return [];
+      }
+      
+      final assessments = <Assessment>[];
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      
+      if (data != null) {
+        data.forEach((key, value) {
+          if (value is Map) {
+            try {
+              final assessment = Assessment.fromRealtimeDatabase(key.toString(), value);
+              assessments.add(assessment);
+            } catch (e) {
+              // Skip invalid assessments
+            }
+          }
+        });
+      }
+      
+      // Sort by creation date (newest first)
+      assessments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return assessments;
     } catch (e) {
       return [];
     }
   }
 
-  // Get all lessons
+  // Get all lessons from Realtime Database
   Future<List<Lesson>> getAllLessons() async {
     try {
-      final snapshot = await _firestore.collection('lessons').get();
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        // Handle Timestamp conversion
-        final lessonData = Map<String, dynamic>.from(data);
-        if (data['createdAt'] is firestore.Timestamp) {
-          lessonData['createdAt'] = data['createdAt'] as firestore.Timestamp;
-        }
-        if (data['updatedAt'] is firestore.Timestamp) {
-          lessonData['updatedAt'] = data['updatedAt'] as firestore.Timestamp;
-        }
-        return Lesson.fromFirestore(lessonData, doc.id);
-      }).toList();
+      final snapshot = await _database.ref('lessons').get();
+      
+      if (!snapshot.exists) {
+        return [];
+      }
+      
+      final lessons = <Lesson>[];
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      
+      if (data != null) {
+        data.forEach((key, value) {
+          if (value is Map) {
+            try {
+              final lesson = Lesson.fromRealtimeDatabase(key.toString(), value);
+              lessons.add(lesson);
+            } catch (e) {
+              // Skip invalid lessons
+            }
+          }
+        });
+      }
+      
+      // Sort by creation date (newest first)
+      lessons.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return lessons;
     } catch (e) {
       return [];
     }
   }
 
-  // Delete assessment
+  // Delete assessment from Realtime Database
   Future<void> deleteAssessment(String assessmentId) async {
     try {
-      await _firestore.collection('assessments').doc(assessmentId).delete();
+      await _database.ref('assessments').child(assessmentId).remove();
     } catch (e) {
       throw Exception('Failed to delete assessment: ${e.toString()}');
     }
   }
 
-  // Delete lesson
+  // Delete lesson from Realtime Database
   Future<void> deleteLesson(String lessonId) async {
     try {
-      await _firestore.collection('lessons').doc(lessonId).delete();
+      await _database.ref('lessons').child(lessonId).remove();
     } catch (e) {
       throw Exception('Failed to delete lesson: ${e.toString()}');
+    }
+  }
+
+  // Get all student approvals
+  Future<List<StudentApproval>> getAllApprovals() async {
+    try {
+      final snapshot = await _database.ref('student_approvals').get();
+      
+      if (!snapshot.exists) {
+        return [];
+      }
+      
+      final approvals = <StudentApproval>[];
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      
+      if (data != null) {
+        data.forEach((key, value) {
+          if (value is Map) {
+            try {
+              final approvalData = Map<String, dynamic>.from(value);
+              final approval = StudentApproval.fromMap(approvalData);
+              approvals.add(approval);
+            } catch (e) {
+              // Skip invalid approvals
+            }
+          }
+        });
+      }
+      
+      // Sort by creation date (newest first)
+      approvals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return approvals;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Get pending approvals
+  Future<List<StudentApproval>> getPendingApprovals() async {
+    try {
+      final allApprovals = await getAllApprovals();
+      return allApprovals.where((approval) => approval.status == 'pending').toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Approve student
+  Future<void> approveStudent(String approvalId, String adminId, String adminName, {String? notes}) async {
+    try {
+      await _database.ref('student_approvals').child(approvalId).update({
+        'status': 'approved',
+        'teacherId': adminId,
+        'teacherName': adminName,
+        'reviewedAt': ServerValue.timestamp,
+        'notes': notes,
+      });
+    } catch (e) {
+      throw Exception('Failed to approve student: ${e.toString()}');
+    }
+  }
+
+  // Reject student
+  Future<void> rejectStudent(String approvalId, String adminId, String adminName, String rejectionReason) async {
+    try {
+      await _database.ref('student_approvals').child(approvalId).update({
+        'status': 'rejected',
+        'teacherId': adminId,
+        'teacherName': adminName,
+        'reviewedAt': ServerValue.timestamp,
+        'rejectionReason': rejectionReason,
+      });
+    } catch (e) {
+      throw Exception('Failed to reject student: ${e.toString()}');
+    }
+  }
+
+  // Get approval statistics
+  Future<Map<String, int>> getApprovalStatistics() async {
+    try {
+      final approvals = await getAllApprovals();
+      
+      int pending = 0;
+      int approved = 0;
+      int rejected = 0;
+      
+      for (final approval in approvals) {
+        switch (approval.status) {
+          case 'pending':
+            pending++;
+            break;
+          case 'approved':
+            approved++;
+            break;
+          case 'rejected':
+            rejected++;
+            break;
+        }
+      }
+      
+      return {
+        'pending': pending,
+        'approved': approved,
+        'rejected': rejected,
+        'total': approvals.length,
+      };
+    } catch (e) {
+      return {
+        'pending': 0,
+        'approved': 0,
+        'rejected': 0,
+        'total': 0,
+      };
     }
   }
 
@@ -293,10 +461,11 @@ class AdminService {
 
   Future<List<UserModel>> _getCachedUsers({String? role}) async {
     try {
-      // This would use offline service to get cached users
-      // For now, return empty list
+      // Try to get cached users from offline service
+      // For now, return empty list if no cache available
       return [];
     } catch (e) {
+      print('Error getting cached users: $e');
       return [];
     }
   }

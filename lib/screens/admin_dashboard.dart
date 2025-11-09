@@ -7,6 +7,7 @@ import 'admin_user_management_screen.dart';
 import 'admin_content_moderation_screen.dart';
 import 'admin_analytics_screen.dart';
 import 'admin_system_settings_screen.dart';
+import 'admin_approval_management_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({Key? key}) : super(key: key);
@@ -28,7 +29,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _loadData();
   }
 
@@ -121,6 +122,7 @@ class _AdminDashboardState extends State<AdminDashboard>
             Tab(text: 'Overview'),
             Tab(text: 'Users'),
             Tab(text: 'Content'),
+            Tab(text: 'Approvals'),
             Tab(text: 'Analytics'),
             Tab(text: 'Settings'),
           ],
@@ -132,6 +134,7 @@ class _AdminDashboardState extends State<AdminDashboard>
           _buildOverviewTab(),
           const AdminUserManagementScreen(),
           const AdminContentModerationScreen(),
+          const AdminApprovalManagementScreen(),
           const AdminAnalyticsScreen(),
           const AdminSystemSettingsScreen(),
         ],
@@ -258,36 +261,42 @@ class _AdminDashboardState extends State<AdminDashboard>
               '${_statistics['totalUsers'] ?? 0}',
               Icons.people,
               const Color(0xFF007AFF),
+              onTap: () => _tabController.animateTo(1), // Users tab
             ),
             _buildStatCard(
               'Students',
               '${_statistics['totalStudents'] ?? 0}',
               Icons.school,
               const Color(0xFF34C759),
+              onTap: () => _tabController.animateTo(1), // Users tab (will show students)
             ),
             _buildStatCard(
               'Teachers',
               '${_statistics['totalTeachers'] ?? 0}',
               Icons.person,
               const Color(0xFFFF9500),
+              onTap: () => _tabController.animateTo(1), // Users tab (will show teachers)
             ),
             _buildStatCard(
               'Assessments',
               '${_statistics['totalAssessments'] ?? 0}',
               Icons.quiz,
               const Color(0xFFAF52DE),
+              onTap: () => _tabController.animateTo(2), // Content tab
             ),
             _buildStatCard(
               'Lessons',
               '${_statistics['totalLessons'] ?? 0}',
               Icons.menu_book,
               const Color(0xFFFF3B30),
+              onTap: () => _tabController.animateTo(2), // Content tab
             ),
             _buildStatCard(
               'Administrators',
               '${_statistics['totalAdministrators'] ?? 0}',
               Icons.admin_panel_settings,
               const Color(0xFF5856D6),
+              onTap: () => _tabController.animateTo(1), // Users tab (will show administrators)
             ),
           ],
         ),
@@ -295,45 +304,49 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E5E7)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 32, color: color),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: color,
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E5E7)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF86868B),
-              fontWeight: FontWeight.w500,
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF86868B),
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
