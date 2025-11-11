@@ -18,6 +18,8 @@ import 'feedback_creation_screen.dart';
 import 'leaderboard_screen.dart';
 import 'adaptive_difficulty_screen.dart';
 import 'teacher_submission_viewer_screen.dart';
+import 'class_management_screen.dart';
+import 'student_ratings_screen.dart';
 import '../services/connectivity_service.dart';
 
 class TeacherPanel extends StatefulWidget {
@@ -459,6 +461,20 @@ class _TeacherPanelState extends State<TeacherPanel> {
               'Review & grade assessments',
               const Color(0xFF5856D6),
               () => _navigateToSubmissions(),
+            ),
+            _buildActionCard(
+              'Class Management',
+              Icons.class_rounded,
+              'Create and manage classes',
+              const Color(0xFFFF3B30),
+              () => _navigateToClassManagement(),
+            ),
+            _buildActionCard(
+              'Student Ratings',
+              Icons.star_rounded,
+              'View individual student ratings',
+              const Color(0xFFFF9500),
+              () => _navigateToStudentRatings(),
             ),
           ],
         );
@@ -1333,6 +1349,32 @@ class _TeacherPanelState extends State<TeacherPanel> {
         ),
       ),
     );
+  }
+
+  void _navigateToClassManagement() {
+    if (_userProfile != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClassManagementScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _navigateToStudentRatings() {
+    if (_userProfile != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StudentRatingsScreen(
+            teacherProfile: _userProfile!,
+          ),
+        ),
+      );
+    }
   }
 
 

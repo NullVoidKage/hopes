@@ -30,7 +30,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   
   String? _selectedSubject;
   bool _isPublished = false;
-  List<String> _selectedTags = [];
+  String? _selectedTag; // Single tag selection only
   bool _isLoading = false;
   
   // File upload variables
@@ -52,8 +52,13 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   @override
   void initState() {
     super.initState();
-    // Set default subject to Mathematics (first in the list)
-    _selectedSubject = 'Mathematics';
+    // Set default subject to teacher's first assigned subject
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    if (teacherSubjects.isNotEmpty) {
+      _selectedSubject = teacherSubjects.first;
+    } else {
+      _selectedSubject = 'Mathematics'; // Fallback
+    }
   }
 
   @override
@@ -1108,16 +1113,16 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             spacing: 12,
             runSpacing: 12,
             children: _availableTags.map((tag) {
-              final isSelected = _selectedTags.contains(tag);
+              final isSelected = _selectedTag == tag;
               return FilterChip(
                 label: Text(tag),
                 selected: isSelected,
                 onSelected: (selected) {
                   setState(() {
                     if (selected) {
-                      _selectedTags.add(tag);
+                      _selectedTag = tag;
                     } else {
-                      _selectedTags.remove(tag);
+                      _selectedTag = null; // Remove tag if clicking selected one
                     }
                   });
                 },
@@ -1317,7 +1322,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
       return;
     }
     
-    // Validate video tag requires video file/link
+    // Validate tags - if Video tag is selected, must have video
     final hasVideoFile = _uploadedFileUrl != null && 
                          (_uploadedFileUrl!.contains('.mp4') || 
                           _uploadedFileUrl!.contains('.mov') || 
@@ -1325,7 +1330,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
                           _uploadedFileUrl!.contains('.webm'));
     final hasVideoUrl = _videoUrlController.text.trim().isNotEmpty;
     
-    if (_selectedTags.contains('Video') && !hasVideoFile && !hasVideoUrl) {
+    if (_selectedTag == 'Video' && !hasVideoFile && !hasVideoUrl) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Lessons tagged as "Video" must include a video file upload or video URL link'),
@@ -1352,7 +1357,7 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         isPublished: _isPublished,
-        tags: _selectedTags,
+        tags: _selectedTag != null ? [_selectedTag!] : [],
         description: _descriptionController.text.trim().isEmpty 
             ? null 
             : _descriptionController.text.trim(),

@@ -41,6 +41,11 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   @override
   void initState() {
     super.initState();
+    // Set default subject to teacher's first assigned subject
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    if (teacherSubjects.isNotEmpty) {
+      _selectedSubject = teacherSubjects.first;
+    }
     // Add a default question
     _addQuestion();
   }
