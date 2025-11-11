@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/lesson.dart';
 import '../services/lesson_service_realtime.dart';
+import '../services/notification_service.dart';
 import '../models/user_model.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../screens/file_preview_screen.dart'; // Added import for FilePreviewScreen
@@ -29,9 +30,17 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
   final _videoUrlController = TextEditingController(); // Video URL/link controller
   
   String? _selectedSubject;
+  String? _selectedSchoolYear;
   bool _isPublished = false;
   String? _selectedTag; // Single tag selection only
   bool _isLoading = false;
+  
+  final List<String> _schoolYears = [
+    '2024-2025',
+    '2025-2026',
+    '2026-2027',
+    '2027-2028',
+  ];
   
   // File upload variables
   PlatformFile? _selectedFile;
@@ -59,6 +68,10 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
     } else {
       _selectedSubject = 'Mathematics'; // Fallback
     }
+    // Set default school year to current school year
+    final currentYear = DateTime.now().year;
+    final nextYear = currentYear + 1;
+    _selectedSchoolYear = '$currentYear-$nextYear';
   }
 
   @override
@@ -265,6 +278,49 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
               }
               return null;
             },
+          ),
+          const SizedBox(height: 20),
+          
+          // School Year
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'School Year',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  border: Border.all(
+                    color: const Color(0xFFE5E5E7),
+                    width: 1,
+                  ),
+                ),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedSchoolYear,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: InputBorder.none,
+                  ),
+                  items: _schoolYears.map((year) => DropdownMenuItem(
+                    value: year,
+                    child: Text(year),
+                  )).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSchoolYear = value;
+                    });
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1363,14 +1419,31 @@ class _LessonUploadScreenState extends State<LessonUploadScreen> {
             : _descriptionController.text.trim(),
         fileUrl: _uploadedFileUrl,
         videoUrl: _videoUrlController.text.trim().isEmpty ? null : _videoUrlController.text.trim(),
+        schoolYear: _selectedSchoolYear,
       );
 
 
       final lessonService = LessonServiceRealtime();
-      await lessonService.createLesson(lesson);
+      final lessonId = await lessonService.createLesson(lesson);
 
       // Log the activity for teacher dashboard
       await _logTeacherActivity('Lesson Created', 'Created lesson: ${lesson.title}');
+
+      // Send notification to students about new lesson
+      if (_isPublished) {
+        try {
+          final notificationService = NotificationService();
+          await notificationService.notifyStudentsAboutNewContent(
+            title: 'New Lesson Available',
+            body: '${widget.teacherProfile.displayName} has uploaded a new lesson: ${lesson.title}',
+            type: 'lesson',
+            contentId: lessonId,
+            subject: lesson.subject,
+          );
+        } catch (e) {
+          // Don't fail lesson creation if notification fails
+        }
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

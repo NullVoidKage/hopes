@@ -25,23 +25,31 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
   Map<String, dynamic> _statistics = {};
   bool _isLoading = true;
   String _searchQuery = '';
+  String? _selectedSubjectFilter; // Subject filter for analytics
   
   late TabController _tabController;
   
   final List<String> _grades = ['Grade 7'];
-  final List<String> _subjects = [
-    'Mathematics',
-    'GMRC',
-    'Values Education',
-    'Araling Panlipunan',
-    'English',
-    'Filipino',
-    'Music & Arts',
-    'Science',
-    'Physical Education & Health',
-    'EPP',
-    'TLE'
-  ];
+  
+  // Get subjects - use teacher's assigned subjects or all subjects
+  List<String> get _subjects {
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    return teacherSubjects.isEmpty
+        ? [
+            'Mathematics',
+            'GMRC',
+            'Values Education',
+            'Araling Panlipunan',
+            'English',
+            'Filipino',
+            'Music & Arts',
+            'Science',
+            'Physical Education & Health',
+            'EPP',
+            'TLE'
+          ]
+        : teacherSubjects;
+  }
 
   @override
   void initState() {
@@ -577,6 +585,11 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
         ? Map<String, dynamic>.from(_statistics['subjectDistribution'] as Map)
         : <String, dynamic>{};
     
+    // Filter subjects based on selected filter
+    final filteredSubjects = _selectedSubjectFilter != null && _selectedSubjectFilter != 'All'
+        ? [_selectedSubjectFilter!]
+        : _subjects;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -593,16 +606,53 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Subject Distribution',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1D1D1F),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Subject Distribution',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              // Subject Filter Dropdown
+              Container(
+                width: 150,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F7),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFE5E5E7),
+                    width: 1,
+                  ),
+                ),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedSubjectFilter ?? 'All',
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: 'All', child: Text('All Subjects')),
+                    ..._subjects.map((subject) => DropdownMenuItem(
+                      value: subject,
+                      child: Text(subject, overflow: TextOverflow.ellipsis),
+                    )),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSubjectFilter = value;
+                    });
+                  },
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
-          ..._subjects.map((subject) {
+          ...filteredSubjects.map((subject) {
             final count = subjectStats[subject] ?? 0;
             final percentage = _students.isEmpty ? 0.0 : (count / _students.length) * 100;
             

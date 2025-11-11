@@ -4,6 +4,8 @@ class StudentApproval {
   final String studentName;
   final String studentEmail;
   final String gradeLevel;
+  final String? section;
+  final String? schoolYear;
   final String status; // 'pending', 'approved', 'rejected'
   final String? teacherId;
   final String? teacherName;
@@ -18,6 +20,8 @@ class StudentApproval {
     required this.studentName,
     required this.studentEmail,
     required this.gradeLevel,
+    this.section,
+    this.schoolYear,
     required this.status,
     this.teacherId,
     this.teacherName,
@@ -34,6 +38,8 @@ class StudentApproval {
       'studentName': studentName,
       'studentEmail': studentEmail,
       'gradeLevel': gradeLevel,
+      'section': section,
+      'schoolYear': schoolYear,
       'status': status,
       'teacherId': teacherId,
       'teacherName': teacherName,
@@ -51,6 +57,8 @@ class StudentApproval {
       studentName: map['studentName'] ?? '',
       studentEmail: map['studentEmail'] ?? '',
       gradeLevel: map['gradeLevel'] ?? '',
+      section: map['section'],
+      schoolYear: map['schoolYear'],
       status: map['status'] ?? 'pending',
       teacherId: map['teacherId'],
       teacherName: map['teacherName'],
@@ -69,6 +77,8 @@ class StudentApproval {
     String? studentName,
     String? studentEmail,
     String? gradeLevel,
+    String? section,
+    String? schoolYear,
     String? status,
     String? teacherId,
     String? teacherName,
@@ -83,6 +93,8 @@ class StudentApproval {
       studentName: studentName ?? this.studentName,
       studentEmail: studentEmail ?? this.studentEmail,
       gradeLevel: gradeLevel ?? this.gradeLevel,
+      section: section ?? this.section,
+      schoolYear: schoolYear ?? this.schoolYear,
       status: status ?? this.status,
       teacherId: teacherId ?? this.teacherId,
       teacherName: teacherName ?? this.teacherName,

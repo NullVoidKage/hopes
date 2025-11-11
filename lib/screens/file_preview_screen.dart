@@ -70,15 +70,36 @@ class FilePreviewScreen extends StatelessWidget {
   }
 
   Widget _buildFilePreview(BuildContext context) {
-    final fileExtension = _getFileExtension(fileName).toLowerCase();
+    // Try to get extension from filename first, then from URL
+    String fileExtension = _getFileExtension(fileName).toLowerCase();
+    
+    // If no extension in filename, try to extract from URL
+    if (fileExtension.isEmpty) {
+      fileExtension = _getFileExtensionFromUrl(fileUrl).toLowerCase();
+    }
     
     if (fileExtension == 'pdf') {
       return _buildPdfPreview(context);
     } else if (fileExtension == 'docx' || fileExtension == 'doc') {
       return _buildDocPreview();
     } else {
-      return _buildUnsupportedFilePreview();
+      // For unsupported files, provide option to open in new tab
+      return _buildUnsupportedFilePreview(context);
     }
+  }
+
+  String _getFileExtensionFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final path = uri.path;
+      final parts = path.split('.');
+      if (parts.length > 1) {
+        return parts.last.split('?').first; // Remove query params
+      }
+    } catch (e) {
+      // If parsing fails, return empty
+    }
+    return '';
   }
 
   Widget _buildPdfPreview(BuildContext context) {
@@ -151,34 +172,46 @@ class FilePreviewScreen extends StatelessWidget {
   Widget _buildWebPdfPreview() {
     return Builder(
       builder: (context) {
-        // Use embedded iframe for web
+        // For web, try iframe first, but provide fallback
         return Stack(
           children: [
-            // Embedded PDF iframe
+            // Embedded PDF iframe with fallback
             SizedBox(
               width: double.infinity,
               height: double.infinity,
               child: kIsWeb
-                  ? pdf_viewer.PdfIframeViewer(
-                      pdfUrl: fileUrl,
-                      fileName: fileName,
-                    )
+                  ? _buildWebPdfViewer(context)
                   : const Center(
                       child: Text('PDF preview only available on web'),
                     ),
             ),
-            // Floating action button for download
+            // Action buttons
             Positioned(
               bottom: 16,
               right: 16,
-              child: FloatingActionButton(
-                onPressed: () {
-                  // Download file
-                  _downloadFile(context, fileUrl, fileName);
-                },
-                backgroundColor: const Color(0xFF007AFF),
-                child: const Icon(Icons.download_rounded, color: Colors.white),
-                tooltip: 'Download PDF',
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton(
+                    onPressed: () {
+                      // Open in new tab as fallback
+                      _openPdfInNewTab(context);
+                    },
+                    backgroundColor: const Color(0xFF34C759),
+                    child: const Icon(Icons.open_in_new_rounded, color: Colors.white),
+                    tooltip: 'Open in new tab',
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton(
+                    onPressed: () {
+                      // Download file
+                      _downloadFile(context, fileUrl, fileName);
+                    },
+                    backgroundColor: const Color(0xFF007AFF),
+                    child: const Icon(Icons.download_rounded, color: Colors.white),
+                    tooltip: 'Download PDF',
+                  ),
+                ],
               ),
             ),
           ],
@@ -186,6 +219,20 @@ class FilePreviewScreen extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildWebPdfViewer(BuildContext context) {
+    // For web, prefer opening in new tab for better compatibility
+    // But still try iframe first
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return pdf_viewer.PdfIframeViewer(
+          pdfUrl: fileUrl,
+          fileName: fileName,
+        );
+      },
+    );
+  }
+
 
   Widget _buildDocPreview() {
     return Container(
@@ -229,20 +276,20 @@ class FilePreviewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUnsupportedFilePreview() {
+  Widget _buildUnsupportedFilePreview(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      child: const Column(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.insert_drive_file_rounded,
             size: 64,
             color: Color(0xFF86868B),
           ),
-          SizedBox(height: 16),
-          Text(
+          const SizedBox(height: 16),
+          const Text(
             'File Preview Not Available',
             style: TextStyle(
               fontSize: 20,
@@ -250,25 +297,56 @@ class FilePreviewScreen extends StatelessWidget {
               color: Color(0xFF1D1D1F),
             ),
           ),
-          SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'This file type cannot be previewed',
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF86868B),
             ),
           ),
-          SizedBox(height: 24),
-          Text(
-            'Click the download button to save the file',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF007AFF),
+          const SizedBox(height: 24),
+          if (kIsWeb) ...[
+            ElevatedButton.icon(
+              onPressed: () => _openFileInNewTab(context),
+              icon: const Icon(Icons.open_in_new_rounded),
+              label: const Text('Open in New Tab'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF007AFF),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          OutlinedButton.icon(
+            onPressed: () => _downloadFile(context, fileUrl, fileName),
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Download File'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF007AFF),
+              side: const BorderSide(color: Color(0xFF007AFF)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],
       ),
     );
+  }
+
+  void _openFileInNewTab(BuildContext context) {
+    if (kIsWeb) {
+      WebFileHandler.openInNewTab(fileUrl);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Opening file in new tab...'),
+            backgroundColor: Color(0xFF34C759),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _downloadFile(BuildContext context, String url, String fileName) async {

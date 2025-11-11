@@ -182,6 +182,7 @@ class AssessmentQuestion {
   final Map<String, int> optionPoints; // Points for each option (e.g., {"A": 10, "B": 5, "C": 0})
   final String? explanation;
   final bool showCorrectAnswer; // Whether to show correct answer to students
+  final String? imageUrl; // Image URL for the question
 
   AssessmentQuestion({
     required this.id,
@@ -194,6 +195,7 @@ class AssessmentQuestion {
     this.optionPoints = const {}, // Points for each option
     this.explanation,
     this.showCorrectAnswer = false, // Default to hidden
+    this.imageUrl,
   });
 
   // Create from Map
@@ -237,6 +239,7 @@ class AssessmentQuestion {
       optionPoints: parsedOptionPoints,
       explanation: data['explanation']?.toString(),
       showCorrectAnswer: data['showCorrectAnswer'] as bool? ?? false,
+      imageUrl: data['imageUrl']?.toString(),
     );
     
     return question;
@@ -255,6 +258,7 @@ class AssessmentQuestion {
       'optionPoints': optionPoints,
       'explanation': explanation,
       'showCorrectAnswer': showCorrectAnswer,
+      'imageUrl': imageUrl,
     };
   }
 
@@ -270,6 +274,7 @@ class AssessmentQuestion {
     Map<String, int>? optionPoints,
     String? explanation,
     bool? showCorrectAnswer,
+    String? imageUrl,
   }) {
     return AssessmentQuestion(
       id: id ?? this.id,
@@ -282,6 +287,7 @@ class AssessmentQuestion {
       optionPoints: optionPoints ?? this.optionPoints,
       explanation: explanation ?? this.explanation,
       showCorrectAnswer: showCorrectAnswer ?? this.showCorrectAnswer,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }

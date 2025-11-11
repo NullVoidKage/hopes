@@ -180,20 +180,25 @@ class _AssessmentManagementScreenState extends State<AssessmentManagementScreen>
   }
 
   Widget _buildFilters() {
-    // Use the full list of 11 subjects plus 'All' option
+    // Use teacher's assigned subjects plus 'All' option
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
     final subjects = [
       'All',
-      'Mathematics',
-      'GMRC',
-      'Values Education',
-      'Araling Panlipunan',
-      'English',
-      'Filipino',
-      'Music & Arts',
-      'Science',
-      'Physical Education & Health',
-      'EPP',
-      'TLE'
+      ...(teacherSubjects.isEmpty 
+          ? [
+              'Mathematics',
+              'GMRC',
+              'Values Education',
+              'Araling Panlipunan',
+              'English',
+              'Filipino',
+              'Music & Arts',
+              'Science',
+              'Physical Education & Health',
+              'EPP',
+              'TLE'
+            ]
+          : teacherSubjects)
     ];
     
     return Container(

@@ -439,8 +439,8 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                 child: Builder(
                   builder: (context) => ElevatedButton.icon(
                     onPressed: () => _openFile(context, widget.lesson.fileUrl!),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                    label: const Text('Open File'),
+                    icon: const Icon(Icons.preview_rounded, size: 18),
+                    label: const Text('Preview'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF007AFF),
                       foregroundColor: Colors.white,

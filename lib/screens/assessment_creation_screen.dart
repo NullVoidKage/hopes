@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
+import 'dart:io';
 import '../models/assessment.dart';
 import '../models/user_model.dart';
 import '../services/assessment_service.dart';
+import '../services/notification_service.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class AssessmentCreationScreen extends StatefulWidget {
@@ -33,8 +40,18 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   
   int _totalPoints = 100;
   DateTime? _dueDate;
+  String? _selectedSchoolYear;
   
   List<AssessmentQuestion> _questions = [];
+  
+  final List<String> _schoolYears = [
+    '2024-2025',
+    '2025-2026',
+    '2026-2027',
+    '2027-2028',
+  ];
+  Map<int, String?> _questionImageUrls = {}; // Store image URLs for each question
+  Map<int, XFile?> _selectedQuestionImages = {}; // Store selected image files
   
   bool _isLoading = false;
 
@@ -46,6 +63,10 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
     if (teacherSubjects.isNotEmpty) {
       _selectedSubject = teacherSubjects.first;
     }
+    // Set default school year to current school year
+    final currentYear = DateTime.now().year;
+    final nextYear = currentYear + 1;
+    _selectedSchoolYear = '$currentYear-$nextYear';
     // Add a default question
     _addQuestion();
   }
@@ -529,6 +550,49 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           ),
           const SizedBox(height: 20),
           
+          // School Year
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'School Year',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  border: Border.all(
+                    color: const Color(0xFFE5E5E7),
+                    width: 1,
+                  ),
+                ),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedSchoolYear,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: InputBorder.none,
+                  ),
+                  items: _schoolYears.map((year) => DropdownMenuItem(
+                    value: year,
+                    child: Text(year),
+                  )).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSchoolYear = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
           // Due Date
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -848,6 +912,10 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           
           // Question Text
           _buildQuestionTextField(index),
+          const SizedBox(height: 16),
+          
+          // Question Image Upload
+          _buildQuestionImageUpload(index),
           const SizedBox(height: 16),
           
           // Question Options (for multiple choice and true/false)
@@ -1289,6 +1357,270 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
     );
   }
 
+  // Image upload methods
+  Widget _buildQuestionImageUpload(int index) {
+    final question = _questions[index];
+    final imageUrl = _questionImageUrls[index] ?? question.imageUrl;
+    final selectedImage = _selectedQuestionImages[index];
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Question Image (Optional)',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1D1D1F),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (imageUrl != null || selectedImage != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: imageUrl != null
+                      ? Image.network(
+                          imageUrl,
+                          width: double.infinity,
+                          height: 200,
+                          fit: BoxFit.contain,
+                          cacheWidth: 800,
+                          cacheHeight: 600,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) {
+                              return child;
+                            }
+                            return Container(
+                              width: double.infinity,
+                              height: 200,
+                              color: const Color(0xFFF5F5F7),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  color: const Color(0xFF007AFF),
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: double.infinity,
+                              height: 200,
+                              color: const Color(0xFFF5F5F7),
+                              child: const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.broken_image, size: 48, color: Color(0xFF86868B)),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Failed to load image',
+                                      style: TextStyle(color: Color(0xFF86868B), fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : selectedImage != null
+                          ? kIsWeb
+                              ? FutureBuilder<Uint8List>(
+                                  future: selectedImage.readAsBytes(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      return Image.memory(
+                                        snapshot.data!,
+                                        width: double.infinity,
+                                        height: 200,
+                                        fit: BoxFit.cover,
+                                      );
+                                    }
+                                    return Container(
+                                      width: double.infinity,
+                                      height: 200,
+                                      color: const Color(0xFFF5F5F7),
+                                      child: const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Image.file(
+                                  File(selectedImage.path),
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: double.infinity,
+                                      height: 200,
+                                      color: const Color(0xFFF5F5F7),
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image, size: 48, color: Color(0xFF86868B)),
+                                      ),
+                                    );
+                                  },
+                                )
+                          : const SizedBox.shrink(),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _questionImageUrls.remove(index);
+                        _selectedQuestionImages.remove(index);
+                        _updateQuestionImage(index, null);
+                      });
+                    },
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black54,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _pickQuestionImage(index),
+                icon: const Icon(Icons.image, size: 20),
+                label: const Text('Upload Image'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF007AFF),
+                  side: const BorderSide(color: Color(0xFF007AFF)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickQuestionImage(int index) async {
+    try {
+      XFile? image;
+      
+      if (kIsWeb) {
+        // Use file_picker for web
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: false,
+          withData: true,
+        );
+        
+        if (result != null && result.files.isNotEmpty) {
+          final file = result.files.first;
+          if (file.bytes != null) {
+            // Convert PlatformFile to XFile for web
+            image = XFile.fromData(
+              file.bytes!,
+              name: file.name,
+              mimeType: file.extension != null ? 'image/${file.extension}' : 'image/jpeg',
+            );
+          }
+        }
+      } else {
+        // Use image_picker for mobile
+        final ImagePicker picker = ImagePicker();
+        image = await picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+        );
+      }
+
+      if (image != null) {
+        setState(() {
+          _selectedQuestionImages[index] = image;
+        });
+
+        // Upload image to Firebase Storage
+        await _uploadQuestionImage(index, image);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadQuestionImage(int index, XFile imageFile) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final storage = FirebaseStorage.instance;
+      final fileName = 'assessment_questions/${widget.teacherProfile.uid}/${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
+      final ref = storage.ref().child(fileName);
+
+      Uint8List? imageBytes;
+      if (kIsWeb) {
+        imageBytes = await imageFile.readAsBytes();
+      } else {
+        imageBytes = await imageFile.readAsBytes();
+      }
+
+      final uploadTask = ref.putData(imageBytes);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      if (mounted) {
+        setState(() {
+          _questionImageUrls[index] = downloadUrl;
+          _updateQuestionImage(index, downloadUrl);
+          _isLoading = false;
+        });
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image uploaded successfully'),
+            backgroundColor: Color(0xFF34C759),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _updateQuestionImage(int index, String? imageUrl) {
+    setState(() {
+      final question = _questions[index];
+      _questions[index] = question.copyWith(imageUrl: imageUrl);
+    });
+  }
+
   // Helper methods
   void _addQuestion() {
     setState(() {
@@ -1318,6 +1650,8 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
   void _removeQuestion(int index) {
     setState(() {
       _questions.removeAt(index);
+      _questionImageUrls.remove(index);
+      _selectedQuestionImages.remove(index);
     });
   }
 
@@ -1565,13 +1899,30 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         instructions: _instructionsController.text.trim().isEmpty 
             ? null 
             : _instructionsController.text.trim(),
+        schoolYear: _selectedSchoolYear,
       );
 
       final assessmentService = AssessmentService();
-      await assessmentService.createAssessment(assessment);
+      final assessmentId = await assessmentService.createAssessment(assessment);
 
       // Log the activity for teacher dashboard
       await _logTeacherActivity('Assessment Created', 'Created assessment: ${assessment.title}');
+
+      // Send notification to students about new assessment
+      if (_isPublished) {
+        try {
+          final notificationService = NotificationService();
+          await notificationService.notifyStudentsAboutNewContent(
+            title: 'New Assessment Available',
+            body: '${widget.teacherProfile.displayName} has uploaded a new assessment: ${assessment.title}',
+            type: 'assessment',
+            contentId: assessmentId,
+            subject: assessment.subject,
+          );
+        } catch (e) {
+          // Don't fail assessment creation if notification fails
+        }
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

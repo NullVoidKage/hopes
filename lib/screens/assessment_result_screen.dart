@@ -11,8 +11,12 @@ class AssessmentResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scorePercentage = (submission.score / submission.maxPossibleScore) * 100;
-    Color scoreColor = _getScoreColor(scorePercentage);
+    // Prevent division by zero
+    final maxScore = submission.maxPossibleScore > 0 ? submission.maxPossibleScore : 100;
+    final scorePercentage = (submission.score / maxScore) * 100;
+    // Ensure percentage is valid (not NaN or Infinity)
+    final validPercentage = scorePercentage.isNaN || scorePercentage.isInfinite ? 0.0 : scorePercentage;
+    Color scoreColor = _getScoreColor(validPercentage);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
@@ -46,7 +50,7 @@ class AssessmentResultScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Score Card
-              _buildScoreCard(scorePercentage, scoreColor),
+              _buildScoreCard(validPercentage, scoreColor),
               const SizedBox(height: 24),
               
               // Assessment Info
@@ -76,7 +80,7 @@ class AssessmentResultScreen extends StatelessWidget {
     return const Color(0xFFFF3B30);
   }
 
-  Widget _buildScoreCard(double percentage, Color scoreColor) {
+  Widget _buildScoreCard(double validPercentage, Color scoreColor) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -101,7 +105,7 @@ class AssessmentResultScreen extends StatelessWidget {
                 width: 160,
                 height: 160,
                 child: CircularProgressIndicator(
-                  value: percentage / 100,
+                  value: validPercentage / 100,
                   strokeWidth: 12,
                   backgroundColor: scoreColor.withOpacity(0.2),
                   valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
@@ -118,7 +122,7 @@ class AssessmentResultScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '/ ${submission.maxPossibleScore}',
+                    '/ ${submission.maxPossibleScore > 0 ? submission.maxPossibleScore : 100}',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w500,
@@ -133,7 +137,7 @@ class AssessmentResultScreen extends StatelessWidget {
           
           // Percentage
           Text(
-            '${percentage.toStringAsFixed(1)}%',
+            '${validPercentage.toStringAsFixed(1)}%',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w700,
@@ -154,7 +158,7 @@ class AssessmentResultScreen extends StatelessWidget {
               ),
             ),
             child: Text(
-              _getGradeLabel(percentage),
+              _getGradeLabel(validPercentage),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,

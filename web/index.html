@@ -32,6 +32,17 @@ O
     // The value below is injected by flutter build, do not touch.
     const serviceWorkerVersion = '{{flutter_service_worker_version}}';
     
+    // Register Firebase Messaging Service Worker for Web Push Notifications
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log('Firebase Messaging Service Worker registered:', registration);
+        })
+        .catch((error) => {
+          console.log('Firebase Messaging Service Worker registration failed:', error);
+        });
+    }
+    
     // Fix for debug service errors
     window.addEventListener('error', function(e) {
       if (e.message && e.message.includes('Cannot send Null')) {

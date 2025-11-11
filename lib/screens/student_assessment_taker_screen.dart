@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/assessment.dart';
@@ -14,6 +15,7 @@ import '../services/auth_service.dart';
 import '../services/achievements_service.dart';
 import '../widgets/badge_celebration.dart';
 import 'assessment_result_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StudentAssessmentTakerScreen extends StatefulWidget {
   final Assessment assessment;
@@ -361,7 +363,10 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                 break;
               case QuestionType.multipleChoice:
                 correctAnswer = question.correctAnswer ?? 'A';
-                isCorrect = answer == correctAnswer;
+                // Normalize both answers for comparison (trim whitespace and case-insensitive)
+                final normalizedAnswer = answer.trim();
+                final normalizedCorrectAnswer = correctAnswer.trim();
+                isCorrect = normalizedAnswer.toLowerCase() == normalizedCorrectAnswer.toLowerCase();
                 // Use optionPoints if available, otherwise default to points for correct, 2 for incorrect
                 if (question.optionPoints.isNotEmpty) {
                   points = question.optionPoints[answer] ?? 
@@ -461,7 +466,10 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                 break;
               case QuestionType.multipleChoice:
                 correctAnswer = question.correctAnswer ?? 'A';
-                isCorrect = answer == correctAnswer;
+                // Normalize both answers for comparison (trim whitespace and case-insensitive)
+                final normalizedAnswer = answer.trim();
+                final normalizedCorrectAnswer = correctAnswer.trim();
+                isCorrect = normalizedAnswer.toLowerCase() == normalizedCorrectAnswer.toLowerCase();
                 // Use optionPoints if available, otherwise default to points for correct, 2 for incorrect
                 if (question.optionPoints.isNotEmpty) {
                   points = question.optionPoints[answer] ?? 
@@ -518,7 +526,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           assessmentType: 'Quiz', // TODO: Get from assessment
           assessmentGradeLevel: 'Grade 7', // TODO: Get from assessment
           totalQuestions: _questions.length,
-          maxPossibleScore: _questions.length * 10,
+          maxPossibleScore: _questions.fold<int>(0, (sum, q) => sum + q.points), // Sum of all question points
           accuracy: accuracy,
           correctAnswers: correctAnswers,
           incorrectAnswers: incorrectAnswers,
@@ -974,6 +982,68 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                               height: 1.6,
                             ),
                           ),
+                          // Question Image (if available)
+                          if (_questions[_currentQuestionIndex].imageUrl != null &&
+                              _questions[_currentQuestionIndex].imageUrl!.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                _questions[_currentQuestionIndex].imageUrl!,
+                                width: double.infinity,
+                                fit: BoxFit.contain,
+                                headers: kIsWeb ? {
+                                  'Access-Control-Allow-Origin': '*',
+                                } : null,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF5F5F7),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        const Icon(Icons.broken_image, color: Color(0xFF86868B), size: 48),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'Failed to load image',
+                                          style: TextStyle(color: Color(0xFF86868B)),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        if (kIsWeb)
+                                          TextButton.icon(
+                                            onPressed: () async {
+                                              // Open image in new tab
+                                              final url = _questions[_currentQuestionIndex].imageUrl!;
+                                              final uri = Uri.parse(url);
+                                              if (await canLaunchUrl(uri)) {
+                                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                              }
+                                            },
+                                            icon: const Icon(Icons.open_in_new, size: 16),
+                                            label: const Text('Open in new tab'),
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    height: 200,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF5F5F7),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                           // Question Points
                           Container(
                             margin: const EdgeInsets.only(top: 12),
@@ -1422,12 +1492,36 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
     try {
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-      );
+      XFile? image;
+      
+      if (kIsWeb) {
+        // Use file_picker for web
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: false,
+          withData: true,
+        );
+        
+        if (result != null && result.files.isNotEmpty) {
+          final file = result.files.first;
+          if (file.bytes != null) {
+            // Convert PlatformFile to XFile for web
+            image = XFile.fromData(
+              file.bytes!,
+              name: file.name,
+              mimeType: file.extension != null ? 'image/${file.extension}' : 'image/jpeg',
+            );
+          }
+        }
+      } else {
+        // Use image_picker for mobile
+        final ImagePicker picker = ImagePicker();
+        image = await picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 80,
+        );
+      }
 
       if (image != null && mounted) {
         setState(() {

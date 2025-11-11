@@ -19,6 +19,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   final _confirmPasswordController = TextEditingController();
   
   String _selectedGrade = 'Grade 7';
+  String? _selectedSection;
+  String? _selectedSchoolYear;
   bool _isLoading = false;
   bool _agreeToTerms = false;
   
@@ -32,6 +34,15 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     'Grade 10',
     'Grade 11',
     'Grade 12',
+  ];
+
+  final List<String> _sections = ['A', 'B', 'C', 'D'];
+  
+  final List<String> _schoolYears = [
+    '2024-2025',
+    '2025-2026',
+    '2026-2027',
+    '2027-2028',
   ];
 
   @override
@@ -211,6 +222,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         ),
         const SizedBox(height: 16),
         _buildGradeSelector(),
+        const SizedBox(height: 16),
+        _buildSectionSelector(),
+        const SizedBox(height: 16),
+        _buildSchoolYearSelector(),
         const SizedBox(height: 20),
         const Text(
           'Account Security',
@@ -422,6 +437,136 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     );
   }
 
+  Widget _buildSectionSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Section',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1D1D1F),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E5E7)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedSection,
+              isExpanded: true,
+              hint: const Text('Select section'),
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              items: _sections.map((String section) {
+                return DropdownMenuItem<String>(
+                  value: section,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.class_rounded,
+                        color: const Color(0xFF00D4FF),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Section $section',
+                        style: const TextStyle(
+                          color: Color(0xFF1D1D1F),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    _selectedSection = newValue;
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSchoolYearSelector() {
+    // Set default to current school year
+    final currentYear = DateTime.now().year;
+    final nextYear = currentYear + 1;
+    final defaultSchoolYear = '$currentYear-$nextYear';
+    
+    if (_selectedSchoolYear == null) {
+      _selectedSchoolYear = defaultSchoolYear;
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'School Year',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1D1D1F),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E5E7)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedSchoolYear ?? defaultSchoolYear,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              items: _schoolYears.map((String year) {
+                return DropdownMenuItem<String>(
+                  value: year,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        color: const Color(0xFF00D4FF),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        year,
+                        style: const TextStyle(
+                          color: Color(0xFF1D1D1F),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    _selectedSchoolYear = newValue;
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTermsAndConditions() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -571,6 +716,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         studentName: _nameController.text.trim(),
         studentEmail: _emailController.text.trim(),
         gradeLevel: _selectedGrade,
+        section: _selectedSection,
+        schoolYear: _selectedSchoolYear,
         status: 'pending',
         createdAt: DateTime.now(),
       );

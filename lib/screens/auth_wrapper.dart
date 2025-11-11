@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../models/user_model.dart';
 import 'signin_screen.dart';
 import 'role_selection_screen.dart';
@@ -60,6 +61,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   photoURL: user.photoURL,
                 );
               } else {
+                // Initialize notifications when user logs in
+                _initializeNotifications();
+                
                 // Profile exists, route based on role
                 if (userProfile.isStudent) {
                   return const StudentDashboard();
@@ -84,5 +88,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   Widget _buildLoadingScreen() {
     return const WelcomeScreen(autoNavigate: false);
+  }
+
+  void _initializeNotifications() {
+    // Initialize notifications in the background
+    NotificationService().initialize().catchError((e) {
+      // Silently fail - notifications will still work via database
+    });
   }
 }

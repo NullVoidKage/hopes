@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/auth_wrapper.dart';
 import 'screens/welcome_screen.dart';
 import 'services/connectivity_service.dart';
+import 'services/route_observer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +59,8 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static final WebRouteObserver _routeObserver = WebRouteObserver();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -68,8 +70,9 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const AuthWrapper(), // Test Lottie animations
+      home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [MyApp._routeObserver],
     );
   }
 }
