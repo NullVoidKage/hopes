@@ -1630,7 +1630,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
     return const Color(0xFFFF3B30); // Red
   }
 
-  void _showSubmissionDetails(AssessmentSubmission submission) {
+  void _showSubmissionDetails(AssessmentSubmission submission) async {
+    // Get the assessment for retake
+    final assessmentService = AssessmentService();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1639,7 +1642,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('You have already completed this assessment.'),
+            const Text('You have already completed this assessment.'),
             const SizedBox(height: 16),
             Text('Score: ${submission.accuracy.toStringAsFixed(1)}%'),
             Text('Submitted: ${submission.formattedDate}'),
@@ -1653,7 +1656,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               // Navigate to submission history
@@ -1668,6 +1671,68 @@ class _StudentDashboardState extends State<StudentDashboard> {
               );
             },
             child: const Text('View All Submissions'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop(); // Close dialog
+              
+              // Show loading indicator
+              if (!mounted) return;
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF007AFF),
+                  ),
+                ),
+              );
+
+              try {
+                // Get the assessment
+                final assessment = await assessmentService.getAssessmentById(submission.assessmentId);
+                
+                if (!mounted) return;
+                Navigator.of(context).pop(); // Close loading dialog
+
+                if (assessment == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Assessment not found. It may have been deleted.'),
+                      backgroundColor: Color(0xFFFF3B30),
+                    ),
+                  );
+                  return;
+                }
+
+                // Navigate to assessment taker screen with retake flag
+                if (!mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudentAssessmentTakerScreen(
+                      assessment: assessment,
+                      isRetake: true,
+                    ),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.of(context).pop(); // Close loading dialog
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error loading assessment: ${e.toString()}'),
+                    backgroundColor: const Color(0xFFFF3B30),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF007AFF),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Retake'),
           ),
         ],
       ),

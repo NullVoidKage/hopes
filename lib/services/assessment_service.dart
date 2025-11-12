@@ -433,6 +433,7 @@ class AssessmentService {
     DateTime? startedAt,
     double? averageTimePerQuestion,
     bool? isAutoGraded,
+    bool isRetake = false,
   }) async {
     try {
       // Only allow submission when online
@@ -440,22 +441,25 @@ class AssessmentService {
         throw Exception('Cannot submit assessment while offline. Please connect to the internet.');
       }
 
-      // Check if student has already submitted this assessment
+      // Get current student ID (needed for submission)
       final currentStudentId = _getCurrentStudentId();
-      
-      final existingSubmissionsRef = _database
-          .ref('assessment_submissions')
-          .orderByChild('studentId')
-          .equalTo(currentStudentId);
-      
-      final existingSubmissionsSnapshot = await existingSubmissionsRef.get();
-      
-      if (existingSubmissionsSnapshot.exists) {
-        // Check if any existing submission is for this assessment
-        for (var child in existingSubmissionsSnapshot.children) {
-          final submissionData = child.value as Map<dynamic, dynamic>?;
-          if (submissionData != null && submissionData['assessmentId'] == assessmentId) {
-            throw Exception('You have already submitted this assessment. Duplicate submissions are not allowed.');
+
+      // Check if student has already submitted this assessment (skip if retake)
+      if (!isRetake) {
+        final existingSubmissionsRef = _database
+            .ref('assessment_submissions')
+            .orderByChild('studentId')
+            .equalTo(currentStudentId);
+        
+        final existingSubmissionsSnapshot = await existingSubmissionsRef.get();
+        
+        if (existingSubmissionsSnapshot.exists) {
+          // Check if any existing submission is for this assessment
+          for (var child in existingSubmissionsSnapshot.children) {
+            final submissionData = child.value as Map<dynamic, dynamic>?;
+            if (submissionData != null && submissionData['assessmentId'] == assessmentId) {
+              throw Exception('You have already submitted this assessment. Duplicate submissions are not allowed.');
+            }
           }
         }
       }

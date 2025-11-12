@@ -27,30 +27,68 @@ class _LearningPathOverviewScreenState extends State<LearningPathOverviewScreen>
   String? _error;
   
   String _selectedStatus = 'All';
-  String _selectedSubject = 'All';
+  String? _selectedSubject;
   
   late TabController _tabController;
   
   final List<String> _statusOptions = ['All', 'assigned', 'in_progress', 'completed', 'paused'];
-  final List<String> _subjects = [
-    'All',
-    'Mathematics',
-    'GMRC',
-    'Values Education',
-    'Araling Panlipunan',
-    'English',
-    'Filipino',
-    'Music & Arts',
-    'Science',
-    'Physical Education & Health',
-    'EPP',
-    'TLE'
-  ];
+  
+  List<String> get _subjects {
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    
+    if (isAdmin) {
+      return [
+        'All',
+        'Mathematics',
+        'GMRC',
+        'Values Education',
+        'Araling Panlipunan',
+        'English',
+        'Filipino',
+        'Music & Arts',
+        'Science',
+        'Physical Education & Health',
+        'EPP',
+        'TLE'
+      ];
+    } else {
+      // For non-admin teachers, only show assigned subjects (no "All" option)
+      return teacherSubjects.isEmpty
+          ? [
+              'Mathematics',
+              'GMRC',
+              'Values Education',
+              'Araling Panlipunan',
+              'English',
+              'Filipino',
+              'Music & Arts',
+              'Science',
+              'Physical Education & Health',
+              'EPP',
+              'TLE'
+            ]
+          : teacherSubjects;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    
+    // Set default subject based on admin status
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    
+    if (isAdmin) {
+      _selectedSubject = null; // null means "All Subjects" for admin
+    } else if (teacherSubjects.isNotEmpty) {
+      _selectedSubject = teacherSubjects.first;
+    } else {
+      _selectedSubject = 'Mathematics'; // Default to first subject if no assigned subjects
+    }
+    
     _loadAssignments();
   }
 
@@ -385,16 +423,24 @@ class _LearningPathOverviewScreenState extends State<LearningPathOverviewScreen>
                   border: InputBorder.none,
                   hintText: 'Subject',
                 ),
-                items: _subjects.map((subject) => DropdownMenuItem(
-                  value: subject,
-                  child: Text(
-                    subject,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                )).toList(),
+                items: _subjects.map((subject) {
+                  if (subject == 'All') {
+                    return const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All Subjects'),
+                    );
+                  }
+                  return DropdownMenuItem<String>(
+                    value: subject,
+                    child: Text(
+                      subject,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  );
+                }).toList(),
                 onChanged: (value) {
-                  setState(() => _selectedSubject = value!);
+                  setState(() => _selectedSubject = value);
                 },
               ),
             ),

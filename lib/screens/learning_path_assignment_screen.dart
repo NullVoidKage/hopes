@@ -37,24 +37,55 @@ class _LearningPathAssignmentScreenState extends State<LearningPathAssignmentScr
   List<Student> _selectedStudents = [];
   Map<String, dynamic> _customizations = {};
   
-  final List<String> _subjects = [
-    'All',
-    'Mathematics',
-    'GMRC',
-    'Values Education',
-    'Araling Panlipunan',
-    'English',
-    'Filipino',
-    'Music & Arts',
-    'Science',
-    'Physical Education & Health',
-    'EPP',
-    'TLE'
-  ];
+  List<String> get _subjects {
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    
+    if (isAdmin) {
+      return [
+        'All',
+        'Mathematics',
+        'GMRC',
+        'Values Education',
+        'Araling Panlipunan',
+        'English',
+        'Filipino',
+        'Music & Arts',
+        'Science',
+        'Physical Education & Health',
+        'EPP',
+        'TLE'
+      ];
+    } else {
+      return teacherSubjects.isEmpty
+          ? [
+              'Mathematics',
+              'GMRC',
+              'Values Education',
+              'Araling Panlipunan',
+              'English',
+              'Filipino',
+              'Music & Arts',
+              'Science',
+              'Physical Education & Health',
+              'EPP',
+              'TLE'
+            ]
+          : teacherSubjects;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    // Set default subject based on admin status
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    if (!isAdmin && teacherSubjects.isNotEmpty) {
+      _selectedSubject = teacherSubjects.first;
+    } else if (!isAdmin) {
+      _selectedSubject = 'Mathematics'; // Default to first subject if no assigned subjects
+    }
     _loadData();
   }
 

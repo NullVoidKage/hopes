@@ -158,6 +158,26 @@
         ".write": "auth != null && data.child('teacherId').val() == auth.uid",
         ".validate": "newData.hasChildren(['studentId', 'sectionId', 'subjectId', 'teacherId', 'rating', 'createdAt'])"
       }
+    },
+    "student_feedback": {
+      ".indexOn": ["studentId", "teacherId", "createdAt"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$feedbackId": {
+        ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
+        ".write": "auth != null && data.child('teacherId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['studentId', 'studentName', 'teacherId', 'teacherName', 'feedback', 'createdAt'])"
+      }
+    },
+    "student_recommendations": {
+      ".indexOn": ["studentId", "teacherId", "createdAt", "priority"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$recommendationId": {
+        ".read": "auth != null && (data.child('studentId').val() == auth.uid || data.child('teacherId').val() == auth.uid)",
+        ".write": "auth != null && data.child('teacherId').val() == auth.uid",
+        ".validate": "newData.hasChildren(['studentId', 'studentName', 'teacherId', 'teacherName', 'title', 'description', 'createdAt'])"
+      }
     }
   }
 }

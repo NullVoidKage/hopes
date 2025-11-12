@@ -209,7 +209,7 @@ class _LearningPathManagementScreenState extends State<LearningPathManagementScr
     List<LearningPath> filtered = _learningPaths;
     
     // Filter by subject
-    if (_selectedSubject != null && _selectedSubject != 'All') {
+    if (_selectedSubject != null && _selectedSubject!.isNotEmpty) {
       filtered = filtered.where((path) => path.subjects.contains(_selectedSubject!)).toList();
     }
     
@@ -220,6 +220,55 @@ class _LearningPathManagementScreenState extends State<LearningPathManagementScr
     }
     
     return filtered;
+  }
+
+  List<DropdownMenuItem<String>> _buildSubjectItems() {
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    
+    final List<String> subjects = isAdmin
+        ? [
+            'All',
+            'Mathematics',
+            'GMRC',
+            'Values Education',
+            'Araling Panlipunan',
+            'English',
+            'Filipino',
+            'Music & Arts',
+            'Science',
+            'Physical Education & Health',
+            'EPP',
+            'TLE'
+          ]
+        : (teacherSubjects.isEmpty
+            ? [
+                'Mathematics',
+                'GMRC',
+                'Values Education',
+                'Araling Panlipunan',
+                'English',
+                'Filipino',
+                'Music & Arts',
+                'Science',
+                'Physical Education & Health',
+                'EPP',
+                'TLE'
+              ]
+            : teacherSubjects);
+    
+    return subjects.map((subject) {
+      if (subject == 'All') {
+        return const DropdownMenuItem<String>(
+          value: null,
+          child: Text('All Subjects'),
+        );
+      }
+      return DropdownMenuItem<String>(
+        value: subject,
+        child: Text(subject),
+      );
+    }).toList();
   }
 
   Future<void> _deleteLearningPath(LearningPath learningPath) async {
@@ -388,28 +437,9 @@ class _LearningPathManagementScreenState extends State<LearningPathManagementScr
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         border: InputBorder.none,
-                        hintText: 'All Subjects',
+                        hintText: 'Subject',
                       ),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('All Subjects')),
-                        // Use the full list of 11 subjects
-                        ...[
-                          'Mathematics',
-                          'GMRC',
-                          'Values Education',
-                          'Araling Panlipunan',
-                          'English',
-                          'Filipino',
-                          'Music & Arts',
-                          'Science',
-                          'Physical Education & Health',
-                          'EPP',
-                          'TLE'
-                        ].map((subject) => DropdownMenuItem(
-                          value: subject,
-                          child: Text(subject),
-                        )),
-                      ],
+                      items: _buildSubjectItems(),
                       onChanged: (value) {
                         setState(() => _selectedSubject = value);
                       },

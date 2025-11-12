@@ -19,10 +19,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 class StudentAssessmentTakerScreen extends StatefulWidget {
   final Assessment assessment;
+  final bool isRetake;
 
   const StudentAssessmentTakerScreen({
     super.key,
     required this.assessment,
+    this.isRetake = false,
   });
 
   @override
@@ -110,31 +112,33 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         _isLoading = true;
       });
 
-      // Check if student has already submitted this assessment
-      final submissionService = SubmissionService();
-      final currentStudentId = _getCurrentStudentId();
-      
-      try {
-        final submissions = await submissionService.getStudentSubmissions(currentStudentId);
-        final hasSubmitted = submissions.any((submission) => 
-          submission.assessmentId == widget.assessment.id
-        );
+      // Check if student has already submitted this assessment (skip if retake)
+      if (!widget.isRetake) {
+        final submissionService = SubmissionService();
+        final currentStudentId = _getCurrentStudentId();
         
-        if (hasSubmitted) {
-          if (!mounted) return;
-          // Show error and go back
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('❌ You have already completed this assessment!'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
+        try {
+          final submissions = await submissionService.getStudentSubmissions(currentStudentId);
+          final hasSubmitted = submissions.any((submission) => 
+            submission.assessmentId == widget.assessment.id
           );
-          Navigator.of(context).pop(); // Go back to previous screen
-          return;
+          
+          if (hasSubmitted) {
+            if (!mounted) return;
+            // Show error and go back
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ You have already completed this assessment!'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            Navigator.of(context).pop(); // Go back to previous screen
+            return;
+          }
+        } catch (e) {
+          // Continue loading if we can't check status
         }
-      } catch (e) {
-        // Continue loading if we can't check status
       }
 
       // Check connectivity and load questions
@@ -457,6 +461,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           startedAt: _startTime,
           averageTimePerQuestion: averageTimePerQuestion,
           isAutoGraded: true,
+          isRetake: widget.isRetake,
         );
       } else {
         // Queue for offline submission with enhanced data
