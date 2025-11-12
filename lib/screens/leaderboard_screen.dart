@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/achievements.dart';
 import '../services/achievements_service.dart';
+import '../services/student_service.dart';
 import '../widgets/enhanced_badge_card.dart';
 
 class LeaderboardScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class LeaderboardScreen extends StatefulWidget {
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final AchievementsService _achievementsService = AchievementsService();
+  final StudentService _studentService = StudentService();
   
   List<LeaderboardEntry> _leaderboard = [];
   List<Achievement> _achievements = [];
@@ -20,6 +22,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   bool _isLoading = false;
   String _selectedFilter = 'all';
   String _selectedCategory = 'all';
+  String? _selectedSection;
+  List<String> _availableSections = [];
+  Map<String, String> _studentSectionMap = {}; // Map studentId to section
   bool _hasTriedCreatingSampleData = false;
 
   @override
@@ -50,6 +55,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         // Load leaderboard from Firebase
         final leaderboard = await _achievementsService.getLeaderboard(limit: 100);
         
+        // Load students to get available sections
+        final students = await _studentService.getAllStudents();
+        final sections = students.map((s) => s.section).where((s) => s.isNotEmpty).toSet().toList()..sort();
+        final studentSectionMap = {for (var s in students) s.id: s.section};
+        
         // If still empty, try to calculate from existing submissions (only once)
         if (leaderboard.isEmpty && !_hasTriedCreatingSampleData) {
           _hasTriedCreatingSampleData = true;
@@ -61,6 +71,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               _leaderboard = updatedLeaderboard;
               _achievements = achievements;
               _currentUserPosition = userPosition;
+              _availableSections = sections;
+              _studentSectionMap = studentSectionMap;
             });
             return;
           } catch (e) {
@@ -71,6 +83,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           _leaderboard = leaderboard;
           _achievements = achievements;
           _currentUserPosition = userPosition;
+          _availableSections = sections;
+          _studentSectionMap = studentSectionMap;
         });
       }
     } catch (e) {
@@ -78,6 +92,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         _leaderboard = [];
         _achievements = [];
         _currentUserPosition = null;
+        _availableSections = [];
       });
       
       if (mounted) {
@@ -177,6 +192,32 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               onChanged: (value) {
                 setState(() {
                   _selectedFilter = value ?? 'all';
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _selectedSection,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                labelText: 'Section',
+              ),
+              items: [
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('All Sections'),
+                ),
+                ..._availableSections.map((section) => DropdownMenuItem<String>(
+                  value: section,
+                  child: Text('Section $section'),
+                )),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedSection = value;
                 });
               },
             ),
@@ -581,18 +622,29 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         return [];
       }
       
+      List<LeaderboardEntry> filtered = List.from(_leaderboard);
+      
+      // Filter by section if selected
+      if (_selectedSection != null && _selectedSection!.isNotEmpty) {
+        filtered = filtered.where((entry) {
+          final entrySection = _studentSectionMap[entry.studentId];
+          return entrySection == _selectedSection;
+        }).toList();
+      }
+      
+      // Apply other filters
       switch (_selectedFilter) {
         case 'top10':
-          return _leaderboard.take(10).toList();
+          return filtered.take(10).toList();
         case 'top25':
-          return _leaderboard.take(25).toList();
+          return filtered.take(25).toList();
         case 'recent':
           final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-          return _leaderboard
+          return filtered
               .where((entry) => entry.lastActivity.isAfter(weekAgo))
               .toList();
         default:
-          return List.from(_leaderboard); // Create a copy to prevent issues
+          return filtered;
       }
     } catch (e) {
       return [];

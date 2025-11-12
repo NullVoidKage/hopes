@@ -56,6 +56,7 @@ class _MonitorProgressScreenState extends State<MonitorProgressScreen>
     if (_isAdmin) {
       return ['All', ..._allSubjects];
     } else {
+      // For non-admin teachers, don't show "All" - only show their assigned subjects
       return _teacherSubjects.isEmpty ? _allSubjects : _teacherSubjects;
     }
   }

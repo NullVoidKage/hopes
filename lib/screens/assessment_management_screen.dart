@@ -30,6 +30,16 @@ class _AssessmentManagementScreenState extends State<AssessmentManagementScreen>
   @override
   void initState() {
     super.initState();
+    // Set default subject based on admin status
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    if (!isAdmin && teacherSubjects.isNotEmpty) {
+      _selectedSubject = teacherSubjects.first;
+    } else if (!isAdmin) {
+      _selectedSubject = 'Mathematics'; // Default to first subject if no assigned subjects
+    } else {
+      _selectedSubject = 'All'; // Admin can see all
+    }
     _loadAssessments();
   }
 
@@ -57,7 +67,7 @@ class _AssessmentManagementScreenState extends State<AssessmentManagementScreen>
     List<Assessment> filtered = _assessments;
     
     // Filter by subject
-    if (_selectedSubject != null && _selectedSubject != 'All') {
+    if (_selectedSubject != null && _selectedSubject != 'All' && _selectedSubject!.isNotEmpty) {
       filtered = filtered.where((a) => a.subject == _selectedSubject).toList();
     }
     
@@ -180,26 +190,44 @@ class _AssessmentManagementScreenState extends State<AssessmentManagementScreen>
   }
 
   Widget _buildFilters() {
-    // Use teacher's assigned subjects plus 'All' option
+    // Use teacher's assigned subjects, only show 'All' if admin
     final teacherSubjects = widget.teacherProfile.subjects ?? [];
-    final subjects = [
-      'All',
-      ...(teacherSubjects.isEmpty 
-          ? [
-              'Mathematics',
-              'GMRC',
-              'Values Education',
-              'Araling Panlipunan',
-              'English',
-              'Filipino',
-              'Music & Arts',
-              'Science',
-              'Physical Education & Health',
-              'EPP',
-              'TLE'
-            ]
-          : teacherSubjects)
-    ];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    
+    final subjects = isAdmin
+        ? [
+            'All',
+            ...(teacherSubjects.isEmpty 
+                ? [
+                    'Mathematics',
+                    'GMRC',
+                    'Values Education',
+                    'Araling Panlipunan',
+                    'English',
+                    'Filipino',
+                    'Music & Arts',
+                    'Science',
+                    'Physical Education & Health',
+                    'EPP',
+                    'TLE'
+                  ]
+                : teacherSubjects)
+          ]
+        : (teacherSubjects.isEmpty
+            ? [
+                'Mathematics',
+                'GMRC',
+                'Values Education',
+                'Araling Panlipunan',
+                'English',
+                'Filipino',
+                'Music & Arts',
+                'Science',
+                'Physical Education & Health',
+                'EPP',
+                'TLE'
+              ]
+            : teacherSubjects);
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -241,7 +269,7 @@ class _AssessmentManagementScreenState extends State<AssessmentManagementScreen>
                     ),
                   ),
                   child: DropdownButtonFormField<String>(
-                    value: _selectedSubject ?? 'All',
+                    value: _selectedSubject ?? (subjects.isNotEmpty ? subjects.first : null),
                     decoration: const InputDecoration(
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       border: InputBorder.none,

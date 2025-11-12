@@ -29,6 +29,14 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
   @override
   void initState() {
     super.initState();
+    // Set default subject based on admin status
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    if (!isAdmin && teacherSubjects.isNotEmpty) {
+      _selectedSubject = teacherSubjects.first;
+    } else if (!isAdmin) {
+      _selectedSubject = 'Mathematics'; // Default to first subject if no assigned subjects
+    }
     _loadLessons();
   }
 
@@ -114,20 +122,41 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
   }
 
   Widget _buildFilters() {
-    final List<String> subjects = [
-      'All',
-      'Mathematics',
-      'GMRC',
-      'Values Education',
-      'Araling Panlipunan',
-      'English',
-      'Filipino',
-      'Music & Arts',
-      'Science',
-      'Physical Education & Health',
-      'EPP',
-      'TLE'
-    ];
+    // Use teacher's assigned subjects, only show "All" if admin
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    
+    final List<String> subjects = isAdmin
+        ? [
+            'All',
+            'Mathematics',
+            'GMRC',
+            'Values Education',
+            'Araling Panlipunan',
+            'English',
+            'Filipino',
+            'Music & Arts',
+            'Science',
+            'Physical Education & Health',
+            'EPP',
+            'TLE'
+          ]
+        : (teacherSubjects.isEmpty
+            ? [
+                'Mathematics',
+                'GMRC',
+                'Values Education',
+                'Araling Panlipunan',
+                'English',
+                'Filipino',
+                'Music & Arts',
+                'Science',
+                'Physical Education & Health',
+                'EPP',
+                'TLE'
+              ]
+            : teacherSubjects);
+    
     final statuses = ['All', 'Published', 'Draft'];
 
     return Container(
@@ -164,7 +193,7 @@ class _LessonLibraryScreenState extends State<LessonLibraryScreen> {
                   items: subjects,
                   onChanged: (value) {
                     setState(() {
-                      _selectedSubject = value ?? 'All';
+                      _selectedSubject = value ?? (subjects.isNotEmpty ? subjects.first : 'All');
                     });
                   },
                   label: 'Subject',

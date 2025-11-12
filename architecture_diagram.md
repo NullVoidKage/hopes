@@ -633,11 +633,13 @@ graph TB
 - **Assessment taking system** with timer and progress tracking
 - **Progress monitoring** with detailed analytics
 - **Achievement system** with badges and leaderboard
+- **Leaderboard with section filtering** for per-section rankings
 - **Offline content access** with sync capabilities
 
 ### 4. Teacher Management Tools
 - **Student management** with enrollment and progress tracking
 - **Content creation tools** for lessons and assessments
+- **Subject-based filtering** (assigned subjects only for non-admin teachers)
 - **Analytics dashboard** with performance insights
 - **Feedback system** for student engagement
 - **Learning path assignment** and monitoring
@@ -846,6 +848,9 @@ flowchart TD
     C -->|View Progress| F[Progress Dashboard]
     C -->|View Badges| G[Achievements Screen]
     C -->|View Rankings| H[Leaderboard]
+    H --> H1[Select Section Filter]
+    H1 --> H2[View Filtered Rankings]
+    H2 --> P
     
     D --> I[Select Lesson]
     I --> J[Lesson Viewer]
@@ -898,8 +903,13 @@ flowchart TD
     C -->|View Submissions| H[Submission Viewer]
     C -->|Provide Feedback| I[Feedback Management]
     
-    D --> J[Upload Lesson]
-    D --> K[Create Assessment]
+    D --> D1{Check Admin Status}
+    D1 -->|Admin| D2[All Subjects Available]
+    D1 -->|Non-Admin| D3[Only Assigned Subjects]
+    D2 --> J[Upload Lesson]
+    D3 --> J
+    D2 --> K[Create Assessment]
+    D3 --> K
     J --> L[Add Content]
     L --> M[Upload Files]
     M --> N[Set Tags]
@@ -918,7 +928,11 @@ flowchart TD
     V --> Y[View Student Progress]
     Y --> Z[Individual Analytics]
     
-    F --> AA[Overall Analytics]
+    F --> F1{Check Admin Status}
+    F1 -->|Admin| F2[All Subjects Filter Available]
+    F1 -->|Non-Admin| F3[Only Assigned Subjects Filter]
+    F2 --> AA[Overall Analytics]
+    F3 --> AA
     AA --> BB[Subject Performance]
     BB --> CC[Class Progress]
     CC --> DD[Individual Reports]
