@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/assessment_submission.dart';
 import '../services/submission_service.dart';
+import '../services/assessment_service.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/offline_indicator.dart';
+import 'assessment_result_screen.dart';
+import 'student_assessment_taker_screen.dart';
 
 class StudentSubmissionHistoryScreen extends StatefulWidget {
   final String studentId;
@@ -20,6 +23,7 @@ class StudentSubmissionHistoryScreen extends StatefulWidget {
 
 class _StudentSubmissionHistoryScreenState extends State<StudentSubmissionHistoryScreen> {
   final SubmissionService _submissionService = SubmissionService();
+  final AssessmentService _assessmentService = AssessmentService();
   final ConnectivityService _connectivityService = ConnectivityService();
   
   List<AssessmentSubmission> _submissions = [];
@@ -641,22 +645,131 @@ class _StudentSubmissionHistoryScreenState extends State<StudentSubmissionHistor
   }
 
   void _viewSubmissionDetails(AssessmentSubmission submission) {
-    // TODO: Navigate to submission detail screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Viewing submission: ${submission.id}'),
-        backgroundColor: const Color(0xFF007AFF),
+    // Navigate to assessment result screen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AssessmentResultScreen(submission: submission),
       ),
     );
   }
 
-  void _retakeAssessment(AssessmentSubmission submission) {
-    // TODO: Navigate to assessment taker screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Retaking assessment: ${submission.assessmentId}'),
-        backgroundColor: const Color(0xFF007AFF),
+  Future<void> _retakeAssessment(AssessmentSubmission submission) async {
+    // Show confirmation dialog
+    final shouldRetake = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retake Assessment'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Are you sure you want to retake this assessment?',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF9500).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFFFF9500).withOpacity(0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Color(0xFFFF9500), size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Note:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFFF9500),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This will create a new submission. Your previous score (${submission.accuracy.toStringAsFixed(1)}%) will remain in your history.',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF86868B)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF007AFF),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Retake'),
+          ),
+        ],
       ),
     );
+
+    if (shouldRetake != true) return;
+
+    // Show loading indicator
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF007AFF),
+        ),
+      ),
+    );
+
+    try {
+      // Get the assessment
+      final assessment = await _assessmentService.getAssessmentById(submission.assessmentId);
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (assessment == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Assessment not found. It may have been deleted.'),
+            backgroundColor: Color(0xFFFF3B30),
+          ),
+        );
+        return;
+      }
+
+      // Navigate to assessment taker screen
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => StudentAssessmentTakerScreen(assessment: assessment),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading assessment: ${e.toString()}'),
+          backgroundColor: const Color(0xFFFF3B30),
+        ),
+      );
+    }
   }
 }

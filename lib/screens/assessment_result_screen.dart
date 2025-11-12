@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/assessment_submission.dart';
+import 'assessment_review_screen.dart';
 
 class AssessmentResultScreen extends StatelessWidget {
   final AssessmentSubmission submission;
@@ -582,8 +583,12 @@ class AssessmentResultScreen extends StatelessWidget {
           width: double.infinity,
           child: OutlinedButton(
             onPressed: () {
-              // View detailed results or review answers
-              // Can navigate to a detailed review screen
+              // Navigate to detailed review screen
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => AssessmentReviewScreen(submission: submission),
+                ),
+              );
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF007AFF),

@@ -1250,6 +1250,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   void _showAssessmentOptions(List<AssessmentWithSubmissionStatus> assessmentsWithStatus) {
+    // Get unique subjects for filter
+    final subjects = assessmentsWithStatus
+        .map((a) => a.assessment.subject)
+        .toSet()
+        .toList()
+      ..sort();
+    
+    String? _selectedSubjectFilter;
+    
     if (assessmentsWithStatus.isEmpty) {
       showModalBottomSheet(
         context: context,
@@ -1380,21 +1389,84 @@ class _StudentDashboardState extends State<StudentDashboard> {
             
             const SizedBox(height: 16),
             
+            // Subject Filter
+            if (subjects.length > 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: StatefulBuilder(
+                  builder: (context, setState) {
+                    return DropdownButtonFormField<String>(
+                      value: _selectedSubjectFilter,
+                      decoration: InputDecoration(
+                        labelText: 'Filter by Subject',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('All Subjects'),
+                        ),
+                        ...subjects.map((subject) => DropdownMenuItem<String>(
+                          value: subject,
+                          child: Text(subject),
+                        )),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSubjectFilter = value;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+            
+            if (subjects.length > 1) const SizedBox(height: 16),
+            
             // Assessment list
             Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: assessmentsWithStatus.length,
-                itemBuilder: (context, index) {
-                  final assessmentWithStatus = assessmentsWithStatus[index];
-                  final assessment = assessmentWithStatus.assessment;
-                  return _buildAssessmentOption(
-                    assessment.title,
-                    assessment.description,
-                    assessment.subject,
-                    assessmentWithStatus.hasSubmitted,
-                    assessmentWithStatus.existingSubmission,
-                    () => _startAssessment(assessmentWithStatus),
+              child: Builder(
+                builder: (context) {
+                  // Filter assessments by subject
+                  final filteredAssessments = _selectedSubjectFilter == null
+                      ? assessmentsWithStatus
+                      : assessmentsWithStatus.where((a) => 
+                          a.assessment.subject == _selectedSubjectFilter
+                        ).toList();
+                  
+                  if (filteredAssessments.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(
+                        child: Text(
+                          'No assessments found for selected subject',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF86868B),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filteredAssessments.length,
+                    itemBuilder: (context, index) {
+                      final assessmentWithStatus = filteredAssessments[index];
+                      final assessment = assessmentWithStatus.assessment;
+                      return _buildAssessmentOption(
+                        assessment.title,
+                        assessment.description,
+                        assessment.subject,
+                        assessmentWithStatus.hasSubmitted,
+                        assessmentWithStatus.existingSubmission,
+                        () => _startAssessment(assessmentWithStatus),
+                      );
+                    },
                   );
                 },
               ),

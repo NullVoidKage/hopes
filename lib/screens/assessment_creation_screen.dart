@@ -1894,7 +1894,13 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         tags: _selectedTag != null ? [_selectedTag!] : [],
         timeLimit: 0, // No time limit
         totalPoints: _totalPoints,
-        questions: _questions,
+        questions: _questions.asMap().entries.map((entry) {
+          // Ensure imageUrl is synced from _questionImageUrls map
+          final index = entry.key;
+          final q = entry.value;
+          final imageUrl = _questionImageUrls[index] ?? q.imageUrl;
+          return imageUrl != q.imageUrl ? q.copyWith(imageUrl: imageUrl) : q;
+        }).toList(),
         dueDate: _dueDate,
         instructions: _instructionsController.text.trim().isEmpty 
             ? null 

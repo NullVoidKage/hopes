@@ -32,7 +32,6 @@ class StudentAssessmentTakerScreen extends StatefulWidget {
 class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScreen> {
   final AssessmentService _assessmentService = AssessmentService();
   final ConnectivityService _connectivityService = ConnectivityService();
-  final OfflineService _offlineService = OfflineService();
   final AuthService _authService = AuthService();
   final AchievementsService _achievementsService = AchievementsService();
   
@@ -56,6 +55,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   Map<int, String> _answers = {};
   Map<int, String?> _answerImages = {}; // Image URLs for answers
   Map<int, XFile?> _selectedImageFiles = {}; // Selected image files
+  Map<int, TextEditingController> _textControllers = {}; // Controllers for text inputs
   bool _isLoading = true;
   bool _isSubmitting = false;
   int _currentQuestionIndex = 0;
@@ -74,6 +74,11 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
   @override
   void dispose() {
     _durationTimer?.cancel();
+    // Dispose all text controllers
+    for (var controller in _textControllers.values) {
+      controller.dispose();
+    }
+    _textControllers.clear();
     super.dispose();
   }
 
@@ -138,7 +143,12 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       if (isOnline) {
         // Load from online service
         final questions = await _assessmentService.getAssessmentQuestions(widget.assessment.id);
-        if (questions.isNotEmpty) {
+        
+        // Debug: Check if questions have imageUrl
+        for (var q in questions) {
+          if (q.imageUrl != null && q.imageUrl!.isNotEmpty) {
+            print('Question ${q.id} has imageUrl: ${q.imageUrl}');
+          }
         }
         
         if (!mounted) return;
@@ -185,6 +195,19 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
     if (mounted) {
       setState(() {
         _answers[questionIndex] = answer;
+        // Update controller text if it exists and is different
+        if (_textControllers.containsKey(questionIndex)) {
+          final controller = _textControllers[questionIndex]!;
+          if (controller.text != answer) {
+            // Remove listener temporarily to avoid infinite loop
+            controller.removeListener(() {});
+            controller.text = answer;
+            // Re-add listener
+            controller.addListener(() {
+              _selectAnswer(questionIndex, controller.text);
+            });
+          }
+        }
       });
     }
   }
@@ -377,9 +400,9 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                 break;
               case QuestionType.shortAnswer:
               case QuestionType.fillInTheBlank:
-                // For subjective questions, give partial credit
-                points = question.points ~/ 2; // Base points for attempting (half of question points)
-                isCorrect = true; // Will be reviewed by teacher
+                // For subjective questions, no automatic points - teacher will review
+                points = 0; // No automatic points - teacher will assign manually
+                isCorrect = false; // Mark as needing review
                 correctAnswer = 'Teacher Review Required';
                 break;
               case QuestionType.essay:
@@ -392,7 +415,11 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
             
             totalScore += points;
             if (isCorrect) correctAnswers++;
-            else incorrectAnswers++;
+            else if (points == 0 && (question.type == QuestionType.essay || question.type == QuestionType.shortAnswer || question.type == QuestionType.fillInTheBlank)) {
+              // Don't count as incorrect if it needs teacher review
+            } else {
+              incorrectAnswers++;
+            }
 
             // Create detailed answer
             detailedAnswers[i] = DetailedAnswer(
@@ -480,9 +507,9 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                 break;
               case QuestionType.shortAnswer:
               case QuestionType.fillInTheBlank:
-                // For subjective questions, give partial credit
-                points = question.points ~/ 2; // Base points for attempting (half of question points)
-                isCorrect = true; // Will be reviewed by teacher
+                // For subjective questions, no automatic points - teacher will review
+                points = 0; // No automatic points - teacher will assign manually
+                isCorrect = false; // Mark as needing review
                 correctAnswer = 'Teacher Review Required';
                 break;
               case QuestionType.essay:
@@ -495,7 +522,11 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
             
             totalScore += points;
             if (isCorrect) correctAnswers++;
-            else incorrectAnswers++;
+            else if (points == 0 && (question.type == QuestionType.essay || question.type == QuestionType.shortAnswer || question.type == QuestionType.fillInTheBlank)) {
+              // Don't count as incorrect if it needs teacher review
+            } else {
+              incorrectAnswers++;
+            }
 
             // Create detailed answer with image URL if available
             detailedAnswers[i] = DetailedAnswer(
@@ -1342,12 +1373,25 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
     );
   }
 
+  TextEditingController _getTextController(int questionIndex) {
+    if (!_textControllers.containsKey(questionIndex)) {
+      _textControllers[questionIndex] = TextEditingController(
+        text: _answers[questionIndex] ?? '',
+      );
+      // Update controller when answer changes externally
+      _textControllers[questionIndex]!.addListener(() {
+        _selectAnswer(questionIndex, _textControllers[questionIndex]!.text);
+      });
+    }
+    return _textControllers[questionIndex]!;
+  }
+
   Widget _buildShortAnswerInput() {
     return Column(
       children: [
         TextFormField(
           maxLines: 3,
-          controller: TextEditingController(text: _answers[_currentQuestionIndex] ?? ''),
+          controller: _getTextController(_currentQuestionIndex),
           decoration: InputDecoration(
             hintText: 'Type your answer here...',
             border: OutlineInputBorder(
@@ -1373,7 +1417,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
       children: [
         TextFormField(
           maxLines: 8,
-          controller: TextEditingController(text: _answers[_currentQuestionIndex] ?? ''),
+          controller: _getTextController(_currentQuestionIndex),
           decoration: InputDecoration(
             hintText: 'Write your essay here...',
             border: OutlineInputBorder(
@@ -1398,7 +1442,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
     return Column(
       children: [
         TextFormField(
-          controller: TextEditingController(text: _answers[_currentQuestionIndex] ?? ''),
+          controller: _getTextController(_currentQuestionIndex),
           decoration: InputDecoration(
             hintText: 'Fill in the blank...',
             border: OutlineInputBorder(
