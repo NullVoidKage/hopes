@@ -39,19 +39,44 @@ class _LearningPathCreationScreenState extends State<LearningPathCreationScreen>
     'Fundamentals', 'Review', 'Challenge'
   ];
 
-  final List<String> _subjects = [
-    'Mathematics',
-    'GMRC',
-    'Values Education',
-    'Araling Panlipunan',
-    'English',
-    'Filipino',
-    'Music & Arts',
-    'Science',
-    'Physical Education & Health',
-    'EPP',
-    'TLE'
-  ];
+  List<String> get _subjects {
+    final teacherSubjects = widget.teacherProfile.subjects ?? [];
+    final isAdmin = widget.teacherProfile.isAdministrator;
+    
+    if (isAdmin) {
+      // Administrators can see all subjects
+      return [
+        'Mathematics',
+        'GMRC',
+        'Values Education',
+        'Araling Panlipunan',
+        'English',
+        'Filipino',
+        'Music & Arts',
+        'Science',
+        'Physical Education & Health',
+        'EPP',
+        'TLE'
+      ];
+    } else {
+      // Teachers only see their assigned subjects
+      return teacherSubjects.isEmpty
+          ? [
+              'Mathematics',
+              'GMRC',
+              'Values Education',
+              'Araling Panlipunan',
+              'English',
+              'Filipino',
+              'Music & Arts',
+              'Science',
+              'Physical Education & Health',
+              'EPP',
+              'TLE'
+            ]
+          : teacherSubjects;
+    }
+  }
 
   @override
   void initState() {
@@ -69,8 +94,15 @@ class _LearningPathCreationScreenState extends State<LearningPathCreationScreen>
       _isPublished = widget.learningPath!.isPublished;
       _steps = List.from(widget.learningPath!.steps);
     } else {
-      // Creating new learning path - set default subject to Mathematics
-      _selectedSubject = 'Mathematics';
+      // Creating new learning path - set default subject based on teacher's subjects
+      final teacherSubjects = widget.teacherProfile.subjects ?? [];
+      final isAdmin = widget.teacherProfile.isAdministrator;
+      
+      if (!isAdmin && teacherSubjects.isNotEmpty) {
+        _selectedSubject = teacherSubjects.first;
+      } else if (_subjects.isNotEmpty) {
+        _selectedSubject = _subjects.first;
+      }
       _addStep(); // Add initial step
     }
   }
