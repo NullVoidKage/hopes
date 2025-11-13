@@ -22,6 +22,7 @@ class _StudentProfileEditScreenState extends State<StudentProfileEditScreen> {
   late TextEditingController _emailController;
   late TextEditingController _gradeController;
   late List<String> _selectedSubjects;
+  String? _selectedSection;
   
   bool _isSaving = false;
 
@@ -47,6 +48,8 @@ class _StudentProfileEditScreenState extends State<StudentProfileEditScreen> {
     'Grade 11',
     'Grade 12'
   ];
+
+  final List<String> _availableSections = ['A', 'B', 'C', 'D'];
 
   @override
   void initState() {
@@ -75,6 +78,9 @@ class _StudentProfileEditScreenState extends State<StudentProfileEditScreen> {
     if (_selectedSubjects.isEmpty) {
       _selectedSubjects = ['Mathematics', 'Science', 'English'];
     }
+    
+    // Initialize section
+    _selectedSection = widget.userProfile.section;
   }
 
   @override
@@ -97,6 +103,7 @@ class _StudentProfileEditScreenState extends State<StudentProfileEditScreen> {
         'displayName': _displayNameController.text.trim(),
         'email': _emailController.text.trim(),
         'grade': _getCurrentGrade(),
+        'section': _selectedSection,
         'subjects': _selectedSubjects,
       };
 
@@ -442,6 +449,31 @@ class _StudentProfileEditScreenState extends State<StudentProfileEditScreen> {
                 return 'Please select your grade level';
               }
               return null;
+            },
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Section
+          DropdownButtonFormField<String>(
+            value: _selectedSection,
+            decoration: const InputDecoration(
+              labelText: 'Section',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              prefixIcon: Icon(Icons.class_rounded),
+            ),
+            items: _availableSections.map((section) {
+              return DropdownMenuItem(
+                value: section,
+                child: Text('Section $section'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedSection = value;
+              });
             },
           ),
         ],

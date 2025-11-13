@@ -43,7 +43,7 @@ class TeacherDashboardService {
 
       // If online, fetch from Firebase and cache
       final studentProgress = await _getStudentProgress(teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
-      final recentActivities = await _getRecentActivities(teacherId);
+      final recentActivities = await _getRecentActivities(teacherId, subjectId: subjectId);
       final studentCount = await _getStudentCount();
       final stats = _calculateStats(studentProgress, studentCount, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
       
@@ -97,7 +97,12 @@ class TeacherDashboardService {
               // Apply filters
               if (studentId != null && progress.studentId != studentId) return null;
               if (subjectId != null && progress.subject != subjectId) return null;
-              // Note: sectionId filtering would need to be added to StudentProgress model
+              
+              // Filter by section - need to check student profile
+              if (sectionId != null && sectionId.isNotEmpty) {
+                // We'll filter by section after fetching student profiles
+                // For now, return all and filter later
+              }
               
               return progress;
             } catch (e) {
@@ -105,20 +110,89 @@ class TeacherDashboardService {
             }
           }).whereType<StudentProgress>().toList();
           
+          // Apply section filter if provided
+          if (sectionId != null && sectionId.isNotEmpty) {
+            // Get student sections from Firestore
+            final studentIds = progressList.map((p) => p.studentId).toSet();
+            final studentSections = <String, String>{};
+            
+            try {
+              for (final studentId in studentIds) {
+                final studentDoc = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(studentId)
+                    .get();
+                
+                if (studentDoc.exists) {
+                  final section = studentDoc.data()?['section'] as String?;
+                  if (section != null) {
+                    studentSections[studentId] = section;
+                  }
+                }
+              }
+            } catch (e) {
+              // If Firestore fails, return all progress
+            }
+            
+            // Filter progress by section
+            if (studentSections.isNotEmpty) {
+              final filteredList = progressList.where((progress) {
+                final studentSection = studentSections[progress.studentId];
+                return studentSection == sectionId;
+              }).toList();
+              return filteredList;
+            }
+          }
+          
           return progressList;
         }
       }
       
       // If no progress data exists, create sample progress from Firestore students
-      return await _createSampleProgressFromStudents(subjects);
+      var sampleProgress = await _createSampleProgressFromStudents(subjects, sectionId: sectionId);
+      
+      // Apply section filter if provided
+      if (sectionId != null && sectionId.isNotEmpty) {
+        // Get student sections from Firestore
+        final studentIds = sampleProgress.map((p) => p.studentId).toSet();
+        final studentSections = <String, String>{};
+        
+        try {
+          for (final studentId in studentIds) {
+            final studentDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(studentId)
+                .get();
+            
+            if (studentDoc.exists) {
+              final section = studentDoc.data()?['section'] as String?;
+              if (section != null) {
+                studentSections[studentId] = section;
+              }
+            }
+          }
+        } catch (e) {
+          // If Firestore fails, return all progress
+        }
+        
+        // Filter progress by section
+        if (studentSections.isNotEmpty) {
+          sampleProgress = sampleProgress.where((progress) {
+            final studentSection = studentSections[progress.studentId];
+            return studentSection == sectionId;
+          }).toList();
+        }
+      }
+      
+      return sampleProgress;
       
     } catch (e) {
-      return await _createSampleProgressFromStudents(subjects);
+      return await _createSampleProgressFromStudents(subjects, sectionId: sectionId);
     }
   }
 
   // Create sample progress data from existing students
-  Future<List<StudentProgress>> _createSampleProgressFromStudents(List<String> subjects) async {
+  Future<List<StudentProgress>> _createSampleProgressFromStudents(List<String> subjects, {String? sectionId}) async {
     try {
       
       // Get students from Firestore
@@ -138,7 +212,13 @@ class TeacherDashboardService {
         final data = doc.data();
         final studentName = data['displayName'] ?? 'Unknown Student';
         final studentEmail = data['email'] ?? '';
+        final studentSection = data['section'] as String?;
         final studentSubjects = (data['subjects'] as List<dynamic>?)?.cast<String>() ?? [];
+        
+        // Skip if section filter doesn't match
+        if (sectionId != null && sectionId.isNotEmpty && studentSection != sectionId) {
+          continue;
+        }
         
         // Create progress for each subject the student is enrolled in
         for (final subject in studentSubjects) {
@@ -182,7 +262,7 @@ class TeacherDashboardService {
   }
 
   // Get recent activities for teacher
-  Future<List<TeacherActivity>> _getRecentActivities(String teacherId) async {
+  Future<List<TeacherActivity>> _getRecentActivities(String teacherId, {String? subjectId}) async {
     try {
       
       final snapshot = await _database
@@ -205,9 +285,15 @@ class TeacherDashboardService {
             }
           });
           
+          // Apply subject filter if provided
+          List<TeacherActivity> filteredActivities = activities;
+          if (subjectId != null && subjectId.isNotEmpty) {
+            filteredActivities = activities.where((a) => a.subject == subjectId).toList();
+          }
+          
           // Sort by timestamp (newest first) and take last 10
-          activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          final recentActivities = activities.take(10).toList();
+          filteredActivities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          final recentActivities = filteredActivities.take(10).toList();
           return recentActivities;
         }
       }
@@ -475,22 +561,62 @@ class TeacherDashboardService {
       final cachedProgress = await OfflineService.getCachedStudentProgress();
       final cachedActivities = await OfflineService.getCachedTeacherActivities();
       
+      // Apply subject filter to cached activities if provided
+      List<Map<String, dynamic>> filteredCachedActivities = cachedActivities;
+      if (subjectId != null && subjectId.isNotEmpty) {
+        filteredCachedActivities = cachedActivities.where((activity) => 
+          activity['subject'] == subjectId
+        ).toList();
+      }
+      
       // Convert cached data to proper models
       final studentProgress = cachedProgress.map((data) => 
         StudentProgress.fromRealtimeDatabase(data, data['id'] ?? '')
       ).toList();
       
-      final recentActivities = cachedActivities.map((data) => 
+      final recentActivities = filteredCachedActivities.map((data) => 
         TeacherActivity.fromRealtimeDatabase(data['id'] ?? '', data)
       ).toList();
       
       // Apply filters to cached data
-      final filteredProgress = studentProgress.where((progress) {
+      List<StudentProgress> filteredProgress = studentProgress.where((progress) {
         if (studentId != null && progress.studentId != studentId) return false;
         if (subjectId != null && progress.subject != subjectId) return false;
-        // Note: sectionId filtering would need section field in StudentProgress
         return true;
       }).toList();
+      
+      // Apply section filter if provided
+      if (sectionId != null && sectionId.isNotEmpty) {
+        // Get student sections from Firestore
+        final studentIds = filteredProgress.map((p) => p.studentId).toSet();
+        final studentSections = <String, String>{};
+        
+        try {
+          for (final studentId in studentIds) {
+            final studentDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(studentId)
+                .get();
+            
+            if (studentDoc.exists) {
+              final section = studentDoc.data()?['section'] as String?;
+              if (section != null) {
+                studentSections[studentId] = section;
+              }
+            }
+          }
+        } catch (e) {
+          // If Firestore fails, return all progress
+        }
+        
+        // Filter progress by section
+        if (studentSections.isNotEmpty) {
+          filteredProgress = filteredProgress.where((progress) {
+            final studentSection = studentSections[progress.studentId];
+            return studentSection == sectionId;
+          }).toList();
+        }
+      }
       
       final stats = _calculateStats(filteredProgress, filteredProgress.length, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
       

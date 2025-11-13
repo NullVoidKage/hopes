@@ -23,6 +23,7 @@ import 'student_settings_screen.dart';
 import 'badges_screen.dart';
 import 'leaderboard_screen.dart';
 import 'student_feedback_view.dart';
+import 'join_class_screen.dart';
 
 // Helper class to track assessment submission status
 class AssessmentWithSubmissionStatus {
@@ -459,6 +460,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
               Icons.feedback,
               'View teacher feedback',
               () => _navigateToFeedback(),
+            ),
+            _buildActionCard(
+              'Join Class',
+              Icons.group_add,
+              'Enter class code to join',
+              () => _navigateToJoinClass(),
             ),
           ],
         ),
@@ -1880,6 +1887,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
       context,
       MaterialPageRoute(
         builder: (context) => const LeaderboardScreen(),
+      ),
+    );
+  }
+
+  void _navigateToJoinClass() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const JoinClassScreen(),
       ),
     );
   }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/class_model.dart';
 import '../models/user_model.dart';
 import '../services/class_service.dart';
 import 'class_creation_screen.dart';
+import 'class_edit_screen.dart';
 
 class ClassManagementScreen extends StatefulWidget {
   final UserModel teacherProfile;
@@ -246,12 +248,32 @@ class _ClassManagementScreenState extends State<ClassManagementScreen> {
         trailing: PopupMenuButton<String>(
           onSelected: (value) async {
             if (value == 'edit') {
-              // TODO: Implement edit
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ClassEditScreen(
+                    classModel: classModel,
+                    teacherProfile: widget.teacherProfile,
+                  ),
+                ),
+              );
+              if (result == true) {
+                _loadClasses();
+              }
             } else if (value == 'delete') {
               _showDeleteDialog(classModel);
             } else if (value == 'copy_code') {
               // Copy class code to clipboard
-              // TODO: Implement clipboard copy
+              await Clipboard.setData(ClipboardData(text: classModel.classCode));
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Class code "${classModel.classCode}" copied to clipboard'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
             }
           },
           itemBuilder: (context) => [

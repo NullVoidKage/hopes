@@ -125,6 +125,7 @@ class AuthService {
     String? photoURL,
     required UserRole role,
     String? grade,
+    String? section,
     List<String>? subjects,
   }) async {
     try {
@@ -134,6 +135,7 @@ class AuthService {
         'photoURL': photoURL,
         'role': role.toString().split('.').last,
         'grade': grade,
+        'section': section,
         'subjects': subjects,
         'createdAt': firestore.FieldValue.serverTimestamp(),
         'lastLogin': firestore.FieldValue.serverTimestamp(),

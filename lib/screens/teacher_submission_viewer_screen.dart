@@ -5,8 +5,8 @@ import '../services/submission_service.dart';
 import '../services/assessment_service.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/offline_indicator.dart';
-import 'assessment_grading_screen.dart';
 import 'teacher_submission_detail_screen.dart';
+import 'feedback_creation_screen.dart';
 
 class TeacherSubmissionViewerScreen extends StatefulWidget {
   final String teacherId;
@@ -668,21 +668,17 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: submission.isGraded 
-                        ? () => _editGrade(submission)
-                        : () => _gradeSubmission(submission),
+                    onPressed: () => _giveFeedback(submission),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: submission.isGraded 
-                          ? const Color(0xFF34C759)
-                          : const Color(0xFFFF9500),
+                      backgroundColor: const Color(0xFF007AFF),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: Text(
-                      submission.isGraded ? 'Edit Grade' : 'Grade Now',
-                      style: const TextStyle(
+                    child: const Text(
+                      'Feedback',
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -737,69 +733,22 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
     );
   }
 
-  void _gradeSubmission(AssessmentSubmission submission) async {
-    // Get the assessment details
-    final assessment = await _getAssessmentById(submission.assessmentId);
-    if (assessment == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Assessment not found'),
-          backgroundColor: Color(0xFFFF3B30),
-        ),
-      );
-      return;
-    }
-
-    // Navigate to grading screen
+  void _giveFeedback(AssessmentSubmission submission) async {
+    // Navigate to feedback creation screen
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) => AssessmentGradingScreen(
-          submission: submission,
-          assessment: assessment,
+        builder: (context) => FeedbackCreationScreen(
+          studentId: submission.studentId,
+          contentId: submission.assessmentId,
+          contentType: 'assessment',
         ),
       ),
     );
 
-    // Refresh the list if grading was successful
+    // Refresh the list if feedback was created
     if (result == true) {
       _loadSubmissions();
     }
   }
 
-  void _editGrade(AssessmentSubmission submission) async {
-    // Get the assessment details
-    final assessment = await _getAssessmentById(submission.assessmentId);
-    if (assessment == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Assessment not found'),
-          backgroundColor: Color(0xFFFF3B30),
-        ),
-      );
-      return;
-    }
-
-    // Navigate to grading screen for editing
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => AssessmentGradingScreen(
-          submission: submission,
-          assessment: assessment,
-        ),
-      ),
-    );
-
-    // Refresh the list if grading was successful
-    if (result == true) {
-      _loadSubmissions();
-    }
-  }
-
-  Future<Assessment?> _getAssessmentById(String assessmentId) async {
-    try {
-      return await _assessmentService.getAssessmentById(assessmentId);
-    } catch (e) {
-      return null;
-    }
-  }
 }

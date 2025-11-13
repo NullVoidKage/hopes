@@ -12,11 +12,27 @@ class AssessmentResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Prevent division by zero
-    final maxScore = submission.maxPossibleScore > 0 ? submission.maxPossibleScore : 100;
+    // Prevent division by zero and ensure maxScore is at least 1
+    // If maxPossibleScore is 0 or invalid, calculate it from the submission
+    int maxScore = submission.maxPossibleScore;
+    if (maxScore <= 0) {
+      // Calculate max score from detailed answers if available
+      if (submission.detailedAnswers.isNotEmpty) {
+        // Try to estimate max score from question points
+        // Default to 10 points per question if not specified
+        maxScore = submission.totalQuestions * 10;
+      } else {
+        // Fallback to 100 if we can't calculate
+        maxScore = 100;
+      }
+    }
+    
+    // Ensure maxScore is at least 1 to prevent division by zero
+    if (maxScore < 1) maxScore = 1;
+    
     final scorePercentage = (submission.score / maxScore) * 100;
-    // Ensure percentage is valid (not NaN or Infinity)
-    final validPercentage = scorePercentage.isNaN || scorePercentage.isInfinite ? 0.0 : scorePercentage;
+    // Clamp percentage between 0 and 100
+    final validPercentage = scorePercentage.clamp(0.0, 100.0);
     Color scoreColor = _getScoreColor(validPercentage);
 
     return Scaffold(
@@ -51,7 +67,7 @@ class AssessmentResultScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Score Card
-              _buildScoreCard(validPercentage, scoreColor),
+              _buildScoreCard(validPercentage, scoreColor, maxScore),
               const SizedBox(height: 24),
               
               // Assessment Info
@@ -81,7 +97,7 @@ class AssessmentResultScreen extends StatelessWidget {
     return const Color(0xFFFF3B30);
   }
 
-  Widget _buildScoreCard(double validPercentage, Color scoreColor) {
+  Widget _buildScoreCard(double validPercentage, Color scoreColor, int maxScore) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -123,7 +139,7 @@ class AssessmentResultScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '/ ${submission.maxPossibleScore > 0 ? submission.maxPossibleScore : 100}',
+                    '/ $maxScore',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w500,

@@ -13,6 +13,7 @@ class UserModel {
   final String? photoURL;
   final UserRole role;
   final String? grade; // For students
+  final String? section; // For students
   final List<String>? subjects; // For teachers
   final String? schoolYear; // School year for all users
   final DateTime createdAt;
@@ -27,6 +28,7 @@ class UserModel {
     this.photoURL,
     required this.role,
     this.grade,
+    this.section,
     this.subjects,
     this.schoolYear,
     required this.createdAt,
@@ -43,6 +45,7 @@ class UserModel {
     String? photoURL,
     UserRole role, {
     String? grade,
+    String? section,
     List<String>? subjects,
     String? schoolYear,
     Map<String, dynamic>? assessmentResults,
@@ -55,6 +58,7 @@ class UserModel {
       photoURL: photoURL,
       role: role,
       grade: grade,
+      section: section,
       subjects: subjects,
       schoolYear: schoolYear,
       createdAt: DateTime.now(),
@@ -87,6 +91,7 @@ class UserModel {
         orElse: () => UserRole.student,
       ),
       grade: data['grade'],
+      section: data['section'],
       subjects: data['subjects'] != null
           ? List<String>.from(data['subjects'])
           : null,
@@ -106,6 +111,7 @@ class UserModel {
       'photoURL': photoURL,
       'role': role.toString().split('.').last,
       'grade': grade,
+      'section': section,
       'subjects': subjects,
       'schoolYear': schoolYear,
       'createdAt': createdAt,
@@ -137,6 +143,7 @@ class UserModel {
       photoURL: photoURL ?? this.photoURL,
       role: role ?? this.role,
       grade: grade ?? this.grade,
+      section: section ?? this.section,
       subjects: subjects ?? this.subjects,
       schoolYear: schoolYear ?? this.schoolYear,
       createdAt: createdAt ?? this.createdAt,

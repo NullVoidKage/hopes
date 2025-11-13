@@ -38,7 +38,6 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
     'Theory', 'Practice', 'Review'
   ];
   
-  int _totalPoints = 100;
   DateTime? _dueDate;
   String? _selectedSchoolYear;
   
@@ -509,7 +508,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
           const SizedBox(height: 24),
           
           // Time Limit
-          // Total Points
+          // Total Points (Auto-calculated)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -523,27 +522,41 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
               ),
               const SizedBox(height: 8),
               Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFFF5F5F7),
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
                   border: Border.all(
                     color: const Color(0xFFE5E5E7),
                     width: 1,
                   ),
                 ),
-                child: TextFormField(
-                  initialValue: _totalPoints.toString(),
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: InputBorder.none,
-                    hintText: '100',
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _totalPoints = int.tryParse(value) ?? 100;
-                    });
-                  },
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calculate_rounded,
+                      color: Color(0xFF007AFF),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${_calculateTotalPoints()} points',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1D1D1F),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '(Auto-calculated)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF86868B),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1838,6 +1851,35 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
     }
   }
 
+  // Calculate total points from all questions
+  int _calculateTotalPoints() {
+    int total = 0;
+    for (var question in _questions) {
+      // For multiple choice and true/false, use the maximum option points
+      if (question.type == QuestionType.multipleChoice || question.type == QuestionType.trueFalse) {
+        if (question.optionPoints.isNotEmpty) {
+          // Sum all option points (or use max if that's the intended behavior)
+          // Based on the code, it seems we should use the max option points
+          final maxPoints = question.optionPoints.values.reduce((a, b) => a > b ? a : b);
+          total += maxPoints;
+        } else if (question.points > 0) {
+          total += question.points;
+        } else {
+          // Default to 10 if no points specified
+          total += 10;
+        }
+      } else if (question.type == QuestionType.essay || question.type == QuestionType.shortAnswer || question.type == QuestionType.fillInTheBlank) {
+        // Manual grading questions - don't count in total (or count as 0)
+        // You can change this if you want to include them
+        // total += question.points; // Uncomment if you want to include manual grading questions
+      } else {
+        // For other question types, use the question points
+        total += question.points > 0 ? question.points : 10;
+      }
+    }
+    return total;
+  }
+
   Future<void> _createAssessment() async {
     if (_formKey.currentState?.validate() != true) {
       return;
@@ -1893,7 +1935,7 @@ class _AssessmentCreationScreenState extends State<AssessmentCreationScreen> {
         isPublished: _isPublished,
         tags: _selectedTag != null ? [_selectedTag!] : [],
         timeLimit: 0, // No time limit
-        totalPoints: _totalPoints,
+        totalPoints: _calculateTotalPoints(), // Auto-calculate from question points
         questions: _questions.asMap().entries.map((entry) {
           // Ensure imageUrl is synced from _questionImageUrls map
           final index = entry.key;

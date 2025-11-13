@@ -444,6 +444,25 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         double accuracy = _questions.length > 0 ? (correctAnswers / _questions.length) * 100 : 0.0;
         double averageTimePerQuestion = _questions.length > 0 ? DateTime.now().difference(_startTime).inSeconds / _questions.length : 0.0;
 
+        // Calculate maxPossibleScore - use optionPoints if available, otherwise use question.points
+        int maxPossibleScore = _questions.fold<int>(0, (sum, q) {
+          // For auto-graded questions
+          if (q.type == QuestionType.trueFalse || q.type == QuestionType.multipleChoice) {
+            // If optionPoints are set, use the maximum option point value
+            if (q.optionPoints.isNotEmpty) {
+              final maxOptionPoint = q.optionPoints.values.reduce((a, b) => a > b ? a : b);
+              return sum + (maxOptionPoint > 0 ? maxOptionPoint : 10);
+            }
+            // Otherwise use question.points or default to 10
+            return sum + (q.points > 0 ? q.points : 10);
+          }
+          // For manual-graded questions, don't count in max score
+          return sum;
+        });
+        
+        // Ensure maxPossibleScore is at least 1
+        if (maxPossibleScore < 1) maxPossibleScore = 1;
+
         await _assessmentService.submitAssessment(
           assessmentId: widget.assessment.id,
           answers: _answers,
@@ -455,7 +474,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           assessmentType: 'Quiz', // TODO: Get from assessment
           assessmentGradeLevel: 'Grade 7', // TODO: Get from assessment
           totalQuestions: _questions.length,
-          maxPossibleScore: _questions.fold<int>(0, (sum, q) => sum + q.points), // Sum of all question points
+          maxPossibleScore: maxPossibleScore,
           accuracy: accuracy,
           correctAnswers: correctAnswers,
           incorrectAnswers: incorrectAnswers,
@@ -555,6 +574,25 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
         double accuracy = _questions.length > 0 ? (correctAnswers / _questions.length) * 100 : 0.0;
         double averageTimePerQuestion = _questions.length > 0 ? DateTime.now().difference(_startTime).inSeconds / _questions.length : 0.0;
 
+        // Calculate maxPossibleScore - use optionPoints if available, otherwise use question.points
+        int maxPossibleScore = _questions.fold<int>(0, (sum, q) {
+          // For auto-graded questions
+          if (q.type == QuestionType.trueFalse || q.type == QuestionType.multipleChoice) {
+            // If optionPoints are set, use the maximum option point value
+            if (q.optionPoints.isNotEmpty) {
+              final maxOptionPoint = q.optionPoints.values.reduce((a, b) => a > b ? a : b);
+              return sum + (maxOptionPoint > 0 ? maxOptionPoint : 10);
+            }
+            // Otherwise use question.points or default to 10
+            return sum + (q.points > 0 ? q.points : 10);
+          }
+          // For manual-graded questions, don't count in max score
+          return sum;
+        });
+        
+        // Ensure maxPossibleScore is at least 1
+        if (maxPossibleScore < 1) maxPossibleScore = 1;
+
         await OfflineService.queueAssessmentSubmission(
           assessmentId: widget.assessment.id,
           answers: _answers,
@@ -566,7 +604,7 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
           assessmentType: 'Quiz', // TODO: Get from assessment
           assessmentGradeLevel: 'Grade 7', // TODO: Get from assessment
           totalQuestions: _questions.length,
-          maxPossibleScore: _questions.fold<int>(0, (sum, q) => sum + q.points), // Sum of all question points
+          maxPossibleScore: maxPossibleScore,
           accuracy: accuracy,
           correctAnswers: correctAnswers,
           incorrectAnswers: incorrectAnswers,

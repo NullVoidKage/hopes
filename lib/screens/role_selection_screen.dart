@@ -23,10 +23,12 @@ class RoleSelectionScreen extends StatefulWidget {
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   UserRole? selectedRole;
   String? selectedGrade;
+  String? selectedSection;
   List<String> selectedSubjects = [];
   bool _isLoading = false;
 
   final List<String> grades = ['7'];
+  final List<String> sections = ['A', 'B', 'C', 'D'];
   final List<String> availableSubjects = [
     'Mathematics',
     'GMRC',
@@ -173,8 +175,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           // Set default values based on role
           if (role == UserRole.student) {
             selectedGrade = '7'; // Default to Grade 7 for students
+            selectedSection = 'A'; // Default to Section A for students
           } else {
             selectedGrade = null;
+            selectedSection = null;
           }
           selectedSubjects.clear();
         });
@@ -386,6 +390,121 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
+              // Section Selection
+              const Text(
+                'Section',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  border: Border.all(
+                    color: selectedSection != null 
+                        ? const Color(0xFF007AFF) 
+                        : const Color(0xFFE5E5E7),
+                    width: selectedSection != null ? 2 : 1,
+                  ),
+                  color: const Color(0xFFF5F5F7),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedSection,
+                    isExpanded: true,
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: selectedSection != null 
+                            ? const Color(0xFF007AFF) 
+                            : const Color(0xFF86868B),
+                        borderRadius: const BorderRadius.all(Radius.circular(8)),
+                      ),
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    iconSize: 24,
+                    dropdownColor: Colors.white,
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    elevation: 8,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      color: Color(0xFF1D1D1F),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    hint: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Select Section',
+                        style: TextStyle(
+                          color: Color(0xFF007AFF),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    items: sections.map((section) {
+                      return DropdownMenuItem<String>(
+                        value: section,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16, 
+                            vertical: 12
+                          ),
+                          decoration: BoxDecoration(
+                            color: selectedSection == section 
+                                ? const Color(0xFF007AFF).withValues(alpha: 0.1)
+                                : Colors.transparent,
+                            borderRadius: const BorderRadius.all(Radius.circular(8)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.class_rounded,
+                                size: 20,
+                                color: Color(0xFF007AFF),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Section $section',
+                                style: TextStyle(
+                                  color: selectedSection == section 
+                                      ? const Color(0xFF007AFF)
+                                      : const Color(0xFF1D1D1F),
+                                  fontWeight: selectedSection == section 
+                                      ? FontWeight.w600 
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                              if (selectedSection == section) ...[
+                                const Spacer(),
+                                const Icon(
+                                  Icons.check_circle,
+                                  size: 20,
+                                  color: Color(0xFF007AFF),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSection = value;
+                      });
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -520,6 +639,28 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   Future<void> _continueWithRole() async {
     if (selectedRole == null) return;
+    
+    // Validate student fields
+    if (selectedRole == UserRole.student) {
+      if (selectedGrade == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select your grade level'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      if (selectedSection == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select your section'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
 
     setState(() {
       _isLoading = true;
@@ -534,6 +675,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         photoURL: widget.photoURL,
         role: selectedRole!,
         grade: selectedGrade,
+        section: selectedSection,
         subjects: selectedSubjects.isNotEmpty ? selectedSubjects : null,
       );
 

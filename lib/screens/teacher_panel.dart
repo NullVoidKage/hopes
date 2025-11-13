@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -65,14 +66,14 @@ class _TeacherPanelState extends State<TeacherPanel> {
             subjectId: _selectedSubjectId,
           );
           
-          // Update available options for filters
-          _updateFilterOptions(dashboardData);
-          
           setState(() {
             _userProfile = profile;
             _dashboardData = dashboardData;
             _isLoading = false;
           });
+          
+          // Update available options for filters AFTER setting _userProfile
+          _updateFilterOptions(dashboardData);
         } else {
           setState(() {
             _isLoading = false;
@@ -300,6 +301,8 @@ class _TeacherPanelState extends State<TeacherPanel> {
                     
                     // Recent Activities Section
                     _buildSectionHeader('Recent Activities', Icons.schedule_rounded),
+                    const SizedBox(height: 20),
+                    _buildFilters(),
                     const SizedBox(height: 20),
                     _buildRecentActivitiesList(),
                     
@@ -2199,28 +2202,55 @@ class _TeacherPanelState extends State<TeacherPanel> {
         fillColor: Colors.white,
       ),
       items: [
-        DropdownMenuItem<String>(
-          value: null,
-          child: Text(
-            'All $label' + (label == 'Student' ? 's' : 's'),
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF1D1D1F),
+        // Only show "All" option for Subject if teacher is admin or has no assigned subjects
+        if (label == 'Subject') ...[
+          if (_userProfile?.isAdministrator == true || (_userProfile?.subjects?.isEmpty ?? true))
+            DropdownMenuItem<String>(
+              value: null,
+              child: Text(
+                'All Subjects',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF1D1D1F),
+                ),
+              ),
+            ),
+          ...options.map((option) => DropdownMenuItem<String>(
+            value: option,
+            child: Text(
+              option,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF1D1D1F),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          )),
+        ] else ...[
+          DropdownMenuItem<String>(
+            value: null,
+            child: Text(
+              'All $label' + (label == 'Student' ? 's' : 's'),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF1D1D1F),
+              ),
             ),
           ),
-        ),
-        ...options.map((option) => DropdownMenuItem<String>(
-          value: option,
-          child: Text(
-            option,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF1D1D1F),
+          ...options.map((option) => DropdownMenuItem<String>(
+            value: option,
+            child: Text(
+              option,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF1D1D1F),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        )),
+          )),
+        ],
       ],
       onChanged: onChanged,
     );
@@ -2256,23 +2286,68 @@ class _TeacherPanelState extends State<TeacherPanel> {
     _reloadDashboard();
   }
 
-  void _updateFilterOptions(TeacherDashboardData data) {
-    // Extract unique students, sections, and subjects from progress data
+  void _updateFilterOptions(TeacherDashboardData data) async {
+    // Extract unique students from progress data
     final students = <String>{};
-    final sections = <String>{};
-    final subjects = <String>{};
 
     for (final progress in data.studentProgress) {
       students.add(progress.studentName);
-      subjects.add(progress.subject);
-      // Note: Sections would need to be added to StudentProgress model
     }
 
-    setState(() {
-      _availableStudents = students.toList()..sort();
-      _availableSections = sections.toList()..sort();
-      _availableSubjects = subjects.toList()..sort();
-    });
+    // Get teacher's assigned subjects (only show these, not all subjects)
+    // Make sure _userProfile is set before calling this method
+    if (_userProfile == null) {
+      // If profile not loaded yet, don't update filters
+      return;
+    }
+    
+    final teacherSubjects = _userProfile!.subjects ?? [];
+    final isAdmin = _userProfile!.isAdministrator;
+    
+    // For non-admin teachers: only show their assigned subjects
+    // For admin teachers: show all subjects from progress data
+    final subjects = <String>{};
+    
+    if (isAdmin || teacherSubjects.isEmpty) {
+      // Admin or no assigned subjects: show all subjects from progress
+      for (final progress in data.studentProgress) {
+        subjects.add(progress.subject);
+      }
+    } else {
+      // Non-admin with assigned subjects: show all their assigned subjects
+      // (even if they don't have progress data yet)
+      subjects.addAll(teacherSubjects);
+    }
+    
+    final availableSubjectsList = subjects.toList()..sort();
+
+    // Fetch sections from student profiles in Firestore
+    final sections = <String>{};
+    try {
+      final studentsQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'student')
+          .get();
+      
+      for (final doc in studentsQuery.docs) {
+        final data = doc.data();
+        final section = data['section'] as String?;
+        if (section != null && section.isNotEmpty) {
+          sections.add(section);
+        }
+      }
+    } catch (e) {
+      // If Firestore fails, use default sections
+      sections.addAll(['A', 'B', 'C', 'D']);
+    }
+
+    if (mounted) {
+      setState(() {
+        _availableStudents = students.toList()..sort();
+        _availableSections = sections.toList()..sort();
+        _availableSubjects = availableSubjectsList;
+      });
+    }
   }
 
   Future<void> _reloadDashboard() async {
