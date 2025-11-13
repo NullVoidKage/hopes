@@ -754,10 +754,13 @@ class _StudentSubmissionHistoryScreenState extends State<StudentSubmissionHistor
         return;
       }
 
-      // Navigate to assessment taker screen
+      // Navigate to assessment taker screen with retake flag
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => StudentAssessmentTakerScreen(assessment: assessment),
+          builder: (context) => StudentAssessmentTakerScreen(
+            assessment: assessment,
+            isRetake: true,
+          ),
         ),
       );
     } catch (e) {

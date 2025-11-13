@@ -702,48 +702,55 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 
                 return Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00D4FF).withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF00D4FF).withValues(alpha: 0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.book_outlined,
-                              color: Color(0xFF00D4FF),
-                              size: 20,
-                            ),
+                    InkWell(
+                      onTap: () {
+                        // Navigate to subject-specific view or filter by subject
+                        _showSubjectContent(subject);
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00D4FF).withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF00D4FF).withValues(alpha: 0.2),
+                            width: 1,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              subject,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1D1D1F),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00D4FF).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.book_outlined,
+                                color: Color(0xFF00D4FF),
+                                size: 20,
                               ),
                             ),
-                          ),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            color: Color(0xFF86868B),
-                            size: 20,
-                          ),
-                        ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                subject,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1D1D1F),
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Color(0xFF86868B),
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     if (!isLast) const SizedBox(height: 12),
@@ -1739,7 +1746,49 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-
+  void _showSubjectContent(String subject) async {
+    // Show subject-specific content (assessments, lessons, etc.)
+    // Load assessments and filter by subject
+    try {
+      final assessmentService = AssessmentService();
+      final currentStudentId = _getCurrentStudentId();
+      final assessments = await assessmentService.getAllPublishedAssessments();
+      final submissions = await _submissionService.getStudentSubmissions(currentStudentId);
+      
+      // Filter assessments by subject
+      final filteredAssessments = assessments.where((a) => a.subject == subject).toList();
+      
+      // Create assessment with submission status
+      List<AssessmentWithSubmissionStatus> assessmentsWithStatus = [];
+      for (var assessment in filteredAssessments) {
+        final existingSubmission = submissions.where(
+          (s) => s.assessmentId == assessment.id,
+        ).firstOrNull;
+        
+        if (existingSubmission != null) {
+          assessmentsWithStatus.add(AssessmentWithSubmissionStatus(
+            assessment: assessment,
+            hasSubmitted: true,
+            existingSubmission: existingSubmission,
+          ));
+        } else {
+          assessmentsWithStatus.add(AssessmentWithSubmissionStatus(
+            assessment: assessment,
+            hasSubmitted: false,
+          ));
+        }
+      }
+      
+      _showAssessmentOptions(assessmentsWithStatus);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading assessments: ${e.toString()}'),
+          backgroundColor: const Color(0xFFFF3B30),
+        ),
+      );
+    }
+  }
 
   void _navigateToPathways() {
     Navigator.push(

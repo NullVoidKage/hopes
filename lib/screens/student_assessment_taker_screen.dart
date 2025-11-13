@@ -383,9 +383,10 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                   final answerKey = answer.toLowerCase();
                   points = question.optionPoints[answerKey] ?? 
                            question.optionPoints[answer] ?? 
-                           (isCorrect ? question.points : 2);
+                           (isCorrect ? (question.points > 0 ? question.points : 10) : 2);
                 } else {
-                  points = isCorrect ? question.points : 2; // Give 2 points for attempting
+                  // Ensure points are always > 0 for correct answers
+                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 2; // Give 2 points for attempting
                 }
                 break;
               case QuestionType.multipleChoice:
@@ -397,9 +398,10 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                 // Use optionPoints if available, otherwise default to points for correct, 2 for incorrect
                 if (question.optionPoints.isNotEmpty) {
                   points = question.optionPoints[answer] ?? 
-                           (isCorrect ? question.points : 2);
+                           (isCorrect ? (question.points > 0 ? question.points : 10) : 2);
                 } else {
-                  points = isCorrect ? question.points : 2; // Give 2 points for attempting
+                  // Ensure points are always > 0 for correct answers
+                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 2; // Give 2 points for attempting
                 }
                 break;
               case QuestionType.shortAnswer:
@@ -491,9 +493,10 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                   final answerKey = answer.toLowerCase();
                   points = question.optionPoints[answerKey] ?? 
                            question.optionPoints[answer] ?? 
-                           (isCorrect ? question.points : 2);
+                           (isCorrect ? (question.points > 0 ? question.points : 10) : 2);
                 } else {
-                  points = isCorrect ? question.points : 2; // Give 2 points for attempting
+                  // Ensure points are always > 0 for correct answers
+                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 2; // Give 2 points for attempting
                 }
                 break;
               case QuestionType.multipleChoice:
@@ -505,9 +508,10 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                 // Use optionPoints if available, otherwise default to points for correct, 2 for incorrect
                 if (question.optionPoints.isNotEmpty) {
                   points = question.optionPoints[answer] ?? 
-                           (isCorrect ? question.points : 2);
+                           (isCorrect ? (question.points > 0 ? question.points : 10) : 2);
                 } else {
-                  points = isCorrect ? question.points : 2; // Give 2 points for attempting
+                  // Ensure points are always > 0 for correct answers
+                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 2; // Give 2 points for attempting
                 }
                 break;
               case QuestionType.shortAnswer:
