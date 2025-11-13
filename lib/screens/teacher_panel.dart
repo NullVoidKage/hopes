@@ -64,16 +64,35 @@ class _TeacherPanelState extends State<TeacherPanel> {
             studentId: _selectedStudentId,
             sectionId: _selectedSectionId,
             subjectId: _selectedSubjectId,
+            isAdmin: profile.isAdministrator,
           );
+          
+          // Auto-select first subject for non-admin teachers with assigned subjects
+          String? autoSelectedSubject;
+          final isAdmin = profile.isAdministrator ?? false;
+          if (profile.subjects != null && profile.subjects!.isNotEmpty && !isAdmin) {
+            if (profile.subjects!.length == 1) {
+              // If teacher has only one subject, auto-select it
+              autoSelectedSubject = profile.subjects!.first;
+            }
+          }
+          
+          final shouldReload = autoSelectedSubject != null && _selectedSubjectId != autoSelectedSubject;
           
           setState(() {
             _userProfile = profile;
             _dashboardData = dashboardData;
+            _selectedSubjectId = autoSelectedSubject ?? _selectedSubjectId;
             _isLoading = false;
           });
           
           // Update available options for filters AFTER setting _userProfile
           _updateFilterOptions(dashboardData);
+          
+          // If subject was auto-selected, reload dashboard with that filter
+          if (shouldReload) {
+            _reloadDashboard();
+          }
         } else {
           setState(() {
             _isLoading = false;
@@ -2364,6 +2383,7 @@ class _TeacherPanelState extends State<TeacherPanel> {
           studentId: _selectedStudentId,
           sectionId: _selectedSectionId,
           subjectId: _selectedSubjectId,
+          isAdmin: _userProfile!.isAdministrator,
         );
 
         _updateFilterOptions(dashboardData);

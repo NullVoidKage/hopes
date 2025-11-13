@@ -34,16 +34,17 @@ class TeacherDashboardService {
     String? studentId,
     String? sectionId,
     String? subjectId,
+    bool? isAdmin,
   }) async {
     try {
       // Check if we should use cached data
       if (_connectivityService.shouldUseCachedData) {
-        return await _getCachedDashboardData(teacherId, teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
+        return await _getCachedDashboardData(teacherId, teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId, isAdmin: isAdmin);
       }
 
       // If online, fetch from Firebase and cache
       final studentProgress = await _getStudentProgress(teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
-      final recentActivities = await _getRecentActivities(teacherId, subjectId: subjectId);
+      final recentActivities = await _getRecentActivities(teacherId, subjectId: subjectId, teacherSubjects: teacherSubjects, isAdmin: isAdmin);
       final studentCount = await _getStudentCount();
       final stats = _calculateStats(studentProgress, studentCount, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
       
@@ -62,7 +63,7 @@ class TeacherDashboardService {
       return dashboardData;
     } catch (e) {
       // If Firebase fails, try to return cached data
-      return await _getCachedDashboardData(teacherId, teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId);
+      return await _getCachedDashboardData(teacherId, teacherSubjects, studentId: studentId, sectionId: sectionId, subjectId: subjectId, isAdmin: isAdmin);
     }
   }
 
@@ -262,7 +263,7 @@ class TeacherDashboardService {
   }
 
   // Get recent activities for teacher
-  Future<List<TeacherActivity>> _getRecentActivities(String teacherId, {String? subjectId}) async {
+  Future<List<TeacherActivity>> _getRecentActivities(String teacherId, {String? subjectId, List<String>? teacherSubjects, bool? isAdmin}) async {
     try {
       
       final snapshot = await _database
@@ -279,6 +280,15 @@ class TeacherDashboardService {
             if (value is Map) {
               try {
                 final activity = TeacherActivity.fromRealtimeDatabase(key.toString(), value);
+                
+                // For non-admin teachers, only include activities from their assigned subjects
+                if (isAdmin != true && teacherSubjects != null && teacherSubjects.isNotEmpty) {
+                  final activitySubject = activity.subject;
+                  if (activitySubject.isNotEmpty && !teacherSubjects.contains(activitySubject)) {
+                    return; // Skip activities not in teacher's assigned subjects
+                  }
+                }
+                
                 activities.add(activity);
               } catch (e) {
               }
@@ -298,11 +308,11 @@ class TeacherDashboardService {
         }
       }
       
-      // If no activities exist, create sample activities
-      return _createSampleTeacherActivities(teacherId);
+      // If no activities exist, return empty list (don't show sample activities)
+      return [];
       
     } catch (e) {
-      return _createSampleTeacherActivities(teacherId);
+      return [];
     }
   }
 
@@ -417,7 +427,9 @@ class TeacherDashboardService {
     final Map<String, int> subjectStats = {};
     final Set<String> uniqueStudents = {};
     final Set<String> activeStudentIds = {};
-    double totalProgress = 0.0;
+    
+    // Map to store progress per student (to calculate average correctly)
+    final Map<String, List<double>> studentProgressRates = {};
 
     for (final progress in studentProgress) {
       // Count subjects
@@ -426,25 +438,42 @@ class TeacherDashboardService {
       // Count unique students (not progress records)
       uniqueStudents.add(progress.studentId);
       
-      // Count active students (with activity in last 7 days) - only count each student once
-      final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-      if (progress.lastActivity.isAfter(weekAgo)) {
+      // Store completion rate per student
+      if (!studentProgressRates.containsKey(progress.studentId)) {
+        studentProgressRates[progress.studentId] = [];
+      }
+      studentProgressRates[progress.studentId]!.add(progress.completionRate);
+      
+      // Count active students (with activity in last 30 days) - only count each student once
+      final monthAgo = DateTime.now().subtract(const Duration(days: 30));
+      if (progress.lastActivity.isAfter(monthAgo)) {
         activeStudentIds.add(progress.studentId);
       }
-      
-      // Calculate total progress
-      totalProgress += progress.completionRate;
     }
 
-    // Calculate average progress per student (not per progress record)
-    final averageProgress = uniqueStudents.isNotEmpty ? totalProgress / uniqueStudents.length : 0.0;
+    // Calculate average progress per student (average their completion rates across all subjects)
+    double totalStudentProgress = 0.0;
+    for (final studentId in uniqueStudents) {
+      final rates = studentProgressRates[studentId] ?? [];
+      if (rates.isNotEmpty) {
+        // Average completion rate for this student across all their subjects
+        final studentAvg = rates.reduce((a, b) => a + b) / rates.length;
+        totalStudentProgress += studentAvg;
+      }
+    }
+    
+    // Calculate overall average progress
+    final averageProgress = uniqueStudents.isNotEmpty ? totalStudentProgress / uniqueStudents.length : 0.0;
+    
+    // Clamp progress to 0-100%
+    final clampedProgress = averageProgress.clamp(0.0, 100.0);
 
 
     return {
       'subjectStats': subjectStats,
       'totalStudents': uniqueStudents.length, // Use unique students count
       'activeStudents': activeStudentIds.length, // Use unique active student IDs
-      'averageProgress': averageProgress,
+      'averageProgress': clampedProgress, // Clamped to 0-100%
     };
   }
 
@@ -556,6 +585,7 @@ class TeacherDashboardService {
     String? studentId,
     String? sectionId,
     String? subjectId,
+    bool? isAdmin,
   }) async {
     try {
       final cachedProgress = await OfflineService.getCachedStudentProgress();
@@ -563,8 +593,19 @@ class TeacherDashboardService {
       
       // Apply subject filter to cached activities if provided
       List<Map<String, dynamic>> filteredCachedActivities = cachedActivities;
+      
+      // For non-admin teachers, only include activities from their assigned subjects
+      if (isAdmin != true && teacherSubjects.isNotEmpty) {
+        filteredCachedActivities = cachedActivities.where((activity) {
+          final activitySubject = activity['subject'] as String?;
+          if (activitySubject == null || activitySubject.isEmpty) return true; // Include activities without subject
+          return teacherSubjects.contains(activitySubject);
+        }).toList();
+      }
+      
+      // Apply subject filter if provided
       if (subjectId != null && subjectId.isNotEmpty) {
-        filteredCachedActivities = cachedActivities.where((activity) => 
+        filteredCachedActivities = filteredCachedActivities.where((activity) => 
           activity['subject'] == subjectId
         ).toList();
       }
