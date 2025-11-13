@@ -638,6 +638,12 @@ class _TeacherSubmissionViewerScreenState extends State<TeacherSubmissionViewerS
                          'Unanswered',
                          '${submission.unansweredQuestions}',
                        ),
+                       const SizedBox(width: 24),
+                       _buildDetailItem(
+                         Icons.star,
+                         'Total Score',
+                         '${submission.score}/${submission.maxPossibleScore}',
+                       ),
                      ],
                    ),
             

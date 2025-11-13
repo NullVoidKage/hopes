@@ -2341,7 +2341,8 @@ class _TeacherPanelState extends State<TeacherPanel> {
     final availableSubjectsList = subjects.toList()..sort();
 
     // Fetch sections from student profiles in Firestore
-    final sections = <String>{};
+    // Always include standard sections, plus any additional sections from database
+    final sections = <String>{'A', 'B', 'C', 'D'}; // Always show standard sections
     try {
       final studentsQuery = await FirebaseFirestore.instance
           .collection('users')
@@ -2352,12 +2353,11 @@ class _TeacherPanelState extends State<TeacherPanel> {
         final data = doc.data();
         final section = data['section'] as String?;
         if (section != null && section.isNotEmpty) {
-          sections.add(section);
+          sections.add(section); // Add any additional sections found
         }
       }
     } catch (e) {
-      // If Firestore fails, use default sections
-      sections.addAll(['A', 'B', 'C', 'D']);
+      // If Firestore fails, we still have the standard sections
     }
 
     if (mounted) {
