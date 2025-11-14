@@ -27,7 +27,7 @@ class _LearningPathCreationScreenState extends State<LearningPathCreationScreen>
   
   String? _selectedSubject;
   bool _isPublished = false;
-  List<String> _selectedTags = [];
+  String? _selectedTag; // Only one tag can be selected
   List<LearningPathStep> _steps = [];
   bool _isLoading = false;
   
@@ -90,7 +90,7 @@ class _LearningPathCreationScreenState extends State<LearningPathCreationScreen>
       _titleController.text = widget.learningPath!.title;
       _descriptionController.text = widget.learningPath!.description;
       _selectedSubject = widget.learningPath!.subjects.isNotEmpty ? widget.learningPath!.subjects.first : null;
-      _selectedTags = List.from(widget.learningPath!.tags);
+      _selectedTag = widget.learningPath!.tags.isNotEmpty ? widget.learningPath!.tags.first : null;
       _isPublished = widget.learningPath!.isPublished;
       _steps = List.from(widget.learningPath!.steps);
     } else {
@@ -190,7 +190,7 @@ class _LearningPathCreationScreenState extends State<LearningPathCreationScreen>
         teacherId: widget.teacherProfile.uid,
         teacherName: widget.teacherProfile.displayName ?? widget.teacherProfile.email,
         subjects: _selectedSubject != null ? [_selectedSubject!] : [],
-        tags: _selectedTags,
+        tags: _selectedTag != null ? [_selectedTag!] : [],
         steps: _steps,
         isPublished: _isPublished,
         createdAt: widget.learningPath?.createdAt ?? DateTime.now(),
@@ -463,34 +463,39 @@ class _LearningPathCreationScreenState extends State<LearningPathCreationScreen>
         ),
         const SizedBox(height: 8),
         
-        // Selected tags
-        if (_selectedTags.isNotEmpty)
+        // Selected tag
+        if (_selectedTag != null)
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _selectedTags.map((tag) => Chip(
-              label: Text(tag),
-              deleteIcon: const Icon(Icons.close, size: 18),
-              onDeleted: () {
-                setState(() => _selectedTags.remove(tag));
-              },
-              backgroundColor: const Color(0xFF007AFF).withOpacity(0.1),
-              labelStyle: const TextStyle(color: Color(0xFF007AFF)),
-            )).toList(),
+            children: [
+              Chip(
+                label: Text(_selectedTag!),
+                deleteIcon: const Icon(Icons.close, size: 18),
+                onDeleted: () {
+                  setState(() => _selectedTag = null);
+                },
+                backgroundColor: const Color(0xFF007AFF).withOpacity(0.1),
+                labelStyle: const TextStyle(color: Color(0xFF007AFF)),
+              ),
+            ],
           ),
         
         const SizedBox(height: 8),
         
-        // Available tags
+        // Available tags - only show tags that are not selected
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: _availableTags
-              .where((tag) => !_selectedTags.contains(tag))
+              .where((tag) => tag != _selectedTag)
               .map((tag) => ActionChip(
                 label: Text(tag),
                 onPressed: () {
-                  setState(() => _selectedTags.add(tag));
+                  setState(() {
+                    // Only one tag can be selected at a time
+                    _selectedTag = tag;
+                  });
                 },
                 backgroundColor: Colors.grey[200],
                 labelStyle: const TextStyle(color: Color(0xFF1D1D1F)),

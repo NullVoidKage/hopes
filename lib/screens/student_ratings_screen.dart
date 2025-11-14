@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/student_rating.dart';
 import '../models/user_model.dart';
+import '../models/student.dart';
 import '../services/rating_service.dart';
+import '../services/student_service.dart';
 
 class StudentRatingsScreen extends StatefulWidget {
   final UserModel teacherProfile;
@@ -18,10 +20,12 @@ class StudentRatingsScreen extends StatefulWidget {
 
 class _StudentRatingsScreenState extends State<StudentRatingsScreen> {
   final RatingService _ratingService = RatingService();
+  final StudentService _studentService = StudentService();
   
   List<StudentRating> _allRatings = [];
   List<StudentRating> _filteredRatings = [];
   bool _isLoading = true;
+  bool _isCalculating = false;
   
   // Filter state
   String? _selectedStudentId;
@@ -132,6 +136,20 @@ class _StudentRatingsScreenState extends State<StudentRatingsScreen> {
           icon: const Icon(Icons.arrow_back_ios_rounded),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          if (!_isLoading && _allRatings.isEmpty)
+            IconButton(
+              icon: _isCalculating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              onPressed: _isCalculating ? null : _calculateAllRatings,
+              tooltip: 'Calculate Ratings',
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -544,6 +562,73 @@ class _StudentRatingsScreenState extends State<StudentRatingsScreen> {
     if (rating >= 80) return const Color(0xFF34C759); // Green
     if (rating >= 60) return const Color(0xFFFF9500); // Orange
     return const Color(0xFFFF3B30); // Red
+  }
+
+  Future<void> _calculateAllRatings() async {
+    setState(() {
+      _isCalculating = true;
+    });
+
+    try {
+      // Get all students
+      final students = await _studentService.getAllStudents();
+      
+      // Filter students by teacher's subjects if not admin
+      final teacherSubjects = widget.teacherProfile.subjects ?? [];
+      final isAdmin = widget.teacherProfile.isAdministrator;
+      
+      List<Student> filteredStudents = students;
+      if (!isAdmin && teacherSubjects.isNotEmpty) {
+        filteredStudents = students.where((student) {
+          return student.subjects.any((subject) => teacherSubjects.contains(subject));
+        }).toList();
+      }
+
+      // Prepare student data for rating calculation
+      final studentDataList = filteredStudents.map((student) {
+        return {
+          'id': student.id,
+          'name': student.name,
+          'section': student.section,
+          'subjects': student.subjects,
+          'schoolYear': widget.teacherProfile.schoolYear ?? '2024-2025',
+        };
+      }).toList();
+
+      // Calculate ratings
+      final calculatedCount = await _ratingService.calculateAllTeacherRatings(
+        teacherId: widget.teacherProfile.uid,
+        teacherName: widget.teacherProfile.displayName,
+        students: studentDataList,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Calculated $calculatedCount ratings. Refreshing...'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Reload ratings
+        await _loadRatings();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error calculating ratings: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCalculating = false;
+        });
+      }
+    }
   }
 }
 
