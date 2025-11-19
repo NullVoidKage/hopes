@@ -383,10 +383,10 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                   final answerKey = answer.toLowerCase();
                   points = question.optionPoints[answerKey] ?? 
                            question.optionPoints[answer] ?? 
-                           (isCorrect ? (question.points > 0 ? question.points : 10) : 2);
+                           (isCorrect ? (question.points > 0 ? question.points : 10) : 0);
                 } else {
-                  // Ensure points are always > 0 for correct answers
-                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 2; // Give 2 points for attempting
+                  // Wrong answers get 0 points, correct answers get full points
+                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 0; // Wrong answers get 0 points
                 }
                 break;
               case QuestionType.multipleChoice:
@@ -395,13 +395,13 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                 final normalizedAnswer = answer.trim();
                 final normalizedCorrectAnswer = correctAnswer.trim();
                 isCorrect = normalizedAnswer.toLowerCase() == normalizedCorrectAnswer.toLowerCase();
-                // Use optionPoints if available, otherwise default to points for correct, 2 for incorrect
+                // Use optionPoints if available, otherwise default to points for correct, 0 for incorrect
                 if (question.optionPoints.isNotEmpty) {
                   points = question.optionPoints[answer] ?? 
-                           (isCorrect ? (question.points > 0 ? question.points : 10) : 2);
+                           (isCorrect ? (question.points > 0 ? question.points : 10) : 0);
                 } else {
-                  // Ensure points are always > 0 for correct answers
-                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 2; // Give 2 points for attempting
+                  // Wrong answers get 0 points, correct answers get full points
+                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 0; // Wrong answers get 0 points
                 }
                 break;
               case QuestionType.shortAnswer:
@@ -512,10 +512,10 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                   final answerKey = answer.toLowerCase();
                   points = question.optionPoints[answerKey] ?? 
                            question.optionPoints[answer] ?? 
-                           (isCorrect ? (question.points > 0 ? question.points : 10) : 2);
+                           (isCorrect ? (question.points > 0 ? question.points : 10) : 0);
                 } else {
-                  // Ensure points are always > 0 for correct answers
-                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 2; // Give 2 points for attempting
+                  // Wrong answers get 0 points, correct answers get full points
+                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 0; // Wrong answers get 0 points
                 }
                 break;
               case QuestionType.multipleChoice:
@@ -524,13 +524,13 @@ class _StudentAssessmentTakerScreenState extends State<StudentAssessmentTakerScr
                 final normalizedAnswer = answer.trim();
                 final normalizedCorrectAnswer = correctAnswer.trim();
                 isCorrect = normalizedAnswer.toLowerCase() == normalizedCorrectAnswer.toLowerCase();
-                // Use optionPoints if available, otherwise default to points for correct, 2 for incorrect
+                // Use optionPoints if available, otherwise default to points for correct, 0 for incorrect
                 if (question.optionPoints.isNotEmpty) {
                   points = question.optionPoints[answer] ?? 
-                           (isCorrect ? (question.points > 0 ? question.points : 10) : 2);
+                           (isCorrect ? (question.points > 0 ? question.points : 10) : 0);
                 } else {
-                  // Ensure points are always > 0 for correct answers
-                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 2; // Give 2 points for attempting
+                  // Wrong answers get 0 points, correct answers get full points
+                  points = isCorrect ? (question.points > 0 ? question.points : 10) : 0; // Wrong answers get 0 points
                 }
                 break;
               case QuestionType.shortAnswer:

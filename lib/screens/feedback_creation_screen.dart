@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/feedback.dart';
 import '../models/student.dart';
-import '../models/assessment.dart';
-import '../models/lesson.dart';
-import '../models/learning_path.dart';
 import '../services/feedback_service.dart';
 import '../services/student_service.dart';
-import '../services/assessment_service.dart';
-import '../services/lesson_service.dart';
 import '../services/learning_path_service.dart';
 
 class FeedbackCreationScreen extends StatefulWidget {
@@ -46,8 +41,6 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
 
   final FeedbackService _feedbackService = FeedbackService();
   final StudentService _studentService = StudentService();
-  final AssessmentService _assessmentService = AssessmentService();
-  final LessonService _lessonService = LessonService();
   final LearningPathService _learningPathService = LearningPathService();
 
   @override
@@ -62,8 +55,8 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
     });
 
     try {
-      // Load students
-      final students = await _studentService.getStudents('');
+      // Load all students
+      final students = await _studentService.getAllStudents();
       
       // Load available content
       final content = await _learningPathService.getAvailableContent();
@@ -109,27 +102,37 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStudentSelection(),
-                    const SizedBox(height: 24),
-                    _buildContentSelection(),
-                    const SizedBox(height: 24),
-                    _buildFeedbackSection(),
-                    const SizedBox(height: 24),
-                    _buildRecommendationsSection(),
-                    const SizedBox(height: 24),
-                    _buildRatingSection(),
-                    const SizedBox(height: 32),
-                    _buildActionButtons(),
-                  ],
-                ),
-              ),
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 32,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildStudentSelection(),
+                          const SizedBox(height: 24),
+                          _buildContentSelection(),
+                          const SizedBox(height: 24),
+                          _buildFeedbackSection(),
+                          const SizedBox(height: 24),
+                          _buildRecommendationsSection(),
+                          const SizedBox(height: 24),
+                          _buildRatingSection(),
+                          const SizedBox(height: 32),
+                          _buildActionButtons(),
+                          const SizedBox(height: 32), // Extra padding at bottom
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
     );
   }
@@ -178,9 +181,14 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
             items: _students.map((student) {
               return DropdownMenuItem(
                 value: student.id,
-                child: Text(student.name),
+                child: Text(
+                  student.name,
+                  overflow: TextOverflow.ellipsis,
+                ),
               );
             }).toList(),
+            isExpanded: true,
+            menuMaxHeight: 300,
             onChanged: (value) {
               setState(() {
                 _selectedStudentId = value ?? '';
@@ -326,7 +334,8 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _feedbackController,
-            maxLines: 4,
+            maxLines: 6,
+            minLines: 4,
             decoration: const InputDecoration(
               labelText: 'Provide detailed feedback',
               hintText: 'Share your observations, suggestions, and constructive criticism...',
@@ -381,7 +390,8 @@ class _FeedbackCreationScreenState extends State<FeedbackCreationScreen> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _recommendationsController,
-            maxLines: 4,
+            maxLines: 6,
+            minLines: 4,
             decoration: const InputDecoration(
               labelText: 'Action items and next steps',
               hintText: 'Suggest specific actions, resources, or study strategies...',
